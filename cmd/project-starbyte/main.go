@@ -107,7 +107,7 @@ func (m menuModel) View() string {
 	}
 
 	// render key hints
-	hints := hintStyle.Render("[Arrow Keys] Navigate • [Enter] Select • [q] Quit")
+	hints := hintStyle.Render("[k ↑ j ↓ ~ arrow keys ] Navigate • [Enter] Select • [q] Quit")
 
 	// render output section
 	output := "Welcome to Starbyte!\n"

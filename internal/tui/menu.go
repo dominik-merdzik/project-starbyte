@@ -6,6 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+//    "github.com/charmbracelet/huh"
+
 )
 
 type GameModel struct {
@@ -14,6 +16,7 @@ type GameModel struct {
 }
 
 func (g GameModel) Init() tea.Cmd {
+
 	// start the hovering effect
 	return hoverStarship()
 }
@@ -49,9 +52,8 @@ func (g GameModel) View() string {
 		Bold(true).
 		Foreground(lipgloss.Color("63")). // Purple color
 		Align(lipgloss.Center).
-		Width(80).
+		Width(40). // Adjust width for the left panel
 		Padding(1, 0, 1, 0).
-		Border(lipgloss.DoubleBorder()).
 		BorderForeground(lipgloss.Color("63"))
 
 	// static title text
@@ -92,14 +94,31 @@ func (g GameModel) View() string {
 `
 	starshipStyle := lipgloss.NewStyle().
 		Align(lipgloss.Center).
-		Width(80)
-
+		Width(40). // Adjust width for the right panel
+		Height(20) // Ensure consistent height
 
 	// add blank lines above the starship to simulate hovering
 	hoveredStarship := repeat("\n", g.starshipPosition) + starshipStyle.Render(starshipArt)
 
-	// combine the title and the centered starship
-	return fmt.Sprintf("%s\n\n%s", title, hoveredStarship)
+	// combine the panels
+	leftPanel := lipgloss.NewStyle().
+		Width(60).
+		Height(40).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("63")).
+        Align(lipgloss.Center).
+		Render(title)
+
+	rightPanel := lipgloss.NewStyle().
+		Width(40).
+		Height(20).
+		BorderForeground(lipgloss.Color("34")).
+		Render(hoveredStarship)
+
+	// combine panels side-by-side
+	mainView := lipgloss.JoinHorizontal(lipgloss.Center, leftPanel, rightPanel)
+
+	return mainView
 }
 
 // NewGameModel creates and returns a new GameModel instance
