@@ -1,6 +1,6 @@
 module github.com/dominik-merdzik/project-starbyte
 
-go 1.23.1
+go 1.23
 
 require (
 	github.com/charmbracelet/bubbles v0.20.0

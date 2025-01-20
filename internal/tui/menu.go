@@ -2,23 +2,16 @@ package views
 
 import (
 	"fmt"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-//    "github.com/charmbracelet/huh"
-
 )
 
-type GameModel struct {
-	starshipPosition int  // controls the vertical position of the starship
-	moveUp           bool // direction of movement (true for up, false for down)
-}
+type GameModel struct {}
 
 func (g GameModel) Init() tea.Cmd {
-
-	// start the hovering effect
-	return hoverStarship()
+	// No initialization needed
+	return nil
 }
 
 func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -28,105 +21,69 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			return g, tea.Quit
 		}
-	case hoverMsg:
-		// update the position and direction for hovering
-		if g.moveUp {
-			g.starshipPosition--
-			if g.starshipPosition <= 0 {
-				g.moveUp = false
-			}
-		} else {
-			g.starshipPosition++
-			if g.starshipPosition >= 2 { // max hover range
-				g.moveUp = true
-			}
-		}
-		return g, hoverStarship()
 	}
 	return g, nil
 }
 
 func (g GameModel) View() string {
-	// title styling
+	// Title styling
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("63")). // Purple color
 		Align(lipgloss.Center).
-		Width(40). // Adjust width for the left panel
+		Width(40).
 		Padding(1, 0, 1, 0).
 		BorderForeground(lipgloss.Color("63"))
 
-	// static title text
 	title := titleStyle.Render("🚀 STARSHIP SIMULATION 🚀")
-
-	// starship styling
+	stats := titleStyle.Render("Statistics")
 	starshipArt := `
-       !
-       !
-       ^
-      / \
-     /___\
-    |=   =|
-    |     |
-    |     |
-    |     |
-    |     |
-    |     |
-    |     |
-    |     |
-    |     |
-    |     |
-   /|##!##|\
-  / |##!##| \
- /  |##!##|  \
-|  / ^ | ^ \  |
-| /  ( | )  \ |
-|/   ( | )   \|
-    ((   ))
-   ((  :  ))
-   ((  :  ))
-    ((   ))
-     (( ))
-      ( )
-       .
-       .
-       .
+	__
+	| \
+	=[_|H)--._____
+	=[+--,-------'
+	[|_/""
 `
-	starshipStyle := lipgloss.NewStyle().
-		Align(lipgloss.Center).
-		Width(40). // Adjust width for the right panel
-		Height(20) // Ensure consistent height
-
-	// add blank lines above the starship to simulate hovering
-	hoveredStarship := repeat("\n", g.starshipPosition) + starshipStyle.Render(starshipArt)
-
-	// combine the panels
 	leftPanel := lipgloss.NewStyle().
-		Width(60).
-		Height(40).
+		Width(40).
+		Height(25).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63")).
-        Align(lipgloss.Center).
+		Align(lipgloss.Center).
 		Render(title)
 
 	rightPanel := lipgloss.NewStyle().
 		Width(40).
-		Height(20).
+		Height(25).
+		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("34")).
-		Render(hoveredStarship)
+		Render(starshipArt)
 
-	// combine panels side-by-side
-	mainView := lipgloss.JoinHorizontal(lipgloss.Center, leftPanel, rightPanel)
+	centerPanel := lipgloss.NewStyle().
+		Width(50).
+		Height(25).
+		Border(lipgloss.RoundedBorder()).
+		Align(lipgloss.Center).
+		Render(stats)
+
+	bottomPanel := lipgloss.NewStyle().
+		Width(134).
+		Height(15).
+		Border(lipgloss.RoundedBorder()).
+		Align(lipgloss.Center).
+		Render("This is the bottom panel.")
+
+	mainView := lipgloss.JoinVertical(lipgloss.Center,
+		lipgloss.JoinHorizontal(lipgloss.Center, leftPanel, centerPanel, rightPanel),
+		bottomPanel,
+	)
 
 	return mainView
 }
 
 // NewGameModel creates and returns a new GameModel instance
 func NewGameModel() tea.Model {
-	return GameModel{
-		starshipPosition: 1, // Start at the middle position
-		moveUp:           true,
-	}
+	return GameModel{}
 }
 
 // StartSimulation initializes and starts the simulation TUI
@@ -139,23 +96,3 @@ func StartSimulation() tea.Cmd {
 		return nil
 	}
 }
-
-// hoverMsg is a custom message for triggering the hover effect
-type hoverMsg struct{}
-
-// hoverStarship returns a tea.Cmd that triggers a hoverMsg after a delay
-func hoverStarship() tea.Cmd {
-	return tea.Tick(325*time.Millisecond, func(time.Time) tea.Msg {
-		return hoverMsg{}
-	})
-}
-
-// repeat returns a string repeated n times
-func repeat(s string, n int) string {
-	result := ""
-	for i := 0; i < n; i++ {
-		result += s
-	}
-	return result
-}
-
