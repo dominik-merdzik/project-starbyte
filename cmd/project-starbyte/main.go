@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-    "github.com/dominik-merdzik/project-starbyte/internal/tui"
+    "github.com/dominik-merdzik/project-starbyte/internal/tui/views"
 )
 
 type menuModel struct {

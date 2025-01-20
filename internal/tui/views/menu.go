@@ -5,12 +5,16 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dominik-merdzik/project-starbyte/internal/tui/components"
 )
 
-type GameModel struct {}
+type GameModel struct {
+	ProgressBar    components.ProgressBar
+	currentHealth  int
+	maxHealth      int
+}
 
 func (g GameModel) Init() tea.Cmd {
-	// No initialization needed
 	return nil
 }
 
@@ -20,12 +24,23 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q":
 			return g, tea.Quit
+		case "a": // simulating damage and healing for testing
+			g.currentHealth -= 10
+			if g.currentHealth < 0 {
+				g.currentHealth = 0
+			}
+		case "h":
+			g.currentHealth += 10
+			if g.currentHealth > g.maxHealth {
+				g.currentHealth = g.maxHealth
+			}
 		}
 	}
 	return g, nil
 }
 
 func (g GameModel) View() string {
+
 	// Title styling
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
@@ -36,15 +51,14 @@ func (g GameModel) View() string {
 		BorderForeground(lipgloss.Color("63"))
 
 	title := titleStyle.Render("🚀 STARSHIP SIMULATION 🚀")
-	stats := titleStyle.Render("Statistics")
-	starshipArt := `
-	__
-	| \
-	=[_|H)--._____
-	=[+--,-------'
-	[|_/""
-`
-	leftPanel := lipgloss.NewStyle().
+
+	stats := fmt.Sprintf("Ship Health: %d/%d", g.currentHealth, g.maxHealth)
+
+	// rendering the progress bar
+	healthBar := g.ProgressBar.RenderProgressBar(g.currentHealth, g.maxHealth)
+
+	// left panel
+    leftPanel := lipgloss.NewStyle().
 		Width(40).
 		Height(25).
 		Border(lipgloss.RoundedBorder()).
@@ -52,20 +66,25 @@ func (g GameModel) View() string {
 		Align(lipgloss.Center).
 		Render(title)
 
-	rightPanel := lipgloss.NewStyle().
-		Width(40).
-		Height(25).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("34")).
-		Render(starshipArt)
-
+	// center panel for stats and the progress bar
+	centerContent := fmt.Sprintf("%s\n\n%s", stats, healthBar)
 	centerPanel := lipgloss.NewStyle().
 		Width(50).
 		Height(25).
 		Border(lipgloss.RoundedBorder()).
 		Align(lipgloss.Center).
-		Render(stats)
+		Render(centerContent)
 
+	// right panel
+    rightPanel := lipgloss.NewStyle().
+		Width(40).
+		Height(25).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("34")).
+		Align(lipgloss.Center).
+		Render("")
+
+	// bottom panel
 	bottomPanel := lipgloss.NewStyle().
 		Width(134).
 		Height(15).
@@ -73,6 +92,7 @@ func (g GameModel) View() string {
 		Align(lipgloss.Center).
 		Render("This is the bottom panel.")
 
+	// combine panels into the main view
 	mainView := lipgloss.JoinVertical(lipgloss.Center,
 		lipgloss.JoinHorizontal(lipgloss.Center, leftPanel, centerPanel, rightPanel),
 		bottomPanel,
@@ -83,7 +103,11 @@ func (g GameModel) View() string {
 
 // NewGameModel creates and returns a new GameModel instance
 func NewGameModel() tea.Model {
-	return GameModel{}
+	return GameModel{
+		ProgressBar:   components.NewProgressBar(),
+		currentHealth: 62, // Example initial health
+		maxHealth:     100, // Example max health
+	}
 }
 
 // StartSimulation initializes and starts the simulation TUI
@@ -96,3 +120,4 @@ func StartSimulation() tea.Cmd {
 		return nil
 	}
 }
+
