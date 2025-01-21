@@ -9,22 +9,35 @@ import (
 )
 
 type GameModel struct {
-	ProgressBar    components.ProgressBar
-	currentHealth  int
-	maxHealth      int
+	ProgressBar   components.ProgressBar
+	currentHealth int
+	maxHealth     int
+	Yuta          components.YutaModel
 }
 
 func (g GameModel) Init() tea.Cmd {
-	return nil
+	// initialize Yuta's animation
+	return tea.Batch(
+		g.Yuta.Init(),
+	)
 }
 
 func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	// update Yuta (collect its commands for future use)
+	newYuta, yutaCmd := g.Yuta.Update(msg)
+	if yutaModel, ok := newYuta.(components.YutaModel); ok {
+		g.Yuta = yutaModel
+	}
+	cmds = append(cmds, yutaCmd)
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q":
 			return g, tea.Quit
-		case "a": // simulating damage and healing for testing
+		case "a": // simulate damage and healing for testing
 			g.currentHealth -= 10
 			if g.currentHealth < 0 {
 				g.currentHealth = 0
@@ -36,15 +49,15 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	}
-	return g, nil
+
+	return g, tea.Batch(cmds...)
 }
 
 func (g GameModel) View() string {
 
-	// Title styling
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("63")). // Purple color
+		Foreground(lipgloss.Color("63")).
 		Align(lipgloss.Center).
 		Width(40).
 		Padding(1, 0, 1, 0).
@@ -58,7 +71,7 @@ func (g GameModel) View() string {
 	healthBar := g.ProgressBar.RenderProgressBar(g.currentHealth, g.maxHealth)
 
 	// left panel
-    leftPanel := lipgloss.NewStyle().
+	leftPanel := lipgloss.NewStyle().
 		Width(40).
 		Height(25).
 		Border(lipgloss.RoundedBorder()).
@@ -75,14 +88,14 @@ func (g GameModel) View() string {
 		Align(lipgloss.Center).
 		Render(centerContent)
 
-	// right panel
-    rightPanel := lipgloss.NewStyle().
+	// right panel with Yuta
+	rightPanel := lipgloss.NewStyle().
 		Width(40).
 		Height(25).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("34")).
 		Align(lipgloss.Center).
-		Render("")
+		Render(g.Yuta.View()) // Render Yuta here
 
 	// bottom panel
 	bottomPanel := lipgloss.NewStyle().
@@ -105,8 +118,9 @@ func (g GameModel) View() string {
 func NewGameModel() tea.Model {
 	return GameModel{
 		ProgressBar:   components.NewProgressBar(),
-		currentHealth: 62, // Example initial health
-		maxHealth:     100, // Example max health
+		currentHealth: 62,                   // example initial health
+		maxHealth:     100,                  // example max health
+		Yuta:          components.NewYuta(), // initialize Yuta
 	}
 }
 
@@ -120,4 +134,3 @@ func StartSimulation() tea.Cmd {
 		return nil
 	}
 }
-
