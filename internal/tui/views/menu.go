@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -13,6 +14,9 @@ type GameModel struct {
 	currentHealth int
 	maxHealth     int
 	Yuta          components.YutaModel
+
+	menuItems  []string // List of menu options
+	menuCursor int      // Current position of the cursor in the menu
 }
 
 func (g GameModel) Init() tea.Cmd {
@@ -47,6 +51,22 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if g.currentHealth > g.maxHealth {
 				g.currentHealth = g.maxHealth
 			}
+
+		
+		// !!! Menu navigation
+		// !!! I KNOW THIS IS PROBABLY NOT THE BEST WAY TO HANDLE MENU NAVIGATION
+		// AND I SHOULD'VE BASED IT OFF THAT FOOD EXAMPLE
+		case "up": // Move cursor up in the menu
+			if g.menuCursor > 0 {
+				g.menuCursor--
+			}
+		case "down": // Move cursor down in the menu
+			if g.menuCursor < len(g.menuItems)-1 {
+				g.menuCursor++
+			}
+		case "enter": // Enter/select the current menu item
+			selectedItem := g.menuItems[g.menuCursor]
+			fmt.Printf("You selected: %s\n", selectedItem)
 		}
 	}
 
@@ -70,6 +90,16 @@ func (g GameModel) View() string {
 	// rendering the progress bar
 	healthBar := g.ProgressBar.RenderProgressBar(g.currentHealth, g.maxHealth)
 
+	// Render the menu with cursor
+	var menuView strings.Builder
+	for i, item := range g.menuItems {
+		cursor := " " // no cursor
+		if i == g.menuCursor {
+			cursor = ">"
+		}
+		menuView.WriteString(fmt.Sprintf("%s %s\n", cursor, item))
+	}
+
 	// left panel
 	leftPanel := lipgloss.NewStyle().
 		Width(40).
@@ -77,7 +107,7 @@ func (g GameModel) View() string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63")).
 		Align(lipgloss.Center).
-		Render(title)
+		Render(fmt.Sprintf("%s\n\n%s", title, menuView.String()))
 
 	// center panel for stats and the progress bar
 	centerContent := fmt.Sprintf("%s\n\n%s", stats, healthBar)
@@ -121,6 +151,9 @@ func NewGameModel() tea.Model {
 		currentHealth: 62,                   // example initial health
 		maxHealth:     100,                  // example max health
 		Yuta:          components.NewYuta(), // initialize Yuta
+
+		menuItems:  []string{"Option 1", "Option 2", "Option 3"}, // Menu options
+		menuCursor: 0,                                            // Start cursor at the first menu item
 	}
 }
 

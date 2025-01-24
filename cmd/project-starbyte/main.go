@@ -5,13 +5,15 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-    "github.com/dominik-merdzik/project-starbyte/internal/tui/views"
+	"github.com/dominik-merdzik/project-starbyte/internal/tui/views"
 )
 
 type menuModel struct {
 	choices []string // list of menu options
 	cursor  int      // current position of the cursor
 	output  string   // additional information or output text
+
+	active  bool     // !!! Flag to indicate if the menu is active
 }
 
 func main() {
@@ -23,6 +25,8 @@ func main() {
 			"Help",
 			"Exit",
 		},
+
+		active: true, // !!! Menu is active by default
 	}
 
 	// create a new program using the menu model and start it
@@ -38,6 +42,11 @@ func (m menuModel) Init() tea.Cmd {
 }
 
 func (m menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// !!! If the menu is not active, break the loop and skip the rest of the function
+	if !m.active {
+		return m, nil
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// handle navigation and selection based on key input
@@ -59,6 +68,9 @@ func (m menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// handle menu item selection
 			switch m.choices[m.cursor] {
 			case "Enter Simulation":
+				// !!! THIS SHOULD DEACTIVATE THE MENU BUT IT DOESN'T
+				m.active = false
+
 				// use the views package to launch the simulation view
 				return m, views.StartSimulation()
 			case "Edit Config":
