@@ -10,17 +10,19 @@ import (
 )
 
 type GameModel struct {
-	ProgressBar   components.ProgressBar
+	ProgressBar components.ProgressBar
+	Yuta        components.YutaModel
+
 	currentHealth int
 	maxHealth     int
-	Yuta          components.YutaModel
 
-	menuItems  []string // List of menu options
-	menuCursor int      // Current position of the cursor in the menu
+	menuItems    []string // list of menu options
+	menuCursor   int      // current position of the cursor
+	selectedItem string
 }
 
 func (g GameModel) Init() tea.Cmd {
-	// initialize Yuta's animation
+	// initialize Yuta’s animation (seem to be broken ATM)
 	return tea.Batch(
 		g.Yuta.Init(),
 	)
@@ -40,33 +42,34 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q":
+			// quit the entire application
 			return g, tea.Quit
-		case "a": // simulate damage and healing for testing
+
+		case "a":
+			// simulate damage
 			g.currentHealth -= 10
 			if g.currentHealth < 0 {
 				g.currentHealth = 0
 			}
+
 		case "h":
+			// simulate healing
 			g.currentHealth += 10
 			if g.currentHealth > g.maxHealth {
 				g.currentHealth = g.maxHealth
 			}
 
-		
-		// !!! Menu navigation
-		// !!! I KNOW THIS IS PROBABLY NOT THE BEST WAY TO HANDLE MENU NAVIGATION
-		// AND I SHOULD'VE BASED IT OFF THAT FOOD EXAMPLE
-		case "up": // Move cursor up in the menu
+		// menu navigation inside the game
+		case "up", "k":
 			if g.menuCursor > 0 {
 				g.menuCursor--
 			}
-		case "down": // Move cursor down in the menu
+		case "down", "j":
 			if g.menuCursor < len(g.menuItems)-1 {
 				g.menuCursor++
 			}
-		case "enter": // Enter/select the current menu item
-			selectedItem := g.menuItems[g.menuCursor]
-			fmt.Printf("You selected: %s\n", selectedItem)
+		case "enter":
+			g.selectedItem = g.menuItems[g.menuCursor]
 		}
 	}
 
@@ -74,7 +77,6 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (g GameModel) View() string {
-
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("63")).
@@ -87,13 +89,12 @@ func (g GameModel) View() string {
 
 	stats := fmt.Sprintf("Ship Health: %d/%d", g.currentHealth, g.maxHealth)
 
-	// rendering the progress bar
+	// render the progress bar
 	healthBar := g.ProgressBar.RenderProgressBar(g.currentHealth, g.maxHealth)
 
-	// Render the menu with cursor
 	var menuView strings.Builder
 	for i, item := range g.menuItems {
-		cursor := " " // no cursor
+		cursor := "_" // update later
 		if i == g.menuCursor {
 			cursor = ">"
 		}
@@ -125,17 +126,21 @@ func (g GameModel) View() string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("34")).
 		Align(lipgloss.Center).
-		Render(g.Yuta.View()) // Render Yuta here
+		Render(g.Yuta.View())
 
 	// bottom panel
+	bottomPanelContent := "This is the bottom panel."
+	if g.selectedItem != "" {
+		bottomPanelContent = fmt.Sprintf("You selected: %s", g.selectedItem)
+	}
 	bottomPanel := lipgloss.NewStyle().
 		Width(134).
 		Height(15).
 		Border(lipgloss.RoundedBorder()).
 		Align(lipgloss.Center).
-		Render("This is the bottom panel.")
+		Render(bottomPanelContent)
 
-	// combine panels into the main view
+	// Combine panels into the main view
 	mainView := lipgloss.JoinVertical(lipgloss.Center,
 		lipgloss.JoinHorizontal(lipgloss.Center, leftPanel, centerPanel, rightPanel),
 		bottomPanel,
@@ -151,19 +156,7 @@ func NewGameModel() tea.Model {
 		currentHealth: 62,                   // example initial health
 		maxHealth:     100,                  // example max health
 		Yuta:          components.NewYuta(), // initialize Yuta
-
-		menuItems:  []string{"Option 1", "Option 2", "Option 3"}, // Menu options
-		menuCursor: 0,                                            // Start cursor at the first menu item
-	}
-}
-
-// StartSimulation initializes and starts the simulation TUI
-func StartSimulation() tea.Cmd {
-	return func() tea.Msg {
-		p := tea.NewProgram(NewGameModel(), tea.WithAltScreen())
-		if err := p.Start(); err != nil {
-			fmt.Printf("Error starting simulation TUI: %v\n", err)
-		}
-		return nil
+		menuItems:     []string{"Option 1", "Option 2", "Option 3"},
+		menuCursor:    0, // Start cursor at the first menu item
 	}
 }
