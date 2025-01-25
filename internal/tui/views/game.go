@@ -77,6 +77,9 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (g GameModel) View() string {
+	//-------------------------------------------------------------------
+	// title style
+	//-------------------------------------------------------------------
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("63")).
@@ -87,30 +90,35 @@ func (g GameModel) View() string {
 
 	title := titleStyle.Render("🚀 STARSHIP SIMULATION 🚀")
 
+	//-------------------------------------------------------------------
+	// stats & progress Bar
+	//-------------------------------------------------------------------
 	stats := fmt.Sprintf("Ship Health: %d/%d", g.currentHealth, g.maxHealth)
-
-	// render the progress bar
 	healthBar := g.ProgressBar.RenderProgressBar(g.currentHealth, g.maxHealth)
 
+	//-------------------------------------------------------------------
+	// menu items
+	//-------------------------------------------------------------------
 	var menuView strings.Builder
 	for i, item := range g.menuItems {
-		cursor := "_" // update later
+		cursor := "_"
 		if i == g.menuCursor {
 			cursor = ">"
 		}
 		menuView.WriteString(fmt.Sprintf("%s %s\n", cursor, item))
 	}
 
-	// left panel
+	//-------------------------------------------------------------------
+	// panels: left, center, right
+	//-------------------------------------------------------------------
 	leftPanel := lipgloss.NewStyle().
 		Width(40).
 		Height(25).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63")).
-		Align(lipgloss.Center).
+		Align(lipgloss.Center, lipgloss.Left).
 		Render(fmt.Sprintf("%s\n\n%s", title, menuView.String()))
 
-	// center panel for stats and the progress bar
 	centerContent := fmt.Sprintf("%s\n\n%s", stats, healthBar)
 	centerPanel := lipgloss.NewStyle().
 		Width(50).
@@ -119,7 +127,6 @@ func (g GameModel) View() string {
 		Align(lipgloss.Center).
 		Render(centerContent)
 
-	// right panel with Yuta
 	rightPanel := lipgloss.NewStyle().
 		Width(40).
 		Height(25).
@@ -128,24 +135,58 @@ func (g GameModel) View() string {
 		Align(lipgloss.Center).
 		Render(g.Yuta.View())
 
-	// bottom panel
+	//-------------------------------------------------------------------
+	// bottom panel (just a placeholder for now)
+	//-------------------------------------------------------------------
 	bottomPanelContent := "This is the bottom panel."
-	if g.selectedItem != "" {
-		bottomPanelContent = fmt.Sprintf("You selected: %s", g.selectedItem)
-	}
 	bottomPanel := lipgloss.NewStyle().
 		Width(134).
-		Height(15).
+		Height(12).
 		Border(lipgloss.RoundedBorder()).
 		Align(lipgloss.Center).
 		Render(bottomPanelContent)
 
-	// Combine panels into the main view
-	mainView := lipgloss.JoinVertical(lipgloss.Center,
-		lipgloss.JoinHorizontal(lipgloss.Center, leftPanel, centerPanel, rightPanel),
-		bottomPanel,
-	)
+	//-------------------------------------------------------------------
+	// hints row: selected item (left) and hints (right)
+	//-------------------------------------------------------------------
+	selected := g.selectedItem
+	if selected == "" {
+		selected = "none"
+	}
+	selectedText := fmt.Sprintf("Selected [%s]", selected)
 
+	// left side (selected item)
+	leftSide := lipgloss.NewStyle().
+		Width(65). // half-ish of 134
+		PaddingLeft(2).
+		Render(selectedText)
+
+	// right side (hints)
+	hints := "[k ↑ j ↓ arrow keys] Navigate • [Enter] Select • [q] Quit"
+	rightSide := lipgloss.NewStyle().
+		Width(69). // the other half
+		Align(lipgloss.Right).
+		PaddingRight(2).
+		Render(hints)
+
+	// join both sides horizontally
+	hintsRowContent := lipgloss.JoinHorizontal(lipgloss.Top, leftSide, rightSide)
+
+	// style for the entire hints row
+	hintsRowStyle := lipgloss.NewStyle().
+		Width(134).
+		Background(lipgloss.Color("236")). // dark gray
+		Foreground(lipgloss.Color("15"))   // white
+
+	hintsRow := hintsRowStyle.Render(hintsRowContent)
+
+	//-------------------------------------------------------------------
+	// combine the top row, bottom panel, and hints row
+	//-------------------------------------------------------------------
+	topRow := lipgloss.JoinHorizontal(lipgloss.Center, leftPanel, centerPanel, rightPanel)
+	bottomRows := lipgloss.JoinVertical(lipgloss.Center, bottomPanel, hintsRow)
+
+	mainView := lipgloss.JoinVertical(lipgloss.Center, topRow, bottomRows)
 	return mainView
 }
 
@@ -156,7 +197,7 @@ func NewGameModel() tea.Model {
 		currentHealth: 62,                   // example initial health
 		maxHealth:     100,                  // example max health
 		Yuta:          components.NewYuta(), // initialize Yuta
-		menuItems:     []string{"Option 1", "Option 2", "Option 3"},
-		menuCursor:    0, // Start cursor at the first menu item
+		menuItems:     []string{"Ship", "Crew", "Inventory", "Map", "Settings"},
+		menuCursor:    0, // start cursor at the first menu item
 	}
 }
