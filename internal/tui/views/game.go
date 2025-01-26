@@ -10,8 +10,12 @@ import (
 )
 
 type GameModel struct {
+
+	// components
 	ProgressBar components.ProgressBar
 	Yuta        components.YutaModel
+	// how-to: 1) add Ship field to GameModel struct
+	Ship components.ShipModel
 
 	currentHealth int
 	maxHealth     int
@@ -22,7 +26,7 @@ type GameModel struct {
 }
 
 func (g GameModel) Init() tea.Cmd {
-	// initialize Yuta’s animation (seem to be broken ATM)
+	// initialize Yuta's animation (seem to be broken ATM)
 	return tea.Batch(
 		g.Yuta.Init(),
 	)
@@ -37,6 +41,13 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		g.Yuta = yutaModel
 	}
 	cmds = append(cmds, yutaCmd)
+
+	// how-to: 3) update Ship field
+	newShip, shipCmd := g.Ship.Update(msg)
+	if s, ok := newShip.(components.ShipModel); ok {
+		g.Ship = s
+	}
+	cmds = append(cmds, shipCmd)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -159,7 +170,17 @@ func (g GameModel) View() string {
 	//-------------------------------------------------------------------
 	// bottom panel (just a placeholder for now)
 	//-------------------------------------------------------------------
-	bottomPanelContent := "This is the bottom panel."
+	// how-to: 4) update bottom panel (where we want different components)
+	var bottomPanelContent string
+	switch g.selectedItem {
+	case "Ship":
+		// show the ShipModel view
+		bottomPanelContent = g.Ship.View()
+	default:
+		// default fallback
+		bottomPanelContent = "This is the bottom panel."
+	}
+
 	bottomPanel := lipgloss.NewStyle().
 		Width(134).
 		Height(12).
@@ -220,5 +241,8 @@ func NewGameModel() tea.Model {
 		Yuta:          components.NewYuta(), // initialize Yuta
 		menuItems:     []string{"Ship", "Crew", "Inventory", "Map", "Settings"},
 		menuCursor:    0, // start cursor at the first menu item
+
+		// how-to: 2) initialize Ship field
+		Ship: components.NewShipModel(),
 	}
 }
