@@ -77,6 +77,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (g GameModel) View() string {
+
 	//-------------------------------------------------------------------
 	// title style
 	//-------------------------------------------------------------------
@@ -99,25 +100,45 @@ func (g GameModel) View() string {
 	//-------------------------------------------------------------------
 	// menu items
 	//-------------------------------------------------------------------
+	// define style for the menu items
+	menuItemStyle := lipgloss.NewStyle().
+		Bold(true).
+		PaddingLeft(1).
+		Foreground(lipgloss.Color("217")) // chanage colour to theme later !!
+
+	// define style for cursor
+	cursorStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("63")).
+		PaddingLeft(2).
+		Bold(true)
+
 	var menuView strings.Builder
 	for i, item := range g.menuItems {
 		cursor := "_"
+		menuItemStyle = menuItemStyle.Foreground(lipgloss.Color("217"))
 		if i == g.menuCursor {
+			menuItemStyle = menuItemStyle.Foreground(lipgloss.Color("215"))
 			cursor = ">"
 		}
-		menuView.WriteString(fmt.Sprintf("%s %s\n", cursor, item))
+
+		styledItem := menuItemStyle.Render(strings.ToUpper(item))
+		styledCursor := cursorStyle.Render(cursor)
+		menuView.WriteString(fmt.Sprintf("%s %s\n", styledCursor, styledItem))
 	}
 
 	//-------------------------------------------------------------------
 	// panels: left, center, right
 	//-------------------------------------------------------------------
-	leftPanel := lipgloss.NewStyle().
+	leftPanelStyle := lipgloss.NewStyle().
 		Width(40).
 		Height(25).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63")).
-		Align(lipgloss.Center, lipgloss.Left).
-		Render(fmt.Sprintf("%s\n\n%s", title, menuView.String()))
+		Align(lipgloss.Left, lipgloss.Top) // <-- Horizontal=Left, Vertical=Top
+
+	leftPanel := leftPanelStyle.Render(
+		fmt.Sprintf("%s\n\n%s", title, menuView.String()),
+	)
 
 	centerContent := fmt.Sprintf("%s\n\n%s", stats, healthBar)
 	centerPanel := lipgloss.NewStyle().
