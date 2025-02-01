@@ -50,7 +50,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: project-starbyte-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
-          path: build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte
+          path: |
+            build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte
+            build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte.exe
 
       # I don't think we're gonna be running tests
       #- name: Test
