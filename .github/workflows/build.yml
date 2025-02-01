@@ -1,13 +1,14 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+# This file is for GitHub Actions
+# It will automatically build our project for Linux, macOS, and Windows when we push to the `main` branch
+# See the `Actions` tab on the GitHub repo
 
-name: Build Go Project
+name: Build cross-platform Go project
 
 on:
   push:
-    branches: ["andrew"] # Using my branch to test
+    branches: ["main"]
   pull_request:
-    branches: ["andrew"] # Using my branch to test
+    branches: ["main"]
 
 jobs:
   build:
@@ -34,16 +35,23 @@ jobs:
         with:
           go-version: "stable" # Use latest stable version (see here https://github.com/actions/go-versions/blob/main/versions-manifest.json)
 
-      # Basically runs `go build {operating system}`
+      # Basically runs `go build {operating system} {architecture}`
+      # For the Windows build, we need to specify ".exe"
       - name: Build
         run: |
-          GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -o build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte cmd/project-starbyte/main.go
-
+          if [ "${{ matrix.GOOS }}" = "windows" ]; then
+            GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -o build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte.exe cmd/project-starbyte/main.go
+          else
+            GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -o build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte cmd/project-starbyte/main.go
+          fi
+          
+      # Upload the artifact on GitHub, so we can download the executables
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: project-starbyte-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
           path: build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte
 
+      # I don't think we're gonna be running tests
       #- name: Test
       #  run: go test -v ./...
