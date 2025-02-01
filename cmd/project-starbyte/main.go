@@ -5,17 +5,17 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-    "github.com/dominik-merdzik/project-starbyte/internal/tui/views"
+
+	"github.com/dominik-merdzik/project-starbyte/internal/tui/views"
 )
 
 type menuModel struct {
-	choices []string // list of menu options
-	cursor  int      // current position of the cursor
-	output  string   // additional information or output text
+	choices []string
+	cursor  int
+	output  string
 }
 
 func main() {
-	// initialize the menu model with menu choices
 	model := menuModel{
 		choices: []string{
 			"Enter Simulation",
@@ -25,7 +25,6 @@ func main() {
 		},
 	}
 
-	// create a new program using the menu model and start it
 	p := tea.NewProgram(model)
 	if err := p.Start(); err != nil {
 		fmt.Printf("Error starting application: %v\n", err)
@@ -55,22 +54,28 @@ func (m menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			// quit the program
 			return m, tea.Quit
+
 		case "enter":
 			// handle menu item selection
 			switch m.choices[m.cursor] {
 			case "Enter Simulation":
-				// use the views package to launch the simulation view
-				return m, views.StartSimulation()
+				// Instead of starting a new program,
+				// return the new simulation model + enter alt screen
+				return views.NewGameModel(), tea.EnterAltScreen
+
 			case "Edit Config":
 				m.output = "Configuration editing is currently not implemented."
+
 			case "Help":
 				m.output = "Help Menu:\n - Enter Game: Start the game\n - Edit Config: Modify settings\n - Help: Show this menu\n - Exit: Quit the program"
+
 			case "Exit":
 				return m, tea.Quit
 			}
 		}
 	}
-	// return updated model without additional commands
+
+	// return the updated menu model without additional commands
 	return m, nil
 }
 
@@ -83,7 +88,7 @@ func (m menuModel) View() string {
 	outputStyle := lipgloss.NewStyle().PaddingLeft(2).Italic(true).Foreground(lipgloss.Color("45"))
 	columnStyle := lipgloss.NewStyle().Padding(0, 2)
 
-	// define the title using ASCII art
+	// ASCII art title
 	const title = `
 ██████╗ ██████╗  ██████╗      ██╗███████╗ ██████╗████████╗    ███████╗████████╗ █████╗ ██████╗ ██████╗ ██╗   ██╗████████╗███████╗
 ██╔══██╗██╔══██╗██╔═══██╗     ██║██╔════╝██╔════╝╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗╚██╗ ██╔╝╚══██╔══╝██╔════╝
@@ -100,7 +105,6 @@ func (m menuModel) View() string {
 	for i, choice := range m.choices {
 		cursor := " "
 		if m.cursor == i {
-			// add cursor to the current selection
 			cursor = cursorStyle.Render(">")
 		}
 		menu += fmt.Sprintf(" %s %s\n", cursor, choiceStyle.Render(choice))

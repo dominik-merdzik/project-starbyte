@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	fps       = 16   // Frames per second - doesn't seem to change much in our case
-	height    = 1    // max height for bouncing
-	frequency = 2.5  // higher frequency for faster bouncing
-	damping   = 0.01 // less damping for more sustained motion
+	fps       = 30  // Frames per second - doesn't seem to change much in our case
+	height    = 15  // max height for bouncing
+	frequency = 1.5 // higher frequency for faster bouncing
+	damping   = 0.1 // less damping for more sustained motion
 )
 
 var (
@@ -76,6 +76,9 @@ func (m YutaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m YutaModel) View() string {
 	var out strings.Builder
+
+	fmt.Fprintf(&out, "[debug] yPos=%.2f, yVel=%.2f\n\n", m.yPos, m.yVel)
+
 	fmt.Fprint(&out, "\n")
 
 	// calculating vertical position

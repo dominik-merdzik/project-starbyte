@@ -21,5 +21,4 @@ Game document <a href="https://docs.google.com/document/d/1VZVy6n2BYHgG2n11dldsQ
 <h1> Stack </h1>
 <br/>
 <h1> Building Process </h1>
-
-
+<br/>
