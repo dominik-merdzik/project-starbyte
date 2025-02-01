@@ -39,5 +39,11 @@ jobs:
         run: |
           GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -o build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte cmd/project-starbyte/main.go
 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-starbyte-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
+          path: build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte
+
       #- name: Test
       #  run: go test -v ./...
