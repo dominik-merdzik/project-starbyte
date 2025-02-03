@@ -239,7 +239,7 @@ func NewGameModel() tea.Model {
 		currentHealth: 62,                   // example initial health
 		maxHealth:     100,                  // example max health
 		Yuta:          components.NewYuta(), // initialize Yuta
-		menuItems:     []string{"Ship", "Crew", "Inventory", "Map", "Settings"},
+		menuItems:     []string{"Ship", "Crew", "Journal", "Map", "Exit"},
 		menuCursor:    0, // start cursor at the first menu item
 
 		// how-to: 2) initialize Ship field
