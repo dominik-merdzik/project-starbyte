@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/tui/components"
+	"github.com/dominik-merdzik/project-starbyte/internal/tui/models"
 )
 
 type GameModel struct {
@@ -15,7 +16,7 @@ type GameModel struct {
 	ProgressBar components.ProgressBar
 	Yuta        components.YutaModel
 	// how-to: 1) add Ship field to GameModel struct
-	Ship components.ShipModel
+	Ship model.ShipModel
 
 	currentHealth int
 	maxHealth     int
@@ -44,7 +45,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// how-to: 3) update Ship field
 	newShip, shipCmd := g.Ship.Update(msg)
-	if s, ok := newShip.(components.ShipModel); ok {
+	if s, ok := newShip.(model.ShipModel); ok {
 		g.Ship = s
 	}
 	cmds = append(cmds, shipCmd)
@@ -243,6 +244,6 @@ func NewGameModel() tea.Model {
 		menuCursor:    0, // start cursor at the first menu item
 
 		// how-to: 2) initialize Ship field
-		Ship: components.NewShipModel(),
+		Ship: model.NewShipModel(),
 	}
 }
