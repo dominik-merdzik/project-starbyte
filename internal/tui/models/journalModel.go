@@ -2,13 +2,13 @@ package model
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Mission defines a single journal mission.
 type Mission struct {
 	Title        string
 	Description  string
@@ -17,18 +17,21 @@ type Mission struct {
 	Income       string
 	Requirements string
 	Received     string
+	Category     string
 }
 
 // JournalModel represents the state and behavior of our Journal component.
 type JournalModel struct {
 	Missions         []Mission // full list of missions
-	Cursor           int       // index of the currently selected mission in the current display list
+	Cursor           int       // index of the currently selected mission in the current page list
 	SearchMode       bool      // whether search mode is active (typing a query)
 	SearchQuery      string    // current search query text
 	FilteredMissions []Mission // missions filtered by the search query
+	Page             int       // current page index (0-based)
+	PageSize         int       // number of items per page
 }
 
-// NewJournalModel initializes and returns a new JournalModel with some fun missions.
+// NewJournalModel initializes and returns a new JournalModel - we will store this in a file later**
 func NewJournalModel() JournalModel {
 	missions := []Mission{
 		{
@@ -39,6 +42,7 @@ func NewJournalModel() JournalModel {
 			Income:       "5000 Credits",
 			Requirements: "Advanced Rescue Kit",
 			Received:     "Command Center",
+			Category:     "Task",
 		},
 		{
 			Title:        "Nebula Exploration",
@@ -48,6 +52,7 @@ func NewJournalModel() JournalModel {
 			Income:       "8000 Credits",
 			Requirements: "Scientific Vessel",
 			Received:     "Galactic Federation",
+			Category:     "Exploration",
 		},
 		{
 			Title:        "Artifact Recovery",
@@ -57,25 +62,147 @@ func NewJournalModel() JournalModel {
 			Income:       "12000 Credits",
 			Requirements: "Archaeological Tools",
 			Received:     "Mysterious Benefactor",
+			Category:     "Retrieve",
+		},
+		{
+			Title:        "Deep Space Survey",
+			Description:  "Conduct a detailed survey of deep space regions for unknown phenomena.",
+			Status:       "Scheduled",
+			Location:     "Alpha Centauri",
+			Income:       "6000 Credits",
+			Requirements: "Survey Drone",
+			Received:     "Research Lab",
+			Category:     "Mission",
+		},
+		{
+			Title:        "Cosmic Anomaly Investigation",
+			Description:  "Investigate unusual cosmic anomalies detected near a distant galaxy.",
+			Status:       "Pending",
+			Location:     "Andromeda",
+			Income:       "7000 Credits",
+			Requirements: "Advanced Sensors",
+			Received:     "Space Agency",
+			Category:     "Investigation",
+		},
+		{
+			Title:        "Solar Flare Response",
+			Description:  "Monitor and respond to unpredictable solar flare activities.",
+			Status:       "In Progress",
+			Location:     "Sun",
+			Income:       "4000 Credits",
+			Requirements: "Shielded Satellite",
+			Received:     "Energy Commission",
+			Category:     "Task",
+		},
+		{
+			Title:        "Black Hole Monitoring",
+			Description:  "Observe the behavior of a nearby black hole and its effects on space-time.",
+			Status:       "Scheduled",
+			Location:     "Sagittarius A*",
+			Income:       "9000 Credits",
+			Requirements: "High-Resolution Telescope",
+			Received:     "Astro Research Institute",
+			Category:     "Monitoring",
+		},
+		{
+			Title:        "Alien Artifact Analysis",
+			Description:  "Examine recovered alien artifacts for technological insights.",
+			Status:       "Completed",
+			Location:     "Lunar Base",
+			Income:       "11000 Credits",
+			Requirements: "X-Ray Scanner",
+			Received:     "Archaeology Dept.",
+			Category:     "Analysis",
+		},
+		{
+			Title:        "Interstellar Diplomatic Mission",
+			Description:  "Establish diplomatic relations with a newly discovered alien civilization.",
+			Status:       "Pending",
+			Location:     "Proxima Centauri",
+			Income:       "15000 Credits",
+			Requirements: "Diplomatic Credentials",
+			Received:     "United Earth Council",
+			Category:     "Diplomacy",
+		},
+		{
+			Title:        "Quantum Rift Study",
+			Description:  "Study the mysterious quantum rift found in deep space.",
+			Status:       "In Progress",
+			Location:     "Draco Constellation",
+			Income:       "13000 Credits",
+			Requirements: "Quantum Analyzer",
+			Received:     "Quantum Lab",
+			Category:     "Study",
+		},
+		{
+			Title:        "Wormhole Stabilization",
+			Description:  "Investigate and attempt to stabilize a naturally occurring wormhole.",
+			Status:       "Scheduled",
+			Location:     "Orion Arm",
+			Income:       "14000 Credits",
+			Requirements: "Stabilization Module",
+			Received:     "Space Federation",
+			Category:     "Stabilization",
+		},
+		{
+			Title:        "Meteor Shower Defense",
+			Description:  "Deploy defenses against a predicted intense meteor shower.",
+			Status:       "Completed",
+			Location:     "Earth Orbit",
+			Income:       "8000 Credits",
+			Requirements: "Defensive Array",
+			Received:     "Military Command",
+			Category:     "Defense",
+		},
+		{
+			Title:        "Stellar Cartography",
+			Description:  "Map uncharted star systems and create new navigation charts.",
+			Status:       "Completed",
+			Location:     "Milky Way",
+			Income:       "5000 Credits",
+			Requirements: "Advanced Mapping Software",
+			Received:     "Navigation Bureau",
+			Category:     "Mapping",
+		},
+		{
+			Title:        "Galactic Trade Negotiation",
+			Description:  "Negotiate new trade routes and terms with intergalactic partners.",
+			Status:       "Pending",
+			Location:     "Andromeda",
+			Income:       "16000 Credits",
+			Requirements: "Trade Agreement",
+			Received:     "Economic Council",
+			Category:     "Negotiation",
+		},
+		{
+			Title:        "Exoplanet Colonization",
+			Description:  "Prepare a detailed plan for colonizing a promising exoplanet.",
+			Status:       "Scheduled",
+			Location:     "Kepler-452b",
+			Income:       "20000 Credits",
+			Requirements: "Colonization Fleet",
+			Received:     "Colonial Office",
+			Category:     "Colonization",
 		},
 	}
 
 	return JournalModel{
 		Missions: missions,
 		Cursor:   0,
+		Page:     0,
+		PageSize: 5,
 	}
 }
 
-// Init is called when the JournalModel is first initialized.
 func (j JournalModel) Init() tea.Cmd {
 	return nil
 }
 
-// Update handles key events for both normal navigation and search input.
 func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
+		// when in search mode, process search input
 		if j.SearchMode {
 			switch msg.String() {
 			case "backspace":
@@ -83,23 +210,25 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					j.SearchQuery = j.SearchQuery[:len(j.SearchQuery)-1]
 				}
 			case "enter":
-				// Finalize search: exit search mode but keep search query and filtered results.
+				// finalize search: exit search mode but keep results
 				j.SearchMode = false
+				j.Page = 0
+				j.Cursor = 0
 				return j, nil
 			case "esc":
-				// Cancel search: clear query and filtered results but remain in Journal view.
+				// cancel search: clear query and results
 				j.SearchMode = false
 				j.SearchQuery = ""
 				j.FilteredMissions = nil
+				j.Page = 0
 				j.Cursor = 0
 				return j, nil
 			default:
-				// Accept only single-character inputs.
 				if len(msg.String()) == 1 {
 					j.SearchQuery += msg.String()
 				}
 			}
-			// Recompute filtered missions live.
+			// recompute filtered missions live
 			j.FilteredMissions = nil
 			for _, m := range j.Missions {
 				if strings.Contains(strings.ToLower(m.Title), strings.ToLower(j.SearchQuery)) ||
@@ -107,66 +236,90 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					j.FilteredMissions = append(j.FilteredMissions, m)
 				}
 			}
-			// Reset cursor if it exceeds the filtered results.
-			if j.Cursor >= len(j.FilteredMissions) {
-				j.Cursor = 0
-			}
+			j.Page = 0
+			j.Cursor = 0
 			return j, nil
 		}
 
-		// When not in search mode, use the (possibly filtered) results for navigation.
+		// when not in search mode, determine the current list
+		var currentList []Mission
+		if j.SearchQuery != "" && len(j.FilteredMissions) > 0 {
+			currentList = j.FilteredMissions
+		} else {
+			currentList = j.Missions
+		}
+		totalItems := len(currentList)
+		startIndex := j.Page * j.PageSize
+		endIndex := startIndex + j.PageSize
+		if endIndex > totalItems {
+			endIndex = totalItems
+		}
+		pageItemsCount := endIndex - startIndex
+
 		switch msg.String() {
 		case "up", "k":
-			if j.SearchQuery != "" {
-				if j.Cursor > 0 {
-					j.Cursor--
-				}
-			} else {
-				if j.Cursor > 0 {
-					j.Cursor--
-				}
+			if j.Cursor > 0 {
+				j.Cursor--
 			}
 		case "down", "j":
-			if j.SearchQuery != "" {
-				if j.Cursor < len(j.FilteredMissions)-1 {
-					j.Cursor++
-				}
-			} else {
-				if j.Cursor < len(j.Missions)-1 {
-					j.Cursor++
-				}
+			if j.Cursor < pageItemsCount-1 {
+				j.Cursor++
 			}
-		case "s":
-			// Activate search mode.
+		case "n":
+			if endIndex < totalItems {
+				j.Page++
+				j.Cursor = 0
+			}
+		case "N":
+			if j.Page > 0 {
+				j.Page--
+				j.Cursor = 0
+			}
+		case "/":
+			// activate search mode - all of these key's are tailored to vim ATM
 			j.SearchMode = true
 			j.SearchQuery = ""
 			j.FilteredMissions = nil
+			j.Page = 0
 			j.Cursor = 0
 		}
 	}
 	return j, nil
 }
 
-// View renders the JournalModel as two side-by-side panels with a vertical divider.
 func (j JournalModel) View() string {
-	// if a search query exists (even if search mode is off), show filtered missions.
-	var missionsToDisplay []Mission
+	// determine which mission list to display
+	var currentList []Mission
 	if j.SearchQuery != "" {
 		if len(j.FilteredMissions) > 0 {
-			missionsToDisplay = j.FilteredMissions
+			currentList = j.FilteredMissions
 		} else {
-			missionsToDisplay = []Mission{}
+			currentList = []Mission{}
 		}
 	} else {
-		missionsToDisplay = j.Missions
+		currentList = j.Missions
+	}
+	totalItems := len(currentList)
+	startIndex := j.Page * j.PageSize
+	if startIndex > totalItems {
+		startIndex = totalItems
+	}
+	endIndex := startIndex + j.PageSize
+	if endIndex > totalItems {
+		endIndex = totalItems
+	}
+	missionsOnPage := currentList[startIndex:endIndex]
+	totalPages := 1
+	if totalItems > 0 {
+		totalPages = int(math.Ceil(float64(totalItems) / float64(j.PageSize)))
 	}
 
 	// ----------------------------
-	// Left Panel: Mission List
+	// Left Panel: Mission List with Titles, Subtitles (Category), and Page Info
 	// ----------------------------
 	leftStyle := lipgloss.NewStyle().
 		Width(60).
-		Height(15).
+		Height(18).
 		Padding(1).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63"))
@@ -174,22 +327,35 @@ func (j JournalModel) View() string {
 	defaultStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("217"))
 	hoverStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
 	arrowStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
+	subtitleStyle := lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("240"))
+	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Italic(true)
 
 	var missionList strings.Builder
-	// If in search mode, display the search query at the top.
 	if j.SearchMode {
 		missionList.WriteString("Search: " + j.SearchQuery + "\n\n")
 	}
-	for i, mission := range missionsToDisplay {
+	// loop through the missions on the current page
+	for i, mission := range missionsOnPage {
+		// if the mission is completed, append a check mark
+		titleText := mission.Title
+		if strings.ToLower(mission.Status) == "completed" {
+			titleText = titleText + " " + "✓"
+		}
+
 		if i == j.Cursor {
-			// Selected mission: show arrow and hover color.
 			missionList.WriteString(fmt.Sprintf("%s %s\n",
 				arrowStyle.Render(">"),
-				hoverStyle.Render(mission.Title)))
+				hoverStyle.Render(titleText)))
 		} else {
-			missionList.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(mission.Title)))
+			missionList.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(titleText)))
 		}
+		// subtitle (category) on the next line
+		missionList.WriteString(fmt.Sprintf("   %s\n", subtitleStyle.Render(mission.Category)))
 	}
+	// page indicator and hints
+	pageInfo := fmt.Sprintf("Page %d of %d", j.Page+1, totalPages)
+	hints := "[/] search  [n] next page  [N] previous page"
+	missionList.WriteString("\n" + pageInfo + "\n" + hintStyle.Render(hints))
 	leftPanel := leftStyle.Render(missionList.String())
 
 	// ----------------------------
@@ -197,18 +363,17 @@ func (j JournalModel) View() string {
 	// ----------------------------
 	rightStyle := lipgloss.NewStyle().
 		Width(60).
-		Height(15).
-        Padding(1).
+		Height(18).
+		Padding(1).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63"))
 
-	// style for the mission title (bold, colored) and for the labels (bold, uncolored).
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
 	labelStyle := lipgloss.NewStyle().Bold(true)
 
 	var details string
-	if len(missionsToDisplay) > 0 {
-		selectedMission := missionsToDisplay[j.Cursor]
+	if len(missionsOnPage) > 0 {
+		selectedMission := missionsOnPage[j.Cursor]
 		details = fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n%s\n%s",
 			titleStyle.Render(selectedMission.Title),
 			labelStyle.Render("Description:")+" "+selectedMission.Description,
@@ -224,7 +389,7 @@ func (j JournalModel) View() string {
 	rightPanel := rightStyle.Render(details)
 
 	// ----------------------------
-	// Vertical Divider
+	// Vertical Divider.
 	// ----------------------------
 	const divider = `
 │
@@ -245,13 +410,13 @@ func (j JournalModel) View() string {
 `
 	dividerStyle := lipgloss.NewStyle().
 		Width(1).
-		Height(15).
-        Align(lipgloss.Center).
+		Height(18).
+		Align(lipgloss.Center).
 		Foreground(lipgloss.Color("240"))
 	div := dividerStyle.Render(divider)
 
 	// ----------------------------
-	// Combine Panels
+	// Combine Panels.
 	// ----------------------------
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, div, rightPanel)
 }
