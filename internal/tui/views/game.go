@@ -202,7 +202,7 @@ func (g GameModel) View() string {
 	}
 	bottomPanel := lipgloss.NewStyle().
 		Width(134).
-		Height(18).
+		Height(21).
 		Border(lipgloss.RoundedBorder()).
 		Align(lipgloss.Center).
 		Render(bottomPanelContent)
