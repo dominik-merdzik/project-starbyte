@@ -14,13 +14,10 @@ import (
 
 type TrackMissionMsg struct {
 	Mission Mission
-}
 
 // Mission represents a mission in the model.
 // Note: This is a different type from data.Mission and data.MainMission
 type Mission struct {
-	Title        string
-	Description  string
 	Status       string
 	Location     string
 	Income       string
