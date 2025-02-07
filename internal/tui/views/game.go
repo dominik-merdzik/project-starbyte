@@ -10,6 +10,22 @@ import (
 	model "github.com/dominik-merdzik/project-starbyte/internal/tui/models"
 )
 
+// -----------------------------------------------------------------------------
+// Flags to determine which view is currently active
+type ActiveView int
+
+// This is like a constant enum in C# or Java
+// These are the possible views that can be active
+const (
+	ViewNone ActiveView = iota
+	ViewJournal
+	ViewCrew
+	//ViewMap
+	//ViewShip
+)
+
+// -----------------------------------------------------------------------------
+
 type GameModel struct {
 	// components
 	ProgressBar components.ProgressBar
@@ -29,10 +45,7 @@ type GameModel struct {
 	// selectedItem tracks which menu item is selected
 	selectedItem string
 
-	// inJournal indicates if the Journal panel is currently in focus.
-	inJournal bool
-
-	inCrew bool
+	activeView ActiveView // The currently active view
 }
 
 func (g GameModel) Init() tea.Cmd {
@@ -58,17 +71,15 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	cmds = append(cmds, shipCmd)
 
-	// if the Journal panel is active, update it.
-	if g.inJournal {
+	// Update active view if needed
+	switch g.activeView {
+	case ViewJournal:
 		newJournal, journalCmd := g.Journal.Update(msg)
 		if j, ok := newJournal.(model.JournalModel); ok {
 			g.Journal = j
 		}
 		cmds = append(cmds, journalCmd)
-	}
-
-	// if the Crew panel is active, update it.
-	if g.inCrew {
+	case ViewCrew:
 		newCrew, crewCmd := g.Crew.Update(msg)
 		if c, ok := newCrew.(model.CrewModel); ok {
 			g.Crew = c
@@ -79,25 +90,15 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// process key messages.
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// if the Journal panel is active, let it handle its own navigation.
-		if g.inJournal {
-			// Pressing "esc" exits journal mode.
-			if msg.String() == "esc" {
-				g.inJournal = false
-				g.selectedItem = ""
-			}
-			// do not process main menu keys when inJournal is true.
+		// Handle escape key for any active view
+		if g.activeView != ViewNone && msg.String() == "esc" {
+			g.activeView = ViewNone
+			g.selectedItem = ""
 			return g, tea.Batch(cmds...)
 		}
 
-		// if the Crew panel is active, let it handle its own navigation.
-		if g.inCrew {
-			// Pressing "esc" exits crew mode.
-			if msg.String() == "esc" {
-				g.inCrew = false
-				g.selectedItem = ""
-			}
-			// do not process main menu keys when inCrew is true.
+		// If we have an active view, don't process main menu keys
+		if g.activeView != ViewNone {
 			return g, tea.Batch(cmds...)
 		}
 
@@ -131,11 +132,13 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			g.selectedItem = g.menuItems[g.menuCursor]
-			if g.selectedItem == "Journal" {
-				g.inJournal = true
-			}
-			if g.selectedItem == "Crew" {
-				g.inCrew = true
+
+			// Switch to the selected view using the iota
+			switch g.selectedItem {
+			case "Journal":
+				g.activeView = ViewJournal
+			case "Crew":
+				g.activeView = ViewCrew
 			}
 		}
 	}
@@ -282,7 +285,6 @@ func NewGameModel() tea.Model {
 		Ship:          model.NewShipModel(),
 		Crew:          model.NewCrewModel(),
 		Journal:       model.NewJournalModel(),
-		inJournal:     false,
-		inCrew:        false,
+		activeView:    ViewNone, // No active view initially
 	}
 }
