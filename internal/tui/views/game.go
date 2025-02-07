@@ -17,6 +17,7 @@ type GameModel struct {
 
 	// additional models
 	Ship    model.ShipModel
+	Crew    model.CrewModel
 	Journal model.JournalModel
 
 	currentHealth int
@@ -30,6 +31,8 @@ type GameModel struct {
 
 	// inJournal indicates if the Journal panel is currently in focus.
 	inJournal bool
+
+	inCrew bool
 }
 
 func (g GameModel) Init() tea.Cmd {
@@ -64,6 +67,15 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, journalCmd)
 	}
 
+	// if the Crew panel is active, update it.
+	if g.inCrew {
+		newCrew, crewCmd := g.Crew.Update(msg)
+		if c, ok := newCrew.(model.CrewModel); ok {
+			g.Crew = c
+		}
+		cmds = append(cmds, crewCmd)
+	}
+
 	// process key messages.
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -75,6 +87,17 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.selectedItem = ""
 			}
 			// do not process main menu keys when inJournal is true.
+			return g, tea.Batch(cmds...)
+		}
+
+		// if the Crew panel is active, let it handle its own navigation.
+		if g.inCrew {
+			// Pressing "esc" exits crew mode.
+			if msg.String() == "esc" {
+				g.inCrew = false
+				g.selectedItem = ""
+			}
+			// do not process main menu keys when inCrew is true.
 			return g, tea.Batch(cmds...)
 		}
 
@@ -110,6 +133,9 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.selectedItem = g.menuItems[g.menuCursor]
 			if g.selectedItem == "Journal" {
 				g.inJournal = true
+			}
+			if g.selectedItem == "Crew" {
+				g.inCrew = true
 			}
 		}
 	}
@@ -195,6 +221,8 @@ func (g GameModel) View() string {
 	switch g.selectedItem {
 	case "Ship":
 		bottomPanelContent = g.Ship.View()
+	case "Crew":
+		bottomPanelContent = g.Crew.View()
 	case "Journal":
 		bottomPanelContent = g.Journal.View()
 	default:
@@ -252,7 +280,9 @@ func NewGameModel() tea.Model {
 		menuItems:     []string{"Ship", "Crew", "Journal", "Map", "Exit"},
 		menuCursor:    0,
 		Ship:          model.NewShipModel(),
+		Crew:          model.NewCrewModel(),
 		Journal:       model.NewJournalModel(),
 		inJournal:     false,
+		inCrew:        false,
 	}
 }
