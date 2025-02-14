@@ -51,22 +51,6 @@ type GameModel struct {
 	TrackedMission *model.Mission
 }
 
-func renderTrackedMission(g GameModel) string {
-	if g.TrackedMission != nil {
-		mission := *g.TrackedMission
-		titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-		labelStyle := lipgloss.NewStyle().Bold(true)
-		// Limit description width and wrap text
-
-		details := fmt.Sprintf("%s\n\n%s",
-			titleStyle.Render("Tracking Mission: "+mission.Title),
-			labelStyle.Render("Status:")+" "+mission.Status,
-		)
-		return details
-	}
-	return "No mission selected for tracking."
-}
-
 func (g GameModel) Init() tea.Cmd {
 	// initialize Yuta's animation (seem to be broken ATM)
 	return tea.Batch(
@@ -252,7 +236,9 @@ func (g GameModel) View() string {
 		bottomPanelContent = g.Journal.View()
 	default:
 		if g.TrackedMission != nil {
-			bottomPanelContent = renderTrackedMission(g)
+			// create a new instance of the current task component and render the task
+			currentTask := components.NewCurrentTaskComponent()
+			bottomPanelContent = currentTask.Render(g.TrackedMission)
 		} else {
 			bottomPanelContent = "This is the bottom panel."
 		}
