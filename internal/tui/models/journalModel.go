@@ -12,6 +12,10 @@ import (
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
 )
 
+type TrackMissionMsg struct {
+	Mission Mission
+}
+
 // Mission represents a mission in the model.
 // Note: This is a different type from data.Mission and data.MainMission
 type Mission struct {
@@ -139,17 +143,21 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					j.DetailCursor++
 				}
 			case "b":
-				// Simulate a back action.
+				// simulate a back action
 				j.DetailView = false
 			case "enter":
-				// Execute the selected option.
+				// execute the selected option
 				selectedOption := j.DetailOptions[j.DetailCursor]
 				switch selectedOption {
 				case "Back":
 					j.DetailView = false
 				case "Track":
-					// TODO: Add tracking functionality.
-					fmt.Println("Tracking mission...")
+					// track the mission in the background and exit the detail view
+					trackedMission := j.getSelectedMission()
+					j.DetailView = false
+					return j, func() tea.Msg {
+						return TrackMissionMsg{Mission: trackedMission}
+					}
 				case "Open in Map":
 					// TODO: Add map-opening functionality.
 					fmt.Println("Opening mission in map...")
@@ -157,7 +165,7 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// TODO: Add crew assignment functionality.
 					fmt.Println("Assigning mission to a crew member...")
 				case "Abandon":
-					// For demonstration, mark the mission as "Abandoned".
+					// for demonstration, mark the mission as "Abandoned".
 					mission := j.getSelectedMission()
 					mission.Status = "Abandoned"
 					j.updateMission(mission)

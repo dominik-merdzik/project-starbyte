@@ -46,6 +46,25 @@ type GameModel struct {
 	selectedItem string
 
 	activeView ActiveView // The currently active view
+
+	// tracked mission (if any)
+	TrackedMission *model.Mission
+}
+
+func renderTrackedMission(g GameModel) string {
+	if g.TrackedMission != nil {
+		mission := *g.TrackedMission
+		titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
+		labelStyle := lipgloss.NewStyle().Bold(true)
+		// Limit description width and wrap text
+
+		details := fmt.Sprintf("%s\n\n%s",
+			titleStyle.Render("Tracking Mission: "+mission.Title),
+			labelStyle.Render("Status:")+" "+mission.Status,
+		)
+		return details
+	}
+	return "No mission selected for tracking."
 }
 
 func (g GameModel) Init() tea.Cmd {
@@ -89,6 +108,9 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// process key messages.
 	switch msg := msg.(type) {
+	case model.TrackMissionMsg:
+		// store the tracked mission and update selectedItem.
+		g.TrackedMission = &msg.Mission
 	case tea.KeyMsg:
 		// Handle escape key for any active view
 		if g.activeView != ViewNone && msg.String() == "esc" {
@@ -229,7 +251,11 @@ func (g GameModel) View() string {
 	case "Journal":
 		bottomPanelContent = g.Journal.View()
 	default:
-		bottomPanelContent = "This is the bottom panel."
+		if g.TrackedMission != nil {
+			bottomPanelContent = renderTrackedMission(g)
+		} else {
+			bottomPanelContent = "This is the bottom panel."
+		}
 	}
 	bottomPanel := lipgloss.NewStyle().
 		Width(134).
