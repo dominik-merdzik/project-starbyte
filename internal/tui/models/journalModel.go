@@ -2,13 +2,18 @@ package model
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/dominik-merdzik/project-starbyte/internal/data"
 )
 
+// Mission represents a mission in the model.
+// Note: This is a different type from data.Mission and data.MainMission
 type Mission struct {
 	Title        string
 	Description  string
@@ -20,177 +25,95 @@ type Mission struct {
 	Category     string
 }
 
-// JournalModel represents the state and behavior of our Journal component.
 type JournalModel struct {
 	Missions         []Mission // full list of missions
-	Cursor           int       // index of the currently selected mission in the current page list
-	SearchMode       bool      // whether search mode is active (typing a query)
-	SearchQuery      string    // current search query text
-	FilteredMissions []Mission // missions filtered by the search query
-	Page             int       // current page index (0-based)
-	PageSize         int       // number of items per page
+	Cursor           int
+	SearchMode       bool
+	SearchQuery      string
+	FilteredMissions []Mission
+	Page             int
+	PageSize         int
+
+	// Detail view fields
+	DetailView    bool
+	DetailCursor  int
+	DetailOptions []string
 }
 
-// NewJournalModel initializes and returns a new JournalModel - we will store this in a file later**
+// convertDataMission converts a data.Mission (from a received mission) into a model.Mission
+func convertDataMission(dm data.Mission) Mission {
+	return Mission{
+		Title:        dm.Title,
+		Description:  dm.Description,
+		Status:       dm.Status,
+		Location:     dm.Location,
+		Income:       dm.Income,
+		Requirements: dm.Requirements,
+		Received:     dm.Received,
+		Category:     dm.Category,
+	}
+}
+
+// convertMainMission converts a data.MainMission into a model.Mission
+func convertMainMission(mm data.MainMission) Mission {
+	return Mission{
+		Title:        fmt.Sprintf("Step %d: %s", mm.Step, mm.Title),
+		Description:  mm.Description,
+		Status:       mm.Status,
+		Location:     mm.Location,
+		Income:       mm.Income,
+		Requirements: mm.Requirements,
+		Received:     mm.Received,
+		Category:     mm.Category,
+	}
+}
+
+// currentList returns the missions to be displayed based on search mode
+func (j JournalModel) currentList() []Mission {
+	if j.SearchQuery != "" {
+		if len(j.FilteredMissions) > 0 {
+			return j.FilteredMissions
+		}
+		return []Mission{}
+	}
+	return j.Missions
+}
+
 func NewJournalModel() JournalModel {
-	missions := []Mission{
-		{
-			Title:        "Rescue Operation",
-			Description:  "Locate and rescue the stranded astronaut on a rogue asteroid.",
-			Status:       "Pending",
-			Location:     "Mars",
-			Income:       "5000 Credits",
-			Requirements: "Advanced Rescue Kit",
-			Received:     "Command Center",
-			Category:     "Task",
-		},
-		{
-			Title:        "Nebula Exploration",
-			Description:  "Explore the forbidden nebula to gather scientific data and rare minerals.",
-			Status:       "In Progress",
-			Location:     "Orion Nebula",
-			Income:       "8000 Credits",
-			Requirements: "Scientific Vessel",
-			Received:     "Galactic Federation",
-			Category:     "Exploration",
-		},
-		{
-			Title:        "Artifact Recovery",
-			Description:  "Retrieve the ancient artifact from the ruins of a lost civilization.",
-			Status:       "Completed",
-			Location:     "Xandar",
-			Income:       "12000 Credits",
-			Requirements: "Archaeological Tools",
-			Received:     "Mysterious Benefactor",
-			Category:     "Retrieve",
-		},
-		{
-			Title:        "Deep Space Survey",
-			Description:  "Conduct a detailed survey of deep space regions for unknown phenomena.",
-			Status:       "Scheduled",
-			Location:     "Alpha Centauri",
-			Income:       "6000 Credits",
-			Requirements: "Survey Drone",
-			Received:     "Research Lab",
-			Category:     "Mission",
-		},
-		{
-			Title:        "Cosmic Anomaly Investigation",
-			Description:  "Investigate unusual cosmic anomalies detected near a distant galaxy.",
-			Status:       "Pending",
-			Location:     "Andromeda",
-			Income:       "7000 Credits",
-			Requirements: "Advanced Sensors",
-			Received:     "Space Agency",
-			Category:     "Investigation",
-		},
-		{
-			Title:        "Solar Flare Response",
-			Description:  "Monitor and respond to unpredictable solar flare activities.",
-			Status:       "In Progress",
-			Location:     "Sun",
-			Income:       "4000 Credits",
-			Requirements: "Shielded Satellite",
-			Received:     "Energy Commission",
-			Category:     "Task",
-		},
-		{
-			Title:        "Black Hole Monitoring",
-			Description:  "Observe the behavior of a nearby black hole and its effects on space-time.",
-			Status:       "Scheduled",
-			Location:     "Sagittarius A*",
-			Income:       "9000 Credits",
-			Requirements: "High-Resolution Telescope",
-			Received:     "Astro Research Institute",
-			Category:     "Monitoring",
-		},
-		{
-			Title:        "Alien Artifact Analysis",
-			Description:  "Examine recovered alien artifacts for technological insights.",
-			Status:       "Completed",
-			Location:     "Lunar Base",
-			Income:       "11000 Credits",
-			Requirements: "X-Ray Scanner",
-			Received:     "Archaeology Dept.",
-			Category:     "Analysis",
-		},
-		{
-			Title:        "Interstellar Diplomatic Mission",
-			Description:  "Establish diplomatic relations with a newly discovered alien civilization.",
-			Status:       "Pending",
-			Location:     "Proxima Centauri",
-			Income:       "15000 Credits",
-			Requirements: "Diplomatic Credentials",
-			Received:     "United Earth Council",
-			Category:     "Diplomacy",
-		},
-		{
-			Title:        "Quantum Rift Study",
-			Description:  "Study the mysterious quantum rift found in deep space.",
-			Status:       "In Progress",
-			Location:     "Draco Constellation",
-			Income:       "13000 Credits",
-			Requirements: "Quantum Analyzer",
-			Received:     "Quantum Lab",
-			Category:     "Study",
-		},
-		{
-			Title:        "Wormhole Stabilization",
-			Description:  "Investigate and attempt to stabilize a naturally occurring wormhole.",
-			Status:       "Scheduled",
-			Location:     "Orion Arm",
-			Income:       "14000 Credits",
-			Requirements: "Stabilization Module",
-			Received:     "Space Federation",
-			Category:     "Stabilization",
-		},
-		{
-			Title:        "Meteor Shower Defense",
-			Description:  "Deploy defenses against a predicted intense meteor shower.",
-			Status:       "Completed",
-			Location:     "Earth Orbit",
-			Income:       "8000 Credits",
-			Requirements: "Defensive Array",
-			Received:     "Military Command",
-			Category:     "Defense",
-		},
-		{
-			Title:        "Stellar Cartography",
-			Description:  "Map uncharted star systems and create new navigation charts.",
-			Status:       "Completed",
-			Location:     "Milky Way",
-			Income:       "5000 Credits",
-			Requirements: "Advanced Mapping Software",
-			Received:     "Navigation Bureau",
-			Category:     "Mapping",
-		},
-		{
-			Title:        "Galactic Trade Negotiation",
-			Description:  "Negotiate new trade routes and terms with intergalactic partners.",
-			Status:       "Pending",
-			Location:     "Andromeda",
-			Income:       "16000 Credits",
-			Requirements: "Trade Agreement",
-			Received:     "Economic Council",
-			Category:     "Negotiation",
-		},
-		{
-			Title:        "Exoplanet Colonization",
-			Description:  "Prepare a detailed plan for colonizing a promising exoplanet.",
-			Status:       "Scheduled",
-			Location:     "Kepler-452b",
-			Income:       "20000 Credits",
-			Requirements: "Colonization Fleet",
-			Received:     "Colonial Office",
-			Category:     "Colonization",
-		},
+	missionsFile, err := data.LoadMissions()
+	if err != nil {
+		log.Printf("Error loading missions JSON: %v", err)
+	}
+
+	var missions []Mission
+
+	// add main missions.
+	for _, mm := range missionsFile.Main {
+		missions = append(missions, convertMainMission(mm))
+	}
+
+	// add all received missions (for testing, later it will only be missions the player has received)
+	for _, loc := range missionsFile.Received {
+		for _, npc := range loc.NPCs {
+			for _, m := range npc.Missions {
+				rec := convertDataMission(m)
+				// if location is empty, fill it with the parent's location (for now)
+				if rec.Location == "" {
+					rec.Location = loc.Location
+				}
+				missions = append(missions, rec)
+			}
+		}
 	}
 
 	return JournalModel{
-		Missions: missions,
-		Cursor:   0,
-		Page:     0,
-		PageSize: 5,
+		Missions:      missions,
+		Cursor:        0,
+		Page:          0,
+		PageSize:      5,
+		DetailView:    false,
+		DetailCursor:  0,
+		DetailOptions: []string{"Track", "Open in Map", "Assign to Crew Member", "Abandon", "Back"},
 	}
 }
 
@@ -201,8 +124,54 @@ func (j JournalModel) Init() tea.Cmd {
 func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
+	// -----------------------------
+	// Detail View Key Handling
+	// -----------------------------
 	case tea.KeyMsg:
-		// when in search mode, process search input
+		if j.DetailView {
+			switch msg.String() {
+			case "up", "k":
+				if j.DetailCursor > 0 {
+					j.DetailCursor--
+				}
+			case "down", "j":
+				if j.DetailCursor < len(j.DetailOptions)-1 {
+					j.DetailCursor++
+				}
+			case "b":
+				// Simulate a back action.
+				j.DetailView = false
+			case "enter":
+				// Execute the selected option.
+				selectedOption := j.DetailOptions[j.DetailCursor]
+				switch selectedOption {
+				case "Back":
+					j.DetailView = false
+				case "Track":
+					// TODO: Add tracking functionality.
+					fmt.Println("Tracking mission...")
+				case "Open in Map":
+					// TODO: Add map-opening functionality.
+					fmt.Println("Opening mission in map...")
+				case "Assign to Crew Member":
+					// TODO: Add crew assignment functionality.
+					fmt.Println("Assigning mission to a crew member...")
+				case "Abandon":
+					// For demonstration, mark the mission as "Abandoned".
+					mission := j.getSelectedMission()
+					mission.Status = "Abandoned"
+					j.updateMission(mission)
+					j.DetailView = false
+				}
+			case "esc":
+				j.DetailView = false
+			}
+			return j, nil
+		}
+
+		// -----------------------------
+		// Search Mode Handling
+		// -----------------------------
 		if j.SearchMode {
 			switch msg.String() {
 			case "backspace":
@@ -210,13 +179,13 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					j.SearchQuery = j.SearchQuery[:len(j.SearchQuery)-1]
 				}
 			case "enter":
-				// finalize search: exit search mode but keep results
+				// Finalize search.
 				j.SearchMode = false
 				j.Page = 0
 				j.Cursor = 0
 				return j, nil
 			case "esc":
-				// cancel search: clear query and results
+				// Cancel search.
 				j.SearchMode = false
 				j.SearchQuery = ""
 				j.FilteredMissions = nil
@@ -228,7 +197,7 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					j.SearchQuery += msg.String()
 				}
 			}
-			// recompute filtered missions live
+			// Recompute filtered missions.
 			j.FilteredMissions = nil
 			for _, m := range j.Missions {
 				if strings.Contains(strings.ToLower(m.Title), strings.ToLower(j.SearchQuery)) ||
@@ -241,15 +210,15 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return j, nil
 		}
 
-		// when not in search mode, determine the current list
-		var currentList []Mission
-		if j.SearchQuery != "" && len(j.FilteredMissions) > 0 {
-			currentList = j.FilteredMissions
-		} else {
-			currentList = j.Missions
-		}
+		// -----------------------------
+		// Normal Mission List Handling
+		// -----------------------------
+		currentList := j.currentList()
 		totalItems := len(currentList)
 		startIndex := j.Page * j.PageSize
+		if startIndex > totalItems {
+			startIndex = totalItems
+		}
 		endIndex := startIndex + j.PageSize
 		if endIndex > totalItems {
 			endIndex = totalItems
@@ -275,8 +244,14 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				j.Page--
 				j.Cursor = 0
 			}
+		case "enter":
+			// Enter detail view if there is at least one item.
+			if pageItemsCount > 0 {
+				j.DetailView = true
+				j.DetailCursor = 0
+			}
 		case "/":
-			// activate search mode - all of these key's are tailored to vim ATM
+			// Activate search mode.
 			j.SearchMode = true
 			j.SearchQuery = ""
 			j.FilteredMissions = nil
@@ -287,8 +262,93 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return j, nil
 }
 
+// getSelectedMission returns the selected mission from the current page.
+func (j JournalModel) getSelectedMission() Mission {
+	currentList := j.currentList()
+	totalItems := len(currentList)
+	startIndex := j.Page * j.PageSize
+	if startIndex > totalItems {
+		startIndex = totalItems
+	}
+	endIndex := startIndex + j.PageSize
+	if endIndex > totalItems {
+		endIndex = totalItems
+	}
+	missionsOnPage := currentList[startIndex:endIndex]
+	return missionsOnPage[j.Cursor]
+}
+
+// updateMission updates the mission in j.Missions by matching the title.
+func (j *JournalModel) updateMission(updated Mission) {
+	for i, m := range j.Missions {
+		if m.Title == updated.Title {
+			j.Missions[i] = updated
+			break
+		}
+	}
+}
+
 func (j JournalModel) View() string {
-	// determine which mission list to display
+	if j.DetailView {
+		// detail view: use the current list based on search
+		currentList := j.currentList()
+		totalItems := len(currentList)
+		startIndex := j.Page * j.PageSize
+		if startIndex > totalItems {
+			startIndex = totalItems
+		}
+		endIndex := startIndex + j.PageSize
+		if endIndex > totalItems {
+			endIndex = totalItems
+		}
+		missionsOnPage := currentList[startIndex:endIndex]
+		if len(missionsOnPage) == 0 {
+			return "No missions found."
+		}
+		selectedMission := missionsOnPage[j.Cursor]
+
+		// left Panel: mission options
+		var optionsList strings.Builder
+		for i, option := range j.DetailOptions {
+			if i == j.DetailCursor {
+				optionsList.WriteString(fmt.Sprintf("> %s\n", option))
+			} else {
+				optionsList.WriteString(fmt.Sprintf("  %s\n", option))
+			}
+		}
+		leftPanel := lipgloss.NewStyle().
+			Width(60).
+			Height(18).
+			Padding(1).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("63")).
+			Render(optionsList.String())
+
+		// right panel: Detailed mission information
+		titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
+		labelStyle := lipgloss.NewStyle().Bold(true)
+		details := fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s",
+			titleStyle.Render(selectedMission.Title),
+			labelStyle.Render("Description:")+" "+selectedMission.Description,
+			labelStyle.Render("Status:")+" "+selectedMission.Status,
+			labelStyle.Render("Location:")+" "+selectedMission.Location,
+			labelStyle.Render("Income:")+" "+selectedMission.Income,
+			labelStyle.Render("Requirements:")+" "+selectedMission.Requirements,
+			labelStyle.Render("Received:")+" "+selectedMission.Received,
+			labelStyle.Render("Category:")+" "+selectedMission.Category,
+		)
+		rightPanel := lipgloss.NewStyle().
+			Width(60).
+			Height(18).
+			Padding(1).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("63")).
+			Render(details)
+
+		return lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, rightPanel)
+	}
+
+	// normal list view
 	var currentList []Mission
 	if j.SearchQuery != "" {
 		if len(j.FilteredMissions) > 0 {
@@ -314,9 +374,7 @@ func (j JournalModel) View() string {
 		totalPages = int(math.Ceil(float64(totalItems) / float64(j.PageSize)))
 	}
 
-	// ----------------------------
-	// Left Panel: Mission List with Titles, Subtitles (Category), and Page Info
-	// ----------------------------
+	// left panel: mission list
 	leftStyle := lipgloss.NewStyle().
 		Width(60).
 		Height(18).
@@ -334,14 +392,11 @@ func (j JournalModel) View() string {
 	if j.SearchMode {
 		missionList.WriteString("Search: " + j.SearchQuery + "\n\n")
 	}
-	// loop through the missions on the current page
 	for i, mission := range missionsOnPage {
-		// if the mission is completed, append a check mark
 		titleText := mission.Title
 		if strings.ToLower(mission.Status) == "completed" {
 			titleText = titleText + " " + "✓"
 		}
-
 		if i == j.Cursor {
 			missionList.WriteString(fmt.Sprintf("%s %s\n",
 				arrowStyle.Render(">"),
@@ -349,28 +404,22 @@ func (j JournalModel) View() string {
 		} else {
 			missionList.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(titleText)))
 		}
-		// subtitle (category) on the next line
 		missionList.WriteString(fmt.Sprintf("   %s\n", subtitleStyle.Render(mission.Category)))
 	}
-	// page indicator and hints
 	pageInfo := fmt.Sprintf("Page %d of %d", j.Page+1, totalPages)
 	hints := "[/] search  [n] next page  [N] previous page"
 	missionList.WriteString("\n" + pageInfo + "\n" + hintStyle.Render(hints))
 	leftPanel := leftStyle.Render(missionList.String())
 
-	// ----------------------------
-	// Right Panel: Mission Details
-	// ----------------------------
+	// right panel: mission details
 	rightStyle := lipgloss.NewStyle().
 		Width(60).
 		Height(18).
 		Padding(1).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63"))
-
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
 	labelStyle := lipgloss.NewStyle().Bold(true)
-
 	var details string
 	if len(missionsOnPage) > 0 {
 		selectedMission := missionsOnPage[j.Cursor]
@@ -388,10 +437,7 @@ func (j JournalModel) View() string {
 	}
 	rightPanel := rightStyle.Render(details)
 
-	// ----------------------------
-	// Vertical Divider.
-	// ----------------------------
-	const divider = `
+	dividerStr := `
 │
 │
 │
@@ -413,11 +459,7 @@ func (j JournalModel) View() string {
 		Height(18).
 		Align(lipgloss.Center).
 		Foreground(lipgloss.Color("240"))
-	div := dividerStyle.Render(divider)
+	div := dividerStyle.Render(dividerStr)
 
-	// ----------------------------
-	// Combine Panels.
-	// ----------------------------
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, div, rightPanel)
 }
-
