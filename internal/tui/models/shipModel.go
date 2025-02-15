@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -98,34 +99,42 @@ func (s ShipModel) View() string {
 	}
 
 	// Detailed panel based on selection
+	var progressValue float64
 	switch s.Cursor {
 	case 0:
 		details = fmt.Sprintf("%s\n\n%s %d",
 			titleStyle.Render("Hull Health"),
 			labelStyle.Render("Current: "), s.HullHealth)
+		progressValue = float64(s.HullHealth) / 100
 	case 1:
 		details = fmt.Sprintf("%s\n\n%s %d",
 			titleStyle.Render("Engine Health"),
 			labelStyle.Render("Current: "), s.EngineHealth)
+		progressValue = float64(s.EngineHealth) / 100
 	case 2:
 		details = fmt.Sprintf("%s\n\n%s %d",
 			titleStyle.Render("Engine Fuel"),
 			labelStyle.Render("Current: "), s.EngineFuel)
+		progressValue = float64(s.EngineFuel) / 100
 	case 3:
 		details = fmt.Sprintf("%s\n\n%s %d",
 			titleStyle.Render("FTL Drive Health"),
 			labelStyle.Render("Current: "), s.FTLDriveHealth)
+		progressValue = float64(s.FTLDriveHealth) / 100
 	case 4:
 		details = fmt.Sprintf("%s\n\n%s %d",
 			titleStyle.Render("FTL Drive Charge"),
 			labelStyle.Render("Current: "), s.FTLDriveCharge)
+		progressValue = float64(s.FTLDriveCharge) / 100
 	case 5:
 		details = fmt.Sprintf("%s\n\n%s %d",
 			titleStyle.Render("Food Supply"),
 			labelStyle.Render("Current: "), s.Food)
+		progressValue = float64(s.Food) / 100
 	}
 
-	detailPanel := panelStyle.Render(details)
+	progressBar := progress.New(progress.WithScaledGradient("#008FE9", "#F00065")).ViewAs(progressValue)
+	detailPanel := panelStyle.Render(details + "\n\n" + progressBar)
 	leftPanel := panelStyle.Render(shipList.String())
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, detailPanel)
