@@ -5,9 +5,11 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
-// ShipModel - is a Bubble Tea model representing our "Ship" view/component
+// ShipModel represents the ship's status and components
+
 type ShipModel struct {
 	Name           string
 	HullHealth     int
@@ -20,7 +22,7 @@ type ShipModel struct {
 	Cursor         int // Index of the currently selected ship component
 }
 
-// NewShipModel - creates and returns a new ShipModel
+// NewShipModel creates and returns a new ShipModel
 func NewShipModel() ShipModel {
 	return ShipModel{
 		Name:           "Voyager 3",
@@ -35,12 +37,12 @@ func NewShipModel() ShipModel {
 	}
 }
 
-// Init - is called when the ShipModel is first initialized (optional)
+// Init initializes the model
 func (s ShipModel) Init() tea.Cmd {
 	return nil
 }
 
-// Update - handles incoming messages and updates the ShipModel state accordingly
+// Update handles key inputs
 func (s ShipModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -58,7 +60,7 @@ func (s ShipModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return s, nil
 }
 
-// View - returns the string to display for the ShipModel component
+// View renders the ship model UI
 func (s ShipModel) View() string {
 	items := []string{
 		"Hull Health",
@@ -69,30 +71,62 @@ func (s ShipModel) View() string {
 		"Food",
 	}
 
-	var view strings.Builder
+	// Styling
+	panelStyle := lipgloss.NewStyle().
+		Width(60).
+		Height(18).
+		Padding(1).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("63"))
+
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
+	labelStyle := lipgloss.NewStyle().Bold(true)
+	//cursorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
+	defaultStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("217"))
+	arrowStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
+	details := ""
+
+	var shipList strings.Builder
+	shipList.WriteString(titleStyle.Render("Ship Status") + "\n\n")
+
 	for i, item := range items {
-		cursor := " "
+		cursor := "  "
 		if i == s.Cursor {
-			cursor = ">"
+			cursor = arrowStyle.Render("> ")
 		}
-		view.WriteString(fmt.Sprintf("%s %s\n", cursor, item))
+		shipList.WriteString(fmt.Sprintf("%s%s\n", cursor, defaultStyle.Render(item)))
 	}
 
-	// Add details for the selected item
+	// Detailed panel based on selection
 	switch s.Cursor {
 	case 0:
-		view.WriteString(fmt.Sprintf("Current Hull Health: %d\n", s.HullHealth))
+		details = fmt.Sprintf("%s\n\n%s %d",
+			titleStyle.Render("Hull Health"),
+			labelStyle.Render("Current: "), s.HullHealth)
 	case 1:
-		view.WriteString(fmt.Sprintf("Current Engine Health: %d\n", s.EngineHealth))
+		details = fmt.Sprintf("%s\n\n%s %d",
+			titleStyle.Render("Engine Health"),
+			labelStyle.Render("Current: "), s.EngineHealth)
 	case 2:
-		view.WriteString(fmt.Sprintf("Current Engine Fuel: %d\n", s.EngineFuel))
+		details = fmt.Sprintf("%s\n\n%s %d",
+			titleStyle.Render("Engine Fuel"),
+			labelStyle.Render("Current: "), s.EngineFuel)
 	case 3:
-		view.WriteString(fmt.Sprintf("Current FTL Drive Health: %d\n", s.FTLDriveHealth))
+		details = fmt.Sprintf("%s\n\n%s %d",
+			titleStyle.Render("FTL Drive Health"),
+			labelStyle.Render("Current: "), s.FTLDriveHealth)
 	case 4:
-		view.WriteString(fmt.Sprintf("Current FTL Drive Charge: %d\n", s.FTLDriveCharge))
+		details = fmt.Sprintf("%s\n\n%s %d",
+			titleStyle.Render("FTL Drive Charge"),
+			labelStyle.Render("Current: "), s.FTLDriveCharge)
 	case 5:
-		view.WriteString(fmt.Sprintf("Current Food: %d\n", s.Food))
+		details = fmt.Sprintf("%s\n\n%s %d",
+			titleStyle.Render("Food Supply"),
+			labelStyle.Render("Current: "), s.Food)
 	}
 
-	return view.String()
+	detailPanel := panelStyle.Render(details)
+	leftPanel := panelStyle.Render(shipList.String())
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, detailPanel)
 }
