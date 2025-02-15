@@ -78,5 +78,21 @@ func (s ShipModel) View() string {
 		view.WriteString(fmt.Sprintf("%s %s\n", cursor, item))
 	}
 
+	// Add details for the selected item
+	switch s.Cursor {
+	case 0:
+		view.WriteString(fmt.Sprintf("Current Hull Health: %d\n", s.HullHealth))
+	case 1:
+		view.WriteString(fmt.Sprintf("Current Engine Health: %d\n", s.EngineHealth))
+	case 2:
+		view.WriteString(fmt.Sprintf("Current Engine Fuel: %d\n", s.EngineFuel))
+	case 3:
+		view.WriteString(fmt.Sprintf("Current FTL Drive Health: %d\n", s.FTLDriveHealth))
+	case 4:
+		view.WriteString(fmt.Sprintf("Current FTL Drive Charge: %d\n", s.FTLDriveCharge))
+	case 5:
+		view.WriteString(fmt.Sprintf("Current Food: %d\n", s.Food))
+	}
+
 	return view.String()
 }

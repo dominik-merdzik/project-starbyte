@@ -20,8 +20,8 @@ const (
 	ViewNone ActiveView = iota
 	ViewJournal
 	ViewCrew
-	//ViewMap
-	//ViewShip
+	ViewMap
+	ViewShip
 )
 
 // -----------------------------------------------------------------------------
@@ -88,6 +88,13 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.Crew = c
 		}
 		cmds = append(cmds, crewCmd)
+
+	case ViewShip:
+		newShip, shipCmd := g.Ship.Update(msg)
+		if s, ok := newShip.(model.ShipModel); ok {
+			g.Ship = s
+		}
+		cmds = append(cmds, shipCmd)
 	}
 
 	// process key messages.
@@ -145,6 +152,8 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.activeView = ViewJournal
 			case "Crew":
 				g.activeView = ViewCrew
+			case "Ship":
+				g.activeView = ViewShip
 			}
 		}
 	}
@@ -229,7 +238,7 @@ func (g GameModel) View() string {
 	var bottomPanelContent string
 	switch g.selectedItem {
 	case "Ship":
-		bottomPanelContent = g.Ship.View() + "\n" + g.ProgressBar.RenderProgressBar(g.Ship.HullHealth, 100)
+		bottomPanelContent = g.Ship.View()
 	case "Crew":
 		bottomPanelContent = g.Crew.View()
 	case "Journal":
