@@ -229,7 +229,7 @@ func (g GameModel) View() string {
 	var bottomPanelContent string
 	switch g.selectedItem {
 	case "Ship":
-		bottomPanelContent = g.Ship.View()
+		bottomPanelContent = g.Ship.View() + "\n" + g.ProgressBar.RenderProgressBar(g.Ship.HullHealth, 100)
 	case "Crew":
 		bottomPanelContent = g.Crew.View()
 	case "Journal":
