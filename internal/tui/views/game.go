@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/tui/components"
@@ -50,12 +51,16 @@ type GameModel struct {
 
 	// tracked mission (if any)
 	TrackedMission *model.Mission
+
+	// Spinner for mission progress
+	missionSpinner spinner.Model
 }
 
 func (g GameModel) Init() tea.Cmd {
 	// initialize Yuta's animation (seem to be broken ATM)
 	return tea.Batch(
 		g.Yuta.Init(),
+		g.missionSpinner.Tick, // start the spinner
 	)
 }
 
@@ -155,8 +160,24 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "Map":
 				g.activeView = ViewMap
 			}
-
+		// Press SPACE to launch mission
+		case " ":
+			if g.TrackedMission != nil {
+				if g.TrackedMission.Status == "Not Started" {
+					g.TrackedMission.Status = "In Progress"
+				} else if g.TrackedMission.Status == "In Progress" {
+					g.TrackedMission.Status = "Completed"
+				}
+			}
 		}
+
+	// Update the spinner
+	// NOT WORKING. WHY?! https://github.com/charmbracelet/bubbletea/blob/main/examples/spinners/main.go#L73-L76
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		g.missionSpinner, cmd = g.missionSpinner.Update(msg)
+		cmds = append(cmds, cmd)
+		fmt.Println("Spinner ticked")
 	}
 
 	return g, tea.Batch(cmds...)
@@ -249,8 +270,15 @@ func (g GameModel) View() string {
 	default:
 		if g.TrackedMission != nil {
 			// create a new instance of the current task component and render the task
-			currentTask := components.NewCurrentTaskComponent()
-			bottomPanelContent = currentTask.Render(g.TrackedMission)
+
+			// Render a spinner when the mission is in progress
+			if g.TrackedMission.Status == "In Progress" {
+				spinnerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("69"))
+				bottomPanelContent = spinnerStyle.Render(g.missionSpinner.View()) + " Mission in progress..."
+			} else {
+				currentTask := components.NewCurrentTaskComponent()
+				bottomPanelContent = currentTask.Render(g.TrackedMission)
+			}
 		} else {
 			bottomPanelContent = "This is the bottom panel."
 		}
@@ -299,16 +327,22 @@ func (g GameModel) View() string {
 
 // NewGameModel creates and returns a new GameModel instance.
 func NewGameModel() tea.Model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+
 	return GameModel{
-		ProgressBar:   components.NewProgressBar(),
-		currentHealth: 62,                   // example initial health
-		maxHealth:     100,                  // example max health
-		Yuta:          components.NewYuta(), // initialize Yuta
-		menuItems:     []string{"Ship", "Crew", "Journal", "Map", "Exit"},
-		menuCursor:    0,
-		Ship:          model.NewShipModel(),
-		Crew:          model.NewCrewModel(),
-		Journal:       model.NewJournalModel(),
-		activeView:    ViewNone, // No active view initially
+		ProgressBar:    components.NewProgressBar(),
+		currentHealth:  62,                   // example initial health
+		maxHealth:      100,                  // example max health
+		Yuta:           components.NewYuta(), // initialize Yuta
+		menuItems:      []string{"Ship", "Crew", "Journal", "Map", "Exit"},
+		menuCursor:     0,
+		Ship:           model.NewShipModel(),
+		Crew:           model.NewCrewModel(),
+		Journal:        model.NewJournalModel(),
+		TrackedMission: nil,
+		activeView:     ViewNone, // No active view initially
+		missionSpinner: s,        // initialize the spinner
 	}
 }
