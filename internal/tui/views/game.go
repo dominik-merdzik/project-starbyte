@@ -20,7 +20,7 @@ const (
 	ViewNone ActiveView = iota
 	ViewJournal
 	ViewCrew
-	//ViewMap
+	ViewMap
 	//ViewShip
 )
 
@@ -35,6 +35,7 @@ type GameModel struct {
 	Ship    model.ShipModel
 	Crew    model.CrewModel
 	Journal model.JournalModel
+	Map     model.MapModel
 
 	currentHealth int
 	maxHealth     int
@@ -88,6 +89,12 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.Crew = c
 		}
 		cmds = append(cmds, crewCmd)
+	case ViewMap:
+		newMap, mapCmd := g.Map.Update(msg)
+		if m, ok := newMap.(model.MapModel); ok {
+			g.Map = m
+		}
+		cmds = append(cmds, mapCmd)
 	}
 
 	// process key messages.
@@ -145,7 +152,10 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.activeView = ViewJournal
 			case "Crew":
 				g.activeView = ViewCrew
+			case "Map":
+				g.activeView = ViewMap
 			}
+
 		}
 	}
 
@@ -234,6 +244,8 @@ func (g GameModel) View() string {
 		bottomPanelContent = g.Crew.View()
 	case "Journal":
 		bottomPanelContent = g.Journal.View()
+	case "Map":
+		bottomPanelContent = g.Map.View()
 	default:
 		if g.TrackedMission != nil {
 			// create a new instance of the current task component and render the task
