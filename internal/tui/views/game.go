@@ -31,6 +31,7 @@ type GameModel struct {
 	// components
 	ProgressBar components.ProgressBar
 	Yuta        components.YutaModel
+	spinner     spinner.Model
 
 	// additional models
 	Ship    model.ShipModel
@@ -51,17 +52,16 @@ type GameModel struct {
 
 	// tracked mission (if any)
 	TrackedMission *model.Mission
-
-	// Spinner for mission progress
-	missionSpinner spinner.Model
 }
 
 func (g GameModel) Init() tea.Cmd {
+	// Init spinner
+	return g.spinner.Tick
 	// initialize Yuta's animation (seem to be broken ATM)
-	return tea.Batch(
-		g.Yuta.Init(),
-		g.missionSpinner.Tick, // start the spinner
-	)
+	// return tea.Batch(
+	// 	g.Yuta.Init(),
+	// 	g.spinner.Tick, // Initialization the spinner from here doesn't work for some reason.
+	// )
 }
 
 func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -104,6 +104,11 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// process key messages.
 	switch msg := msg.(type) {
+	// Spinner ticks
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		g.spinner, cmd = g.spinner.Update(msg)
+		return g, cmd
 	case model.TrackMissionMsg:
 		// store the tracked mission and update selectedItem.
 		g.TrackedMission = &msg.Mission
@@ -170,15 +175,8 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-
-	// Update the spinner
-	// NOT WORKING. WHY?! https://github.com/charmbracelet/bubbletea/blob/main/examples/spinners/main.go#L73-L76
-	case spinner.TickMsg:
-		var cmd tea.Cmd
-		g.missionSpinner, cmd = g.missionSpinner.Update(msg)
-		cmds = append(cmds, cmd)
-		fmt.Println("Spinner ticked")
 	}
+	cmds = append(cmds, g.spinner.Tick)
 
 	return g, tea.Batch(cmds...)
 }
@@ -269,16 +267,13 @@ func (g GameModel) View() string {
 		bottomPanelContent = g.Map.View()
 	default:
 		if g.TrackedMission != nil {
-			// create a new instance of the current task component and render the task
-
-			// Render a spinner when the mission is in progress
 			if g.TrackedMission.Status == "In Progress" {
-				spinnerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("69"))
-				bottomPanelContent = spinnerStyle.Render(g.missionSpinner.View()) + " Mission in progress..."
-			} else {
-				currentTask := components.NewCurrentTaskComponent()
-				bottomPanelContent = currentTask.Render(g.TrackedMission)
+				bottomPanelContent = fmt.Sprintf(g.spinner.View())
 			}
+			// Append current task after
+			currentTask := components.NewCurrentTaskComponent()
+			bottomPanelContent += currentTask.Render(g.TrackedMission)
+
 		} else {
 			bottomPanelContent = "This is the bottom panel."
 		}
@@ -328,21 +323,20 @@ func (g GameModel) View() string {
 // NewGameModel creates and returns a new GameModel instance.
 func NewGameModel() tea.Model {
 	s := spinner.New()
-	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	s.Spinner = spinner.Dot                                         // Spinner style CAN CHANGE
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("217")) // Spinner color
 
 	return GameModel{
-		ProgressBar:    components.NewProgressBar(),
-		currentHealth:  62,                   // example initial health
-		maxHealth:      100,                  // example max health
-		Yuta:           components.NewYuta(), // initialize Yuta
-		menuItems:      []string{"Ship", "Crew", "Journal", "Map", "Exit"},
-		menuCursor:     0,
-		Ship:           model.NewShipModel(),
-		Crew:           model.NewCrewModel(),
-		Journal:        model.NewJournalModel(),
-		TrackedMission: nil,
-		activeView:     ViewNone, // No active view initially
-		missionSpinner: s,        // initialize the spinner
+		ProgressBar:   components.NewProgressBar(),
+		currentHealth: 62,                   // example initial health
+		maxHealth:     100,                  // example max health
+		Yuta:          components.NewYuta(), // initialize Yuta
+		menuItems:     []string{"Ship", "Crew", "Journal", "Map", "Exit"},
+		menuCursor:    0,
+		Ship:          model.NewShipModel(),
+		Crew:          model.NewCrewModel(),
+		Journal:       model.NewJournalModel(),
+		activeView:    ViewNone, // No active view initially
+		spinner:       s,
 	}
 }
