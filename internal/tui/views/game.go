@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/tui/components"
@@ -30,6 +31,8 @@ type GameModel struct {
 	// components
 	ProgressBar components.ProgressBar
 	Yuta        components.YutaModel
+	spinner     spinner.Model
+	loading     bool
 
 	// additional models
 	Ship    model.ShipModel
@@ -53,6 +56,8 @@ type GameModel struct {
 }
 
 func (g GameModel) Init() tea.Cmd {
+	// Init spinner
+	return g.spinner.Tick
 	// initialize Yuta's animation (seem to be broken ATM)
 	return tea.Batch(
 		g.Yuta.Init(),
@@ -99,6 +104,11 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// process key messages.
 	switch msg := msg.(type) {
+	// Spinner ticks
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		g.spinner, cmd = g.spinner.Update(msg)
+		return g, cmd
 	case model.TrackMissionMsg:
 		// store the tracked mission and update selectedItem.
 		g.TrackedMission = &msg.Mission
@@ -157,6 +167,10 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		}
+	}
+	// Load spinner every tick
+	if g.loading {
+		cmds = append(cmds, g.spinner.Tick)
 	}
 
 	return g, tea.Batch(cmds...)
@@ -248,10 +262,23 @@ func (g GameModel) View() string {
 		bottomPanelContent = g.Map.View()
 	default:
 		if g.TrackedMission != nil {
-			// create a new instance of the current task component and render the task
+			if g.TrackedMission.Status == "In Progress" {
+				g.loading = true // Flag for spinner on
+			} else {
+				g.loading = false // Flag for spinner off
+			}
+			if g.loading {
+				bottomPanelContent = fmt.Sprintf(g.spinner.View()) // Spinner goes first
+			} else {
+				bottomPanelContent = "" // Clear it if not loading
+			}
+
+			// Append current task after
 			currentTask := components.NewCurrentTaskComponent()
-			bottomPanelContent = currentTask.Render(g.TrackedMission)
+			bottomPanelContent += currentTask.Render(g.TrackedMission)
+
 		} else {
+			g.loading = false
 			bottomPanelContent = "This is the bottom panel."
 		}
 	}
@@ -299,6 +326,10 @@ func (g GameModel) View() string {
 
 // NewGameModel creates and returns a new GameModel instance.
 func NewGameModel() tea.Model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot                                         // Spinner style CAN CHANGE
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("217")) // Spinner color
+
 	return GameModel{
 		ProgressBar:   components.NewProgressBar(),
 		currentHealth: 62,                   // example initial health
@@ -310,5 +341,7 @@ func NewGameModel() tea.Model {
 		Crew:          model.NewCrewModel(),
 		Journal:       model.NewJournalModel(),
 		activeView:    ViewNone, // No active view initially
+		spinner:       s,
+		loading:       true,
 	}
 }
