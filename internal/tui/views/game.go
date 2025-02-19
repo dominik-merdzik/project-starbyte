@@ -60,7 +60,7 @@ func (g GameModel) Init() tea.Cmd {
 	// initialize Yuta's animation (seem to be broken ATM)
 	// return tea.Batch(
 	// 	g.Yuta.Init(),
-	// 	g.spinner.Tick, // Initialization the spinner from here doesn't work for some reason.
+	// 	g.spinner.Tick, // Initializing the spinner from here doesn't work for some reason.
 	// )
 }
 
@@ -176,7 +176,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	}
-	cmds = append(cmds, g.spinner.Tick)
+	cmds = append(cmds, g.spinner.Tick) // This is needed to animate the spinner
 
 	return g, tea.Batch(cmds...)
 }
