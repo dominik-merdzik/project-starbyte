@@ -1,0 +1,104 @@
+{
+    "main": [
+      {
+        "Step": 1,
+        "Title": "The Awakening",
+        "Description": "Welcome to your journey. You awaken in a mysterious facility as the game begins.",
+        "Status": "Not Started",
+        "Location": "Home Base",
+        "Income": "N/A",
+        "Requirements": "None",
+        "Received": "Game",
+        "Category": "Main"
+      },
+      {
+        "Step": 2,
+        "Title": "First Contact",
+        "Description": "Your first encounter with an unknown entity sets the course of your destiny.",
+        "Status": "Not Started",
+        "Location": "Space Station",
+        "Income": "N/A",
+        "Requirements": "Complete Step 1",
+        "Received": "Game",
+        "Category": "Main"
+      }
+    ],
+    "received": [
+      {
+        "Location": "Mars",
+        "NPCs": [
+          {
+            "Name": "Commander Vega",
+            "Missions": [
+              {
+                "Title": "Rescue Operation",
+                "Description": "Locate and rescue the stranded astronaut on a rogue asteroid.",
+                "Status": "Pending",
+                "Income": "5000 Credits",
+                "Requirements": "Advanced Rescue Kit",
+                "Received": "Commander Vega",
+                "Category": "Received"
+              },
+              {
+                "Title": "Solar Flare Response",
+                "Description": "Monitor and respond to unpredictable solar flare activities.",
+                "Status": "In Progress",
+                "Income": "4000 Credits",
+                "Requirements": "Shielded Satellite",
+                "Received": "Commander Vega",
+                "Category": "Received"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Location": "Orion Nebula",
+        "NPCs": [
+          {
+            "Name": "Dr. Orion",
+            "Missions": [
+              {
+                "Title": "Nebula Exploration",
+                "Description": "Explore the forbidden nebula to gather scientific data and rare minerals.",
+                "Status": "In Progress",
+                "Income": "8000 Credits",
+                "Requirements": "Scientific Vessel",
+                "Received": "Dr. Orion",
+                "Category": "Received"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "Location": "Lunar Base",
+        "NPCs": [
+          {
+            "Name": "Captain Luna",
+            "Missions": [
+              {
+                "Title": "Alien Artifact Analysis",
+                "Description": "Examine recovered alien artifacts for technological insights.",
+                "Status": "Completed",
+                "Income": "11000 Credits",
+                "Requirements": "X-Ray Scanner",
+                "Received": "Captain Luna",
+                "Category": "Received"
+              },
+              {
+                "Title": "Interstellar Diplomatic Mission",
+                "Description": "Establish diplomatic relations with a newly discovered alien civilization.",
+                "Status": "Pending",
+                "Income": "15000 Credits",
+                "Requirements": "Diplomatic Credentials",
+                "Received": "Captain Luna",
+                "Category": "Received"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+  

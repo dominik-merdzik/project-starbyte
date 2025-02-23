@@ -4,56 +4,130 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/tui/components"
+	model "github.com/dominik-merdzik/project-starbyte/internal/tui/models"
 )
 
-type GameModel struct {
+// -----------------------------------------------------------------------------
+// Flags to determine which view is currently active
+type ActiveView int
 
+// This is like a constant enum in C# or Java
+// These are the possible views that can be active
+const (
+	ViewNone ActiveView = iota
+	ViewJournal
+	ViewCrew
+	ViewMap
+	//ViewShip
+)
+
+// -----------------------------------------------------------------------------
+
+type GameModel struct {
 	// components
 	ProgressBar components.ProgressBar
 	Yuta        components.YutaModel
-	// how-to: 1) add Ship field to GameModel struct
-	Ship components.ShipModel
+	spinner     spinner.Model
+
+	// additional models
+	Ship    model.ShipModel
+	Crew    model.CrewModel
+	Journal model.JournalModel
+	Map     model.MapModel
 
 	currentHealth int
 	maxHealth     int
 
-	menuItems    []string // list of menu options
-	menuCursor   int      // current position of the cursor
+	menuItems  []string // list of menu options
+	menuCursor int      // current position of the cursor
+
+	// selectedItem tracks which menu item is selected
 	selectedItem string
+
+	activeView ActiveView // The currently active view
+
+	// tracked mission (if any)
+	TrackedMission *model.Mission
 }
 
 func (g GameModel) Init() tea.Cmd {
+	// Init spinner
+	return g.spinner.Tick
 	// initialize Yuta's animation (seem to be broken ATM)
-	return tea.Batch(
-		g.Yuta.Init(),
-	)
+	// return tea.Batch(
+	// 	g.Yuta.Init(),
+	// 	g.spinner.Tick, // Initializing the spinner from here doesn't work for some reason.
+	// )
 }
 
 func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
-	// update Yuta (collect its commands for future use)
+	// always update Yuta and Ship, regardless of focus.
 	newYuta, yutaCmd := g.Yuta.Update(msg)
-	if yutaModel, ok := newYuta.(components.YutaModel); ok {
-		g.Yuta = yutaModel
+	if y, ok := newYuta.(components.YutaModel); ok {
+		g.Yuta = y
 	}
 	cmds = append(cmds, yutaCmd)
 
-	// how-to: 3) update Ship field
 	newShip, shipCmd := g.Ship.Update(msg)
-	if s, ok := newShip.(components.ShipModel); ok {
+	if s, ok := newShip.(model.ShipModel); ok {
 		g.Ship = s
 	}
 	cmds = append(cmds, shipCmd)
 
+	// Update active view if needed
+	switch g.activeView {
+	case ViewJournal:
+		newJournal, journalCmd := g.Journal.Update(msg)
+		if j, ok := newJournal.(model.JournalModel); ok {
+			g.Journal = j
+		}
+		cmds = append(cmds, journalCmd)
+	case ViewCrew:
+		newCrew, crewCmd := g.Crew.Update(msg)
+		if c, ok := newCrew.(model.CrewModel); ok {
+			g.Crew = c
+		}
+		cmds = append(cmds, crewCmd)
+	case ViewMap:
+		newMap, mapCmd := g.Map.Update(msg)
+		if m, ok := newMap.(model.MapModel); ok {
+			g.Map = m
+		}
+		cmds = append(cmds, mapCmd)
+	}
+
+	// process key messages.
 	switch msg := msg.(type) {
+	// Spinner ticks
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		g.spinner, cmd = g.spinner.Update(msg)
+		return g, cmd
+	case model.TrackMissionMsg:
+		// store the tracked mission and update selectedItem.
+		g.TrackedMission = &msg.Mission
 	case tea.KeyMsg:
+		// Handle escape key for any active view
+		if g.activeView != ViewNone && msg.String() == "esc" {
+			g.activeView = ViewNone
+			g.selectedItem = ""
+			return g, tea.Batch(cmds...)
+		}
+
+		// If we have an active view, don't process main menu keys
+		if g.activeView != ViewNone {
+			return g, tea.Batch(cmds...)
+		}
+
+		// main menu key handling when not in Journal mode.
 		switch msg.String() {
 		case "q":
-			// quit the entire application
 			return g, tea.Quit
 
 		case "a":
@@ -70,7 +144,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.currentHealth = g.maxHealth
 			}
 
-		// menu navigation inside the game
+		// main menu navigation
 		case "up", "k":
 			if g.menuCursor > 0 {
 				g.menuCursor--
@@ -81,8 +155,28 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			g.selectedItem = g.menuItems[g.menuCursor]
+
+			// Switch to the selected view using the iota
+			switch g.selectedItem {
+			case "Journal":
+				g.activeView = ViewJournal
+			case "Crew":
+				g.activeView = ViewCrew
+			case "Map":
+				g.activeView = ViewMap
+			}
+		// Press SPACE to launch mission
+		case " ":
+			if g.TrackedMission != nil {
+				if g.TrackedMission.Status == "Not Started" {
+					g.TrackedMission.Status = "In Progress"
+				} else if g.TrackedMission.Status == "In Progress" {
+					g.TrackedMission.Status = "Completed"
+				}
+			}
 		}
 	}
+	cmds = append(cmds, g.spinner.Tick) // This is needed to animate the spinner
 
 	return g, tea.Batch(cmds...)
 }
@@ -99,7 +193,6 @@ func (g GameModel) View() string {
 		Width(40).
 		Padding(1, 0, 1, 0).
 		BorderForeground(lipgloss.Color("63"))
-
 	title := titleStyle.Render("🚀 STARSHIP SIMULATION 🚀")
 
 	//-------------------------------------------------------------------
@@ -111,18 +204,14 @@ func (g GameModel) View() string {
 	//-------------------------------------------------------------------
 	// menu items
 	//-------------------------------------------------------------------
-	// define style for the menu items
 	menuItemStyle := lipgloss.NewStyle().
 		Bold(true).
 		PaddingLeft(1).
-		Foreground(lipgloss.Color("217")) // chanage colour to theme later !!
-
-	// define style for cursor
+		Foreground(lipgloss.Color("217"))
 	cursorStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("63")).
 		PaddingLeft(2).
 		Bold(true)
-
 	var menuView strings.Builder
 	for i, item := range g.menuItems {
 		cursor := "_"
@@ -131,7 +220,6 @@ func (g GameModel) View() string {
 			menuItemStyle = menuItemStyle.Foreground(lipgloss.Color("215"))
 			cursor = ">"
 		}
-
 		styledItem := menuItemStyle.Render(strings.ToUpper(item))
 		styledCursor := cursorStyle.Render(cursor)
 		menuView.WriteString(fmt.Sprintf("%s %s\n", styledCursor, styledItem))
@@ -142,48 +230,57 @@ func (g GameModel) View() string {
 	//-------------------------------------------------------------------
 	leftPanelStyle := lipgloss.NewStyle().
 		Width(40).
-		Height(25).
+		Height(20).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63")).
-		Align(lipgloss.Left, lipgloss.Top) // <-- Horizontal=Left, Vertical=Top
-
-	leftPanel := leftPanelStyle.Render(
-		fmt.Sprintf("%s\n\n%s", title, menuView.String()),
-	)
+		Align(lipgloss.Left, lipgloss.Top)
+	leftPanel := leftPanelStyle.Render(fmt.Sprintf("%s\n\n%s", title, menuView.String()))
 
 	centerContent := fmt.Sprintf("%s\n\n%s", stats, healthBar)
 	centerPanel := lipgloss.NewStyle().
 		Width(50).
-		Height(25).
+		Height(20).
 		Border(lipgloss.RoundedBorder()).
 		Align(lipgloss.Center).
 		Render(centerContent)
 
 	rightPanel := lipgloss.NewStyle().
 		Width(40).
-		Height(25).
+		Height(20).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("34")).
 		Align(lipgloss.Center).
 		Render(g.Yuta.View())
 
 	//-------------------------------------------------------------------
-	// bottom panel (just a placeholder for now)
+	// bottom panel
 	//-------------------------------------------------------------------
-	// how-to: 4) update bottom panel (where we want different components)
 	var bottomPanelContent string
 	switch g.selectedItem {
 	case "Ship":
-		// show the ShipModel view
 		bottomPanelContent = g.Ship.View()
+	case "Crew":
+		bottomPanelContent = g.Crew.View()
+	case "Journal":
+		bottomPanelContent = g.Journal.View()
+	case "Map":
+		bottomPanelContent = g.Map.View()
 	default:
-		// default fallback
-		bottomPanelContent = "This is the bottom panel."
-	}
+		if g.TrackedMission != nil {
+			if g.TrackedMission.Status == "In Progress" {
+				bottomPanelContent = fmt.Sprintf(g.spinner.View())
+			}
+			// Append current task after
+			currentTask := components.NewCurrentTaskComponent()
+			bottomPanelContent += currentTask.Render(g.TrackedMission)
 
+		} else {
+			bottomPanelContent = "This is the bottom panel."
+		}
+	}
 	bottomPanel := lipgloss.NewStyle().
 		Width(134).
-		Height(12).
+		Height(21).
 		Border(lipgloss.RoundedBorder()).
 		Align(lipgloss.Center).
 		Render(bottomPanelContent)
@@ -196,30 +293,21 @@ func (g GameModel) View() string {
 		selected = "none"
 	}
 	selectedText := fmt.Sprintf("Selected [%s]", selected)
-
-	// left side (selected item)
 	leftSide := lipgloss.NewStyle().
-		Width(65). // half-ish of 134
+		Width(65).
 		PaddingLeft(2).
 		Render(selectedText)
-
-	// right side (hints)
 	hints := "[k ↑ j ↓ arrow keys] Navigate • [Enter] Select • [q] Quit"
 	rightSide := lipgloss.NewStyle().
-		Width(69). // the other half
+		Width(69).
 		Align(lipgloss.Right).
 		PaddingRight(2).
 		Render(hints)
-
-	// join both sides horizontally
 	hintsRowContent := lipgloss.JoinHorizontal(lipgloss.Top, leftSide, rightSide)
-
-	// style for the entire hints row
 	hintsRowStyle := lipgloss.NewStyle().
 		Width(134).
-		Background(lipgloss.Color("236")). // dark gray
-		Foreground(lipgloss.Color("15"))   // white
-
+		Background(lipgloss.Color("236")).
+		Foreground(lipgloss.Color("15"))
 	hintsRow := hintsRowStyle.Render(hintsRowContent)
 
 	//-------------------------------------------------------------------
@@ -227,22 +315,28 @@ func (g GameModel) View() string {
 	//-------------------------------------------------------------------
 	topRow := lipgloss.JoinHorizontal(lipgloss.Center, leftPanel, centerPanel, rightPanel)
 	bottomRows := lipgloss.JoinVertical(lipgloss.Center, bottomPanel, hintsRow)
-
 	mainView := lipgloss.JoinVertical(lipgloss.Center, topRow, bottomRows)
+
 	return mainView
 }
 
-// NewGameModel creates and returns a new GameModel instance
+// NewGameModel creates and returns a new GameModel instance.
 func NewGameModel() tea.Model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot                                         // Spinner style CAN CHANGE
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("217")) // Spinner color
+
 	return GameModel{
 		ProgressBar:   components.NewProgressBar(),
 		currentHealth: 62,                   // example initial health
 		maxHealth:     100,                  // example max health
 		Yuta:          components.NewYuta(), // initialize Yuta
-		menuItems:     []string{"Ship", "Crew", "Inventory", "Map", "Settings"},
-		menuCursor:    0, // start cursor at the first menu item
-
-		// how-to: 2) initialize Ship field
-		Ship: components.NewShipModel(),
+		menuItems:     []string{"Ship", "Crew", "Journal", "Map", "Exit"},
+		menuCursor:    0,
+		Ship:          model.NewShipModel(),
+		Crew:          model.NewCrewModel(),
+		Journal:       model.NewJournalModel(),
+		activeView:    ViewNone, // No active view initially
+		spinner:       s,
 	}
 }
