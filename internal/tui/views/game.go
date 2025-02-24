@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/tui/components"
@@ -30,11 +31,13 @@ type GameModel struct {
 	// components
 	ProgressBar components.ProgressBar
 	Yuta        components.YutaModel
+	spinner     spinner.Model
 
 	// additional models
 	Ship    model.ShipModel
 	Crew    model.CrewModel
 	Journal model.JournalModel
+	Map     model.MapModel
 
 	currentHealth int
 	maxHealth     int
@@ -52,10 +55,13 @@ type GameModel struct {
 }
 
 func (g GameModel) Init() tea.Cmd {
+	// Init spinner
+	return g.spinner.Tick
 	// initialize Yuta's animation (seem to be broken ATM)
-	return tea.Batch(
-		g.Yuta.Init(),
-	)
+	// return tea.Batch(
+	// 	g.Yuta.Init(),
+	// 	g.spinner.Tick, // Initializing the spinner from here doesn't work for some reason.
+	// )
 }
 
 func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -88,17 +94,27 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.Crew = c
 		}
 		cmds = append(cmds, crewCmd)
-
+	case ViewMap:
+		newMap, mapCmd := g.Map.Update(msg)
+		if m, ok := newMap.(model.MapModel); ok {
+			g.Map = m
+		}
+		cmds = append(cmds, mapCmd)
 	case ViewShip:
-		newShip, shipCmd := g.Ship.Update(msg)
-		if s, ok := newShip.(model.ShipModel); ok {
-			g.Ship = s
+		newShip, shipCmd := g.Map.Update(msg)
+		if m, ok := newShip.(model.MapModel); ok {
+			g.Map = m
 		}
 		cmds = append(cmds, shipCmd)
 	}
 
 	// process key messages.
 	switch msg := msg.(type) {
+	// Spinner ticks
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		g.spinner, cmd = g.spinner.Update(msg)
+		return g, cmd
 	case model.TrackMissionMsg:
 		// store the tracked mission and update selectedItem.
 		g.TrackedMission = &msg.Mission
@@ -152,11 +168,23 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.activeView = ViewJournal
 			case "Crew":
 				g.activeView = ViewCrew
+			case "Map":
+				g.activeView = ViewMap
 			case "Ship":
 				g.activeView = ViewShip
 			}
+		// Press SPACE to launch mission
+		case " ":
+			if g.TrackedMission != nil {
+				if g.TrackedMission.Status == "Not Started" {
+					g.TrackedMission.Status = "In Progress"
+				} else if g.TrackedMission.Status == "In Progress" {
+					g.TrackedMission.Status = "Completed"
+				}
+			}
 		}
 	}
+	cmds = append(cmds, g.spinner.Tick) // This is needed to animate the spinner
 
 	return g, tea.Batch(cmds...)
 }
@@ -243,11 +271,17 @@ func (g GameModel) View() string {
 		bottomPanelContent = g.Crew.View()
 	case "Journal":
 		bottomPanelContent = g.Journal.View()
+	case "Map":
+		bottomPanelContent = g.Map.View()
 	default:
 		if g.TrackedMission != nil {
-			// create a new instance of the current task component and render the task
+			if g.TrackedMission.Status == "In Progress" {
+				bottomPanelContent = fmt.Sprintf(g.spinner.View())
+			}
+			// Append current task after
 			currentTask := components.NewCurrentTaskComponent()
-			bottomPanelContent = currentTask.Render(g.TrackedMission)
+			bottomPanelContent += currentTask.Render(g.TrackedMission)
+
 		} else {
 			bottomPanelContent = "This is the bottom panel."
 		}
@@ -296,6 +330,10 @@ func (g GameModel) View() string {
 
 // NewGameModel creates and returns a new GameModel instance.
 func NewGameModel() tea.Model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot                                         // Spinner style CAN CHANGE
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("217")) // Spinner color
+
 	return GameModel{
 		ProgressBar:   components.NewProgressBar(),
 		currentHealth: 62,                   // example initial health
@@ -307,5 +345,6 @@ func NewGameModel() tea.Model {
 		Crew:          model.NewCrewModel(),
 		Journal:       model.NewJournalModel(),
 		activeView:    ViewNone, // No active view initially
+		spinner:       s,
 	}
 }
