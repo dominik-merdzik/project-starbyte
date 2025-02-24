@@ -22,7 +22,7 @@ const (
 	ViewJournal
 	ViewCrew
 	ViewMap
-	//ViewShip
+	ViewShip
 )
 
 // -----------------------------------------------------------------------------
@@ -100,6 +100,12 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.Map = m
 		}
 		cmds = append(cmds, mapCmd)
+	case ViewShip:
+		newShip, shipCmd := g.Map.Update(msg)
+		if m, ok := newShip.(model.MapModel); ok {
+			g.Map = m
+		}
+		cmds = append(cmds, shipCmd)
 	}
 
 	// process key messages.
@@ -164,6 +170,8 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.activeView = ViewCrew
 			case "Map":
 				g.activeView = ViewMap
+			case "Ship":
+				g.activeView = ViewShip
 			}
 		// Press SPACE to launch mission
 		case " ":
