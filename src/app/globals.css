@@ -1,4 +1,6 @@
 /* globals.css */
+
+/* Local fallback fonts */
 @font-face {
   font-family: 'JetBrains Mono';
   src: url('/fonts/JetBrainsMono-Regular.ttf') format('truetype');
@@ -34,5 +36,7 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'JetBrains Mono', Arial, Helvetica, sans-serif;
+  /* First try the Google-hosted font via the CSS variable,
+     then fall back to your locally hosted "JetBrains Mono", then system fonts */
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', Arial, Helvetica, sans-serif;
 }
