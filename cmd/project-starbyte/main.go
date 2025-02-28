@@ -54,6 +54,9 @@ func (m menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			// quit the program
 			return m, tea.Quit
+			//most of the save functions are for testing
+		case "s":
+			views.SaveGame()
 
 		case "enter":
 			// handle menu item selection
@@ -111,7 +114,7 @@ func (m menuModel) View() string {
 	}
 
 	// render key hints
-	hints := hintStyle.Render("[k ↑ j ↓ ~ arrow keys ] Navigate • [Enter] Select • [q] Quit")
+	hints := hintStyle.Render("[k ↑ j ↓ ~ arrow keys ] Navigate • [Enter] Select • [q] Quit ")
 
 	// render output section
 	output := "Welcome to Starbyte!\n"
