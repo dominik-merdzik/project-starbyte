@@ -31,9 +31,7 @@ type GameModel struct {
 	// components
 	ProgressBar components.ProgressBar
 	Yuta        components.YutaModel
-	// how-to: 1) add Ship field to GameModel struct
-	Ship    model.ShipModel
-	spinner spinner.Model
+	spinner     spinner.Model
 
 	// additional models
 	Ship    model.ShipModel
@@ -342,15 +340,11 @@ func NewGameModel() tea.Model {
 		maxHealth:     100,                  // example max health
 		Yuta:          components.NewYuta(), // initialize Yuta
 		menuItems:     []string{"Ship", "Crew", "Journal", "Map", "Exit"},
-		menuCursor:    0, // start cursor at the first menu item
-
-		// how-to: 2) initialize Ship field
-		Ship:       model.NewShipModel(),
-		menuCursor: 0,
-		Ship:       model.NewShipModel(),
-		Crew:       model.NewCrewModel(),
-		Journal:    model.NewJournalModel(),
-		activeView: ViewNone, // No active view initially
-		spinner:    s,
+		menuCursor:    0,
+		Ship:          model.NewShipModel(),
+		Crew:          model.NewCrewModel(),
+		Journal:       model.NewJournalModel(),
+		activeView:    ViewNone, // No active view initially
+		spinner:       s,
 	}
 }
