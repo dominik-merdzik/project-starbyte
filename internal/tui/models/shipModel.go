@@ -1,5 +1,6 @@
 package model
 
+
 import (
 	"fmt"
 	"strings"
@@ -38,10 +39,10 @@ func NewShipModel() ShipModel {
 	}
 }
 
-// Init initializes the model
 func (s ShipModel) Init() tea.Cmd {
 	return nil
 }
+
 
 // Update handles key inputs
 func (s ShipModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
