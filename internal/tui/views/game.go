@@ -348,3 +348,29 @@ func NewGameModel() tea.Model {
 		spinner:       s,
 	}
 }
+
+// Function to start a mission
+// Param: mission - update mission status
+// Param: ShipModel - modify fuel stat
+// !!! This func is supposed to be called from journalModel.Update(). How are we going to do that?
+func StartMission(mission model.Mission, ship model.ShipModel) {
+	// Check if ship has enough fuel
+	if ship.EngineFuel < mission.FuelNeeded {
+		// Print message that ship does not have enough fuel
+		return
+	}
+	ship.EngineFuel -= mission.FuelNeeded // Deduct fuel from ship
+
+	mission.Status = "In Progress" // Update mission status to "In Progress"
+
+	// Animate progress bar to simulate travel time
+
+	// Arrived
+
+	// Do mission objective / do event
+	// call event function
+
+	// Return to base
+
+	// mission.Status = "Completed" // Update mission status to "Completed"
+}

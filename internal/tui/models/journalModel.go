@@ -179,6 +179,8 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					mission.Status = "Abandoned"
 					j.updateMission(mission)
 					j.DetailView = false
+				case "Start Mission":
+
 				}
 			case "esc":
 				j.DetailView = false

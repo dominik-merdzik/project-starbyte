@@ -1,6 +1,20 @@
 {
   "main": [
     {
+      "Step": 0,
+      "Title": "Rescue Mission",
+      "Description": "Rescue the stranded astronaut on a rogue asteroid",
+      "Status": "Not Started",
+      "Location": "Planet A",
+      "Income": 1000,
+      "Requirements": "None",
+      "Received": "Game",
+      "Category": "Main",
+      "TravelTime": 10,
+      "FuelNeeded": 10,
+      "DestinationPlanet": "Planet A"
+    },
+    {
       "Step": 1,
       "Title": "The Awakening",
       "Description": "Welcome to your journey. You awaken in a mysterious facility as the game begins.",
