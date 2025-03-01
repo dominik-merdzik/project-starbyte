@@ -19,14 +19,17 @@ type TrackMissionMsg struct {
 // Mission represents a mission in the model.
 // Note: This is a different type from data.Mission and data.MainMission
 type Mission struct {
-	Title        string
-	Description  string
-	Status       string
-	Location     string
-	Income       string
-	Requirements string
-	Received     string
-	Category     string
+	Title             string
+	Description       string
+	Status            string
+	Location          string
+	Income            int
+	Requirements      string
+	Received          string
+	Category          string
+	TravelTime        int
+	FuelNeeded        int
+	DestinationPlanet string
 }
 
 type JournalModel struct {
@@ -47,28 +50,34 @@ type JournalModel struct {
 // convertDataMission converts a data.Mission (from a received mission) into a model.Mission
 func convertDataMission(dm data.Mission) Mission {
 	return Mission{
-		Title:        dm.Title,
-		Description:  dm.Description,
-		Status:       dm.Status,
-		Location:     dm.Location,
-		Income:       dm.Income,
-		Requirements: dm.Requirements,
-		Received:     dm.Received,
-		Category:     dm.Category,
+		Title:             dm.Title,
+		Description:       dm.Description,
+		Status:            dm.Status,
+		Location:          dm.Location,
+		Income:            dm.Income,
+		Requirements:      dm.Requirements,
+		Received:          dm.Received,
+		Category:          dm.Category,
+		TravelTime:        dm.TravelTime,
+		FuelNeeded:        dm.FuelNeeded,
+		DestinationPlanet: dm.DestinationPlanet,
 	}
 }
 
 // convertMainMission converts a data.MainMission into a model.Mission
 func convertMainMission(mm data.MainMission) Mission {
 	return Mission{
-		Title:        fmt.Sprintf("Step %d: %s", mm.Step, mm.Title),
-		Description:  mm.Description,
-		Status:       mm.Status,
-		Location:     mm.Location,
-		Income:       mm.Income,
-		Requirements: mm.Requirements,
-		Received:     mm.Received,
-		Category:     mm.Category,
+		Title:             fmt.Sprintf("Step %d: %s", mm.Step, mm.Title),
+		Description:       mm.Description,
+		Status:            mm.Status,
+		Location:          mm.Location,
+		Income:            mm.Income,
+		Requirements:      mm.Requirements,
+		Received:          mm.Received,
+		Category:          mm.Category,
+		TravelTime:        mm.TravelTime,
+		FuelNeeded:        mm.FuelNeeded,
+		DestinationPlanet: mm.DestinationPlanet,
 	}
 }
 
@@ -117,7 +126,7 @@ func NewJournalModel() JournalModel {
 		PageSize:      5,
 		DetailView:    false,
 		DetailCursor:  0,
-		DetailOptions: []string{"Track", "Open in Map", "Assign to Crew Member", "Abandon", "Back"},
+		DetailOptions: []string{"Track", "Start Mission", "Abandon", "Back"},
 	}
 }
 
@@ -334,17 +343,21 @@ func (j JournalModel) View() string {
 
 		// right panel: Detailed mission information
 		titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-		labelStyle := lipgloss.NewStyle().Bold(true)
-		details := fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s",
+		labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Bold(true)
+		details := fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s",
 			titleStyle.Render(selectedMission.Title),
 			labelStyle.Render("Description:")+" "+selectedMission.Description,
 			labelStyle.Render("Status:")+" "+selectedMission.Status,
 			labelStyle.Render("Location:")+" "+selectedMission.Location,
-			labelStyle.Render("Income:")+" "+selectedMission.Income,
+			labelStyle.Render("Income:")+" "+fmt.Sprintf("%d", selectedMission.Income)+" credits",
 			labelStyle.Render("Requirements:")+" "+selectedMission.Requirements,
 			labelStyle.Render("Received:")+" "+selectedMission.Received,
 			labelStyle.Render("Category:")+" "+selectedMission.Category,
+			labelStyle.Render("Travel Time:")+" "+fmt.Sprintf("%d", selectedMission.TravelTime)+" minutes",
+			labelStyle.Render("Fuel Needed:")+" "+fmt.Sprintf("%d", selectedMission.FuelNeeded)+" units",
+			labelStyle.Render("Destination:")+" "+selectedMission.DestinationPlanet,
 		)
+
 		rightPanel := lipgloss.NewStyle().
 			Width(60).
 			Height(18).
@@ -436,7 +449,7 @@ func (j JournalModel) View() string {
 			labelStyle.Render("Description:")+" "+selectedMission.Description,
 			labelStyle.Render("Status:")+" "+selectedMission.Status,
 			labelStyle.Render("Location:")+" "+selectedMission.Location,
-			labelStyle.Render("Income:")+" "+selectedMission.Income,
+			labelStyle.Render("Income:")+" "+fmt.Sprintf("%d", selectedMission.Income),
 			labelStyle.Render("Requirements:")+" "+selectedMission.Requirements,
 			labelStyle.Render("Received:")+" "+selectedMission.Received,
 		)
