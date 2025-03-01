@@ -10,7 +10,7 @@
       "Requirements": "None",
       "Received": "Game",
       "Category": "Main",
-      "TravelTime": 10,
+      "TravelTime": 5,
       "FuelNeeded": 10,
       "DestinationPlanet": "Planet A"
     },
