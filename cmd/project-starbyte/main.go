@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dominik-merdzik/project-starbyte/internal/data"
 
 	"github.com/dominik-merdzik/project-starbyte/internal/tui/views"
 )
@@ -16,13 +17,17 @@ type menuModel struct {
 }
 
 func main() {
+	var choices []string
+
+	// check if the save file exists and adjust the menu
+	if data.SaveExists() {
+		choices = []string{"Enter Simulation", "Edit Config", "Help", "Exit"}
+	} else {
+		choices = []string{"Start New Simulation", "Edit Config", "Help", "Exit"}
+	}
+
 	model := menuModel{
-		choices: []string{
-			"Enter Simulation",
-			"Edit Config",
-			"Help",
-			"Exit",
-		},
+		choices: choices,
 	}
 
 	p := tea.NewProgram(model)
@@ -39,46 +44,32 @@ func (m menuModel) Init() tea.Cmd {
 func (m menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// handle navigation and selection based on key input
 		switch msg.String() {
 		case "up", "k":
-			// move cursor up
 			if m.cursor > 0 {
 				m.cursor--
 			}
 		case "down", "j":
-			// move cursor down
 			if m.cursor < len(m.choices)-1 {
 				m.cursor++
 			}
 		case "q":
-			// quit the program
 			return m, tea.Quit
-			//most of the save functions are for testing
-		case "s":
-			views.SaveGame()
-
 		case "enter":
-			// handle menu item selection
 			switch m.choices[m.cursor] {
+			case "Start New Simulation":
+				return views.NewGameCreationModel(), tea.EnterAltScreen
 			case "Enter Simulation":
-				// Instead of starting a new program,
-				// return the new simulation model + enter alt screen
 				return views.NewGameModel(), tea.EnterAltScreen
-
 			case "Edit Config":
 				m.output = "Configuration editing is currently not implemented."
-
 			case "Help":
-				m.output = "Help Menu:\n - Enter Game: Start the game\n - Edit Config: Modify settings\n - Help: Show this menu\n - Exit: Quit the program"
-
+				m.output = "Help Menu:\n - Enter Simulation: Start the game\n - Edit Config: Modify settings\n - Help: Show this menu\n - Exit: Quit the program"
 			case "Exit":
 				return m, tea.Quit
 			}
 		}
 	}
-
-	// return the updated menu model without additional commands
 	return m, nil
 }
 

@@ -6,61 +6,40 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dominik-merdzik/project-starbyte/internal/data" // Import the package where saved crew data is defined.
 )
 
-// A single crew member
+// a single crew member in our model
 type CrewMember struct {
-	Name     string
-	Role     string // Captain, Navigator, Engineer, Gunner, Cook, Deckhand
-	Level    int
-	HireCost int // To be used when recruiting crew members
+	Name       string
+	Role       string // e.g. Captain, Navigator, Engineer, Gunner, Cook, Deckhand
+	Degree     int
+	Experience int
+	Morale     int
+	Health     int
+	HireCost   int // to be used when recruiting crew members
 }
 
-// All of the crew on board the player's ship
+// all of the crew on board the player's ship
 type CrewModel struct {
 	CrewMembers []CrewMember
-	Cursor      int // Index of the currently selected crew member
+	Cursor      int
 }
 
-// NewCrewModel creates a new CrewModel with a default crew
-func NewCrewModel() CrewModel {
-	crew := []CrewMember{
-		{
-			Name:     "Alice",
-			Role:     "Captain",
-			Level:    1,
-			HireCost: 100,
-		},
-		{
-			Name:     "Bob",
-			Role:     "Navigator",
-			Level:    1,
-			HireCost: 100,
-		},
-		{
-			Name:     "Charlie",
-			Role:     "Engineer",
-			Level:    1,
-			HireCost: 100,
-		},
-		{
-			Name:     "David",
-			Role:     "Gunner",
-			Level:    1,
-			HireCost: 100,
-		},
-		{
-			Name:     "Eve",
-			Role:     "Cook",
-			Level:    1,
-			HireCost: 100,
-		},
-		{
-			Name:     "Frank",
-			Role:     "Deckhand",
-			Level:    1,
-			HireCost: 100,
-		},
+// NewCrewModel creates a new CrewModel based on saved crew data
+// it converts a slice of data.CrewMember (from the save file) into the internal CrewMember type
+func NewCrewModel(savedCrew []data.CrewMember) CrewModel {
+	var crew []CrewMember
+	for _, s := range savedCrew {
+		crew = append(crew, CrewMember{
+			Name:       s.Name,
+			Role:       s.Role,
+			Degree:     s.Degree,
+			Experience: s.Experience,
+			Morale:     s.Morale,
+			Health:     s.Health,
+			HireCost:   100, // idea for later - adjust or compute based on s.Degree
+		})
 	}
 	return CrewModel{
 		CrewMembers: crew,
@@ -89,11 +68,8 @@ func (c CrewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return c, nil
 }
 
-// Much of this is copied from JournalModel.View
 func (c CrewModel) View() string {
-	// ----------------------------
 	// Left Panel: Crew List
-	// ----------------------------
 	leftStyle := lipgloss.NewStyle().
 		Width(60).
 		Height(18).
@@ -105,11 +81,9 @@ func (c CrewModel) View() string {
 	hoverStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
 	arrowStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
 
-	// Render each crew member per line in the left panel.
-	// Prepend the cursor with a '>' character.
 	var crewList strings.Builder
 	for i, crew := range c.CrewMembers {
-		titleText := crew.Name
+		titleText := crew.Name + " ~ " + crew.Role
 		if i == c.Cursor {
 			crewList.WriteString(fmt.Sprintf("%s %s\n",
 				arrowStyle.Render(">"),
@@ -121,9 +95,7 @@ func (c CrewModel) View() string {
 
 	leftPanel := leftStyle.Render(crewList.String())
 
-	// ----------------------------
-	// Right Panel: Display details of the selected crew member
-	// ----------------------------
+	// Right Panel: Details of the selected crew member
 	rightStyle := lipgloss.NewStyle().
 		Width(60).
 		Height(18).
@@ -139,15 +111,16 @@ func (c CrewModel) View() string {
 		crew := c.CrewMembers[c.Cursor]
 		crewDetails = titleStyle.Render(crew.Name) + "\n" +
 			labelStyle.Render("Role: ") + crew.Role + "\n" +
-			labelStyle.Render("Level: ") + fmt.Sprintf("%d", crew.Level) + "\n" +
-			labelStyle.Render("Hire Cost: ") + "100 credits" + "\n"
+			labelStyle.Render("Degree: ") + fmt.Sprintf("%d", crew.Degree) + "\n" +
+			labelStyle.Render("Experience: ") + fmt.Sprintf("%d", crew.Experience) + "\n" +
+			labelStyle.Render("Morale: ") + fmt.Sprintf("%d", crew.Morale) + "\n" +
+			labelStyle.Render("Health: ") + fmt.Sprintf("%d", crew.Health) + "\n"
+		//labelStyle.Render("Hire Cost: ") + "100 credits" + "\n"
 	}
 
 	rightPanel := rightStyle.Render(crewDetails)
 
-	// ----------------------------
-	// Vertical Divider.
-	// ----------------------------
+	// Vertical Divider
 	const divider = `
 │
 │
@@ -172,8 +145,6 @@ func (c CrewModel) View() string {
 		Foreground(lipgloss.Color("240"))
 	div := dividerStyle.Render(divider)
 
-	// ----------------------------
-	// Combine Panels.
-	// ----------------------------
+	// Combine Panels
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, div, rightPanel)
 }

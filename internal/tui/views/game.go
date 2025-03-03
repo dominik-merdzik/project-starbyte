@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dominik-merdzik/project-starbyte/internal/data"
 	"github.com/dominik-merdzik/project-starbyte/internal/tui/components"
 	model "github.com/dominik-merdzik/project-starbyte/internal/tui/models"
 )
@@ -405,7 +406,7 @@ func (g GameModel) View() string {
 	return mainView
 }
 
-// NewGameModel creates and returns a new GameModel instance.
+// NewGameModel creates and returns a new GameModel instance
 func NewGameModel() tea.Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot                                         // Spinner style CAN CHANGE
@@ -417,17 +418,38 @@ func NewGameModel() tea.Model {
 		progress.WithWidth(40),
 	)
 
+	// Load the full game save from your save file
+	fullSave, err := data.LoadFullGameSave()
+	if err != nil || fullSave == nil {
+		// handle error or absence of save file
+		fmt.Println("Error loading save file or save file not found; using default values")
+		// we can create a default FullGameSave here or call a helper like data.DefaultFullGameSave()
+		//fullSave = data.DefaultFullGameSave() <-- define this function in data package
+	}
+
+	// map the saved ship data to the game model fields
+	currentHealth := fullSave.Ship.HullIntegrity
+	maxHealth := fullSave.Ship.MaxHullIntegrity
+
+	// create the models from the loaded save data
+	shipModel := model.NewShipModel(fullSave.Ship)
+	crewModel := model.NewCrewModel(fullSave.Crew)
+	journalModel := model.NewJournalModel()
+	//mapModel := model.NewMapModel()
+
+	// initialize and return the main GameModel with values from the save file
 	return GameModel{
-		ProgressBar:    components.NewProgressBar(),
-		currentHealth:  62,                   // example initial health
-		maxHealth:      100,                  // example max health
-		Yuta:           components.NewYuta(), // initialize Yuta
-		menuItems:      []string{"Ship", "Crew", "Journal", "Map", "Exit"},
-		menuCursor:     0,
-		Ship:           model.NewShipModel(),
-		Crew:           model.NewCrewModel(),
-		Journal:        model.NewJournalModel(),
-		activeView:     ViewNone, // No active view initially
+		ProgressBar:   components.NewProgressBar(),
+		currentHealth: currentHealth,
+		maxHealth:     maxHealth,
+		Yuta:          components.NewYuta(),
+		menuItems:     []string{"Ship", "Crew", "Journal", "Map", "Exit"},
+		menuCursor:    0,
+		Ship:          shipModel,
+		Crew:          crewModel,
+		Journal:       journalModel,
+		//Map:            mapModel,
+		activeView:     ViewNone,
 		spinner:        s,
 		isTravelling:   false,
 		travelProgress: p,
