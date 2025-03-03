@@ -12,16 +12,20 @@ type MissionsFile struct {
 }
 
 // MainMission represents a main mission (story missions)
+// MainMission represents a main mission (story missions)
 type MainMission struct {
-	Step         int    `json:"Step"`
-	Title        string `json:"Title"`
-	Description  string `json:"Description"`
-	Status       string `json:"Status"`
-	Location     string `json:"Location"`
-	Income       string `json:"Income"`
-	Requirements string `json:"Requirements"`
-	Received     string `json:"Received"`
-	Category     string `json:"Category"`
+	Step              int    `json:"Step"`
+	Title             string `json:"Title"`
+	Description       string `json:"Description"`
+	Status            string `json:"Status"`
+	Location          string `json:"Location"`
+	Income            int    `json:"Income"`
+	Requirements      string `json:"Requirements"`
+	Received          string `json:"Received"`
+	Category          string `json:"Category"`
+	TravelTime        int    `json:"TravelTime"`
+	FuelNeeded        int    `json:"FuelNeeded"`
+	DestinationPlanet string `json:"DestinationPlanet"`
 }
 
 // ReceivedMission represents a group of missions available at a specific location (this will neeed to chanage later)
@@ -38,14 +42,17 @@ type NPC struct {
 
 // Mission represents an individual mission offered by an NPC
 type Mission struct {
-	Title        string `json:"Title"`
-	Description  string `json:"Description"`
-	Status       string `json:"Status"`
-	Location     string `json:"Location"`
-	Income       string `json:"Income"`
-	Requirements string `json:"Requirements"`
-	Received     string `json:"Received"`
-	Category     string `json:"Category"`
+	Title             string `json:"Title"`
+	Description       string `json:"Description"`
+	Status            string `json:"Status"`
+	Location          string `json:"Location"`
+	Income            int    `json:"Income"`
+	Requirements      string `json:"Requirements"`
+	Received          string `json:"Received"`
+	Category          string `json:"Category"`
+	TravelTime        int    `json:"TravelTime"`
+	FuelNeeded        int    `json:"FuelNeeded"`
+	DestinationPlanet string `json:"DestinationPlanet"`
 }
 
 //go:embed missions.json

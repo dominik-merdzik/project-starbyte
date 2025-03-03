@@ -3,7 +3,9 @@ package views
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -22,6 +24,7 @@ const (
 	ViewJournal
 	ViewCrew
 	ViewMap
+	ViewShip
 	ViewShip
 )
 
@@ -52,7 +55,14 @@ type GameModel struct {
 
 	// tracked mission (if any)
 	TrackedMission *model.Mission
+
+	isTravelling    bool
+	travelStartTime time.Time
+	travelDuration  time.Duration
+	travelProgress  progress.Model
 }
+
+type travelTickMsg struct{}
 
 func (g GameModel) Init() tea.Cmd {
 	// Init spinner
@@ -100,6 +110,12 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.Map = m
 		}
 		cmds = append(cmds, mapCmd)
+	case ViewShip:
+		newShip, shipCmd := g.Map.Update(msg)
+		if m, ok := newShip.(model.MapModel); ok {
+			g.Map = m
+		}
+		cmds = append(cmds, shipCmd)
 	case ViewShip:
 		newShip, shipCmd := g.Map.Update(msg)
 		if m, ok := newShip.(model.MapModel); ok {
@@ -172,16 +188,65 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.activeView = ViewMap
 			case "Ship":
 				g.activeView = ViewShip
+			case "Ship":
+				g.activeView = ViewShip
 			}
-		// Press SPACE to launch mission
+			// Press SPACE to cycle through mission status
 		case " ":
-			if g.TrackedMission != nil {
+			// If TrackedMission is not null and is not already travelling on a mission
+			if g.TrackedMission != nil && !g.isTravelling {
 				if g.TrackedMission.Status == "Not Started" {
-					g.TrackedMission.Status = "In Progress"
+					// Start travel when mission begins
+					g.isTravelling = true
+					g.travelStartTime = time.Now()
+					g.travelDuration = time.Duration(g.TrackedMission.TravelTime) * time.Second
+
+					// Reset progress bar
+					g.travelProgress.SetPercent(0)
+
+					// Return commands for both travel tick and progress animation
+					return g, tea.Batch(
+						tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return travelTickMsg{} }),
+						g.travelProgress.Init(),
+					)
 				} else if g.TrackedMission.Status == "In Progress" {
 					g.TrackedMission.Status = "Completed"
 				}
 			}
+		}
+	case progress.FrameMsg:
+		// Handle progress bar animation frames
+		if g.isTravelling {
+			progressModel, cmd := g.travelProgress.Update(msg)
+			if p, ok := progressModel.(progress.Model); ok {
+				g.travelProgress = p
+			}
+			cmds = append(cmds, cmd)
+		}
+	case travelTickMsg:
+		if g.isTravelling && g.TrackedMission != nil {
+			elapsed := time.Since(g.travelStartTime)
+
+			// Update progress percentage based on elapsed time
+			percentComplete := float64(elapsed) / float64(g.travelDuration)
+			if percentComplete > 1.0 {
+				percentComplete = 1.0
+			}
+
+			cmd := g.travelProgress.SetPercent(percentComplete)
+
+			if elapsed >= g.travelDuration {
+				// Travel complete
+				g.isTravelling = false
+				g.TrackedMission.Status = "In Progress"
+				return g, nil
+			}
+
+			// Continue checking travel status
+			return g, tea.Batch(
+				tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return travelTickMsg{} }),
+				cmd,
+			)
 		}
 	}
 	cmds = append(cmds, g.spinner.Tick) // This is needed to animate the spinner
@@ -275,9 +340,30 @@ func (g GameModel) View() string {
 		bottomPanelContent = g.Map.View()
 	default:
 		if g.TrackedMission != nil {
-			if g.TrackedMission.Status == "In Progress" {
-				bottomPanelContent = fmt.Sprintf(g.spinner.View())
+			// Starting a mission
+			if g.isTravelling {
+				// Call StartMission (this func is not working rn)
+				StartMission(*g.TrackedMission, g.Ship)
+
+				// NOTE: Don't run timers from here. Do it from Update(). Else it will hold up the whole app.
+				remainingTime := g.travelDuration - time.Since(g.travelStartTime)
+				if remainingTime < 0 {
+					remainingTime = 0
+				}
+
+				// Create travel progress display with animated bar
+				progressBar := g.travelProgress.View()
+
+				// Construct the content with spinner, progress bar and remaining time
+				bottomPanelContent = fmt.Sprintf("%s Travelling to %s\n\n%s\n\nTime remaining: %v\n",
+					g.spinner.View(),
+					g.TrackedMission.Location,
+					progressBar,
+					remainingTime.Round(time.Millisecond))
 			}
+			// if g.TrackedMission.Status == "In Progress" {
+			// 	bottomPanelContent = fmt.Sprintf(g.spinner.View())
+			// }
 			// Append current task after
 			currentTask := components.NewCurrentTaskComponent()
 			bottomPanelContent += currentTask.Render(g.TrackedMission)
@@ -334,17 +420,25 @@ func NewGameModel() tea.Model {
 	s.Spinner = spinner.Dot                                         // Spinner style CAN CHANGE
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("217")) // Spinner color
 
+	// Initialize progress bar with a custom gradient
+	p := progress.New(
+		progress.WithDefaultGradient(),
+		progress.WithWidth(40),
+	)
+
 	return GameModel{
-		ProgressBar:   components.NewProgressBar(),
-		currentHealth: 62,                   // example initial health
-		maxHealth:     100,                  // example max health
-		Yuta:          components.NewYuta(), // initialize Yuta
-		menuItems:     []string{"Ship", "Crew", "Journal", "Map", "Exit"},
-		menuCursor:    0,
-		Ship:          model.NewShipModel(),
-		Crew:          model.NewCrewModel(),
-		Journal:       model.NewJournalModel(),
-		activeView:    ViewNone, // No active view initially
-		spinner:       s,
+		ProgressBar:    components.NewProgressBar(),
+		currentHealth:  62,                   // example initial health
+		maxHealth:      100,                  // example max health
+		Yuta:           components.NewYuta(), // initialize Yuta
+		menuItems:      []string{"Ship", "Crew", "Journal", "Map", "Exit"},
+		menuCursor:     0,
+		Ship:           model.NewShipModel(),
+		Crew:           model.NewCrewModel(),
+		Journal:        model.NewJournalModel(),
+		activeView:     ViewNone, // No active view initially
+		spinner:        s,
+		isTravelling:   false,
+		travelProgress: p,
 	}
 }
