@@ -25,7 +25,6 @@ const (
 	ViewCrew
 	ViewMap
 	ViewShip
-	ViewShip
 )
 
 // -----------------------------------------------------------------------------
@@ -116,12 +115,6 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.Map = m
 		}
 		cmds = append(cmds, shipCmd)
-	case ViewShip:
-		newShip, shipCmd := g.Map.Update(msg)
-		if m, ok := newShip.(model.MapModel); ok {
-			g.Map = m
-		}
-		cmds = append(cmds, shipCmd)
 	}
 
 	// process key messages.
@@ -186,8 +179,6 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.activeView = ViewCrew
 			case "Map":
 				g.activeView = ViewMap
-			case "Ship":
-				g.activeView = ViewShip
 			case "Ship":
 				g.activeView = ViewShip
 			}
@@ -441,4 +432,32 @@ func NewGameModel() tea.Model {
 		isTravelling:   false,
 		travelProgress: p,
 	}
+}
+
+// Function to start a mission
+// Param: mission - update mission status
+// Param: ShipModel - modify fuel stat
+// TODO: actually make it update our shipModel instance
+func StartMission(mission model.Mission, ship model.ShipModel) model.ShipModel {
+	// Check if ship has enough fuel
+	if ship.EngineFuel < mission.FuelNeeded {
+		// Print message that ship does not have enough fuel
+		return ship
+	}
+	ship.EngineFuel -= mission.FuelNeeded // Deduct fuel from ship
+
+	mission.Status = "In Progress" // Update mission status to "In Progress"
+
+	// Animate progress bar to simulate travel time
+
+	// Arrived
+
+	// Do mission objective / do event
+	// call event function
+
+	// Return to base
+
+	// mission.Status = "Completed" // Update mission status to "Completed"
+
+	return ship
 }
