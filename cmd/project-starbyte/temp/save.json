@@ -1,0 +1,135 @@
+[
+  {
+    "gameTitle": "Project Starbyte",
+    "gameMetadata": {
+      "version": "0.0.1",
+      "dateCreated": "2025-03-03",
+      "lastSaveTime": "2025-03-03T13:31:35-05:00",
+      "totalPlayTime": {
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0
+      },
+      "difficultySettings": {
+        "difficultyLevel": "Normal",
+        "resourceMultiplier": 1,
+        "crewMoraleImpact": 1
+      }
+    },
+    "player": {
+      "playerId": "PLAYER_753571",
+      "playerName": "Commander Starship",
+      "faction": "Independent",
+      "experiencePoints": 0,
+      "level": 1,
+      "credits": 1000,
+      "reputation": {
+        "alliedFactions": {
+          "GalacticUnion": 50
+        },
+        "enemyFactions": {
+          "PirateClan": -20
+        }
+      }
+    },
+    "ship": {
+      "shipId": "SHIP_577891",
+      "shipName": "Starship",
+      "hullIntegrity": 100,
+      "maxHullIntegrity": 100,
+      "shieldStrength": 50,
+      "maxShieldStrength": 50,
+      "fuel": 100,
+      "maxFuel": 200,
+      "engineHealth": 100,
+      "ftlDriveHealth": 70,
+      "ftlDriveCharge": 0,
+      "food": 100,
+      "location": {
+        "starSystemId": "SYS_658443",
+        "planetId": "Earth",
+        "coordinates": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        }
+      },
+      "cargo": {
+        "capacity": 100,
+        "usedCapacity": 0,
+        "items": [
+          {
+            "itemId": "ITEM_103394",
+            "name": "Iron Ore",
+            "quantity": 10
+          },
+          {
+            "itemId": "ITEM_188032",
+            "name": "Water",
+            "quantity": 5
+          }
+        ]
+      },
+      "modules": [
+        {
+          "moduleId": "MOD_ENG_732191",
+          "name": "Basic Engine",
+          "level": 1,
+          "status": "operational"
+        },
+        {
+          "moduleId": "MOD_LIFE_602216",
+          "name": "Life Support",
+          "level": 1,
+          "status": "operational"
+        }
+      ],
+      "upgrades": {
+        "engine": {
+          "currentLevel": 1,
+          "maxLevel": 5
+        },
+        "weaponSystems": {
+          "currentLevel": 0,
+          "maxLevel": 5
+        },
+        "cargoExpansion": {
+          "currentLevel": 0,
+          "maxLevel": 5
+        }
+      }
+    },
+    "crew": [
+      {
+        "crewId": "CREW_99242",
+        "name": "Alice",
+        "role": "Pilot",
+        "degree": 1,
+        "experience": 0,
+        "morale": 100,
+        "health": 100,
+        "skills": {
+          "piloting": 5,
+          "engineering": 1,
+          "combat": 2
+        },
+        "assignedTaskId": null
+      },
+      {
+        "crewId": "CREW_911678",
+        "name": "Bob",
+        "role": "Engineer",
+        "degree": 1,
+        "experience": 0,
+        "morale": 95,
+        "health": 100,
+        "skills": {
+          "piloting": 1,
+          "engineering": 5,
+          "combat": 1
+        },
+        "assignedTaskId": null
+      }
+    ]
+  }
+]
