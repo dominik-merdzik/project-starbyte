@@ -406,7 +406,7 @@ func (g GameModel) View() string {
 	return mainView
 }
 
-// NewGameModel creates and returns a new GameModel instance.
+// NewGameModel creates and returns a new GameModel instance
 func NewGameModel() tea.Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot                                         // Spinner style CAN CHANGE
@@ -418,29 +418,26 @@ func NewGameModel() tea.Model {
 		progress.WithWidth(40),
 	)
 
-	// Load the full game save from your save file.
+	// Load the full game save from your save file
 	fullSave, err := data.LoadFullGameSave()
 	if err != nil || fullSave == nil {
-		// Handle error or absence of save file.
-		// For now, you might choose to log the error and use default values.
-		// Alternatively, you could force a new game creation.
+		// handle error or absence of save file
 		fmt.Println("Error loading save file or save file not found; using default values")
-		// You can create a default FullGameSave here or call a helper like data.DefaultFullGameSave().
-		//fullSave = data.DefaultFullGameSave() // <-- define this function in your data package.
+		// we can create a default FullGameSave here or call a helper like data.DefaultFullGameSave()
+		//fullSave = data.DefaultFullGameSave() <-- define this function in data package
 	}
 
-	// Map the saved ship data to the game model fields.
+	// map the saved ship data to the game model fields
 	currentHealth := fullSave.Ship.HullIntegrity
 	maxHealth := fullSave.Ship.MaxHullIntegrity
 
-	// Create the sub-models from the loaded save data.
+	// create the models from the loaded save data
 	shipModel := model.NewShipModel(fullSave.Ship)
 	crewModel := model.NewCrewModel(fullSave.Crew)
-	// For Journal and Map, use similar conversion functions if needed,
-	journalModel := model.NewJournalModel() // if you have extra journal data; otherwise use NewJournalModel()
-	//mapModel := model.NewMapModel()                          // adjust as needed
+	journalModel := model.NewJournalModel()
+	//mapModel := model.NewMapModel()
 
-	// Now initialize and return the main GameModel with values from the save file.
+	// initialize and return the main GameModel with values from the save file
 	return GameModel{
 		ProgressBar:   components.NewProgressBar(),
 		currentHealth: currentHealth,
