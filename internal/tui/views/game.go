@@ -335,6 +335,10 @@ func (g GameModel) View() string {
 			currentTask := components.NewCurrentTaskComponent()
 			bottomPanelContent += currentTask.Render(g.TrackedMission)
 
+			if g.TrackedMission.Status == model.MissionStatusNotStarted {
+				bottomPanelContent += "\nPress [Space] to travel to the mission location.\n"
+			}
+
 			if g.isTravelling {
 				// Player travelling to mission location
 				StartMission(*g.TrackedMission, g.Ship)
@@ -343,7 +347,7 @@ func (g GameModel) View() string {
 					remainingTime = 0
 				}
 				progressBar := g.travelProgress.View()
-				bottomPanelContent += fmt.Sprintf("\n%s Travelling to %s\n\n%s\n\nTime remaining: %v\n",
+				bottomPanelContent = fmt.Sprintf("%s Travelling to %s\n\n%s\n\nTime remaining: %v\n",
 					g.spinner.View(), g.TrackedMission.Location, progressBar, remainingTime.Round(time.Millisecond))
 			}
 			if g.TrackedMission.Status == model.MissionStatusInProgress {
