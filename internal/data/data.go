@@ -10,12 +10,10 @@ import (
 	"time"
 )
 
-// seed the random number generator
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-// SaveFilePath defines where the save file will be stored - lets keep it simple for now
 const SaveFilePath = "temp/save.json"
 
 // ---------------------
@@ -28,6 +26,7 @@ type FullGameSave struct {
 	Player       Player       `json:"player"`
 	Ship         Ship         `json:"ship"`
 	Crew         []CrewMember `json:"crew"`
+	Missions     Missions     `json:"missions"`
 }
 
 type GameMetadata struct {
@@ -144,22 +143,100 @@ type Skills struct {
 	Combat      int `json:"combat"`
 }
 
+// ---------------------
+// mission structures
+// ---------------------
+
+type Mission struct {
+	Step              int    `json:"Step,omitempty"`
+	Title             string `json:"Title"`
+	Description       string `json:"Description"`
+	Status            string `json:"Status"`
+	Location          string `json:"Location"`
+	Income            int    `json:"Income"`
+	Requirements      string `json:"Requirements"`
+	Received          string `json:"Received"`
+	Category          string `json:"Category"`
+	TravelTime        int    `json:"TravelTime"`
+	FuelNeeded        int    `json:"FuelNeeded"`
+	DestinationPlanet string `json:"DestinationPlanet"`
+}
+
+type NPC struct {
+	Name     string    `json:"Name"`
+	Missions []Mission `json:"Missions"`
+}
+
+type ReceivedMissionGroup struct {
+	Location string `json:"Location"`
+	NPCs     []NPC  `json:"NPCs"`
+}
+
+type Missions struct {
+	Main     []Mission              `json:"main"`
+	Received []ReceivedMissionGroup `json:"received"`
+}
+
 // -------------------
-// helper Functions
+// helper functions
 // -------------------
 
-// generateRandomID returns a random ID string with the given prefix
+// returns a random ID string with the given prefix
 func generateRandomID(prefix string) string {
 	return prefix + strconv.Itoa(rand.Intn(1000000))
 }
 
 // ------------------------------
-// full game save file operations
+// Full Game Save File Operations
 // ------------------------------
 
-// CreateNewFullGameSave creates a new full game save file using the provided parameters
+// creates a new full game save file using the provided parameters
 func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error {
 	now := time.Now()
+
+	// Define default missions.
+	defaultMissions := Missions{
+		Main: []Mission{
+			{
+				Step:              0,
+				Title:             "Rescue Mission",
+				Description:       "Rescue the stranded astronaut on a rogue asteroid",
+				Status:            "Not Started",
+				Location:          "Planet A",
+				Income:            1000,
+				Requirements:      "None",
+				Received:          "Game",
+				Category:          "Main",
+				TravelTime:        5,
+				FuelNeeded:        10,
+				DestinationPlanet: "Planet A",
+			},
+		},
+		Received: []ReceivedMissionGroup{
+			{
+				Location: "Mars",
+				NPCs: []NPC{
+					{
+						Name: "Commander Vega",
+						Missions: []Mission{
+							{
+								Title:             "Solar Flare Response",
+								Description:       "Monitor and respond to unpredictable solar flare activities.",
+								Status:            "In Progress",
+								Income:            4000,
+								Requirements:      "Shielded Satellite",
+								Received:          "Commander Vega",
+								Category:          "Received",
+								TravelTime:        3,
+								FuelNeeded:        30,
+								DestinationPlanet: "Mars",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 
 	// Build the full game save structure with default values for a new game.
 	fullSave := FullGameSave{
@@ -204,10 +281,10 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 			MaxShieldStrength: 50,
 			Fuel:              100,
 			MaxFuel:           200,
-			EngineHealth:      100, // New default.
-			FTLDriveHealth:    70,  // New default.
-			FTLDriveCharge:    0,   // New default.
-			Food:              100, // New default.
+			EngineHealth:      100,
+			FTLDriveHealth:    70,
+			FTLDriveCharge:    0,
+			Food:              100,
 			Location: Location{
 				StarSystemId: generateRandomID("SYS_"),
 				PlanetId:     startingLocation,
@@ -286,12 +363,13 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 				AssignedTaskId: nil,
 			},
 		},
+		Missions: defaultMissions,
 	}
 
 	// Wrap the save data in an array (slice) as per your JSON structure.
 	saveData := []FullGameSave{fullSave}
 
-	data, err := json.MarshalIndent(saveData, "", "  ")
+	dataBytes, err := json.MarshalIndent(saveData, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -302,12 +380,57 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 		return err
 	}
 
-	return ioutil.WriteFile(SaveFilePath, data, 0644)
+	return ioutil.WriteFile(SaveFilePath, dataBytes, 0644)
 }
 
-// DefaultFullGameSave returns a default FullGameSave structure with initial "new game" values
+// returns a default FullGameSave structure with initial "new game" values
 func DefaultFullGameSave() *FullGameSave {
 	now := time.Now()
+
+	// Define default missions.
+	defaultMissions := Missions{
+		Main: []Mission{
+			{
+				Step:              0,
+				Title:             "Rescue Mission",
+				Description:       "Rescue the stranded astronaut on a rogue asteroid",
+				Status:            "Not Started",
+				Location:          "Planet A",
+				Income:            1000,
+				Requirements:      "None",
+				Received:          "Game",
+				Category:          "Main",
+				TravelTime:        5,
+				FuelNeeded:        10,
+				DestinationPlanet: "Planet A",
+			},
+		},
+		Received: []ReceivedMissionGroup{
+			{
+				Location: "Mars",
+				NPCs: []NPC{
+					{
+						Name: "Commander Vega",
+						Missions: []Mission{
+							{
+								Title:             "Solar Flare Response",
+								Description:       "Monitor and respond to unpredictable solar flare activities.",
+								Status:            "In Progress",
+								Income:            4000,
+								Requirements:      "Shielded Satellite",
+								Received:          "Commander Vega",
+								Category:          "Received",
+								TravelTime:        3,
+								FuelNeeded:        30,
+								DestinationPlanet: "Mars",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	return &FullGameSave{
 		GameTitle: "Project Starbyte",
 		GameMetadata: GameMetadata{
@@ -350,18 +473,14 @@ func DefaultFullGameSave() *FullGameSave {
 			MaxShieldStrength: 50,
 			Fuel:              100,
 			MaxFuel:           200,
-			EngineHealth:      100, // New default.
-			FTLDriveHealth:    70,  // New default.
-			FTLDriveCharge:    0,   // New default.
-			Food:              100, // New default.
+			EngineHealth:      100,
+			FTLDriveHealth:    70,
+			FTLDriveCharge:    0,
+			Food:              100,
 			Location: Location{
 				StarSystemId: "SYS_0001",
 				PlanetId:     "Earth",
-				Coordinates: Coordinates{
-					X: 0,
-					Y: 0,
-					Z: 0,
-				},
+				Coordinates:  Coordinates{X: 0, Y: 0, Z: 0},
 			},
 			Cargo: Cargo{
 				Capacity:     100,
@@ -432,23 +551,24 @@ func DefaultFullGameSave() *FullGameSave {
 				AssignedTaskId: nil,
 			},
 		},
+		Missions: defaultMissions,
 	}
 }
 
-// SaveExists checks whether a save file already exists
+// checks whether a save file already exists
 func SaveExists() bool {
 	_, err := os.Stat(SaveFilePath)
 	return err == nil
 }
 
-// LoadFullGameSave reads the JSON save file and returns the full game data
+// reads the JSON save file and returns the full game data
 func LoadFullGameSave() (*FullGameSave, error) {
-	data, err := ioutil.ReadFile(SaveFilePath)
+	dataBytes, err := ioutil.ReadFile(SaveFilePath)
 	if err != nil {
 		return nil, err
 	}
 	var saves []FullGameSave
-	if err := json.Unmarshal(data, &saves); err != nil {
+	if err := json.Unmarshal(dataBytes, &saves); err != nil {
 		return nil, err
 	}
 	if len(saves) == 0 {

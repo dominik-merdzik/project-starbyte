@@ -12,12 +12,12 @@ import (
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
 )
 
+// TrackMissionMsg is used to signal that a mission is being tracked
 type TrackMissionMsg struct {
 	Mission Mission
 }
 
-// Mission represents a mission in the model.
-// Note: This is a different type from data.Mission and data.MainMission
+// Mission represents a mission in the journal
 type Mission struct {
 	Title             string
 	Description       string
@@ -32,22 +32,7 @@ type Mission struct {
 	DestinationPlanet string
 }
 
-type JournalModel struct {
-	Missions         []Mission // full list of missions
-	Cursor           int
-	SearchMode       bool
-	SearchQuery      string
-	FilteredMissions []Mission
-	Page             int
-	PageSize         int
-
-	// Detail view fields
-	DetailView    bool
-	DetailCursor  int
-	DetailOptions []string
-}
-
-// convertDataMission converts a data.Mission (from a received mission) into a model.Mission
+// convertDataMission converts a data.Mission into a model.Mission
 func convertDataMission(dm data.Mission) Mission {
 	return Mission{
 		Title:             dm.Title,
@@ -64,8 +49,8 @@ func convertDataMission(dm data.Mission) Mission {
 	}
 }
 
-// convertMainMission converts a data.MainMission into a model.Mission
-func convertMainMission(mm data.MainMission) Mission {
+// convertMainMission converts a data.Mission (used for main missions) into a model.Mission
+func convertMainMission(mm data.Mission) Mission {
 	return Mission{
 		Title:             fmt.Sprintf("Step %d: %s", mm.Step, mm.Title),
 		Description:       mm.Description,
@@ -92,27 +77,59 @@ func (j JournalModel) currentList() []Mission {
 	return j.Missions
 }
 
+// JournalModel represents the mission journal
+type JournalModel struct {
+	Missions         []Mission
+	Cursor           int
+	SearchMode       bool
+	SearchQuery      string
+	FilteredMissions []Mission
+	Page             int
+	PageSize         int
+
+	// Detail view fields.
+	DetailView    bool
+	DetailCursor  int
+	DetailOptions []string
+}
+
+// loads the full game save, extracts the missions, and converts them for display
 func NewJournalModel() JournalModel {
-	missionsFile, err := data.LoadMissions()
+	fullSave, err := data.LoadFullGameSave()
 	if err != nil {
-		log.Printf("Error loading missions JSON: %v", err)
+		log.Printf("Error loading full game save: %v", err)
 	}
+	if fullSave == nil {
+		log.Printf("No save file found; initializing with empty mission list")
+		// return an empty JournalModel or initialize with default missions
+		return JournalModel{
+			Missions:      []Mission{},
+			Cursor:        0,
+			Page:          0,
+			PageSize:      5,
+			DetailView:    false,
+			DetailCursor:  0,
+			DetailOptions: []string{"Track", "Start Mission", "Abandon", "Back"},
+		}
+	}
+
+	missionsFile := fullSave.Missions
 
 	var missions []Mission
 
-	// add main missions.
+	// add main missions
 	for _, mm := range missionsFile.Main {
 		missions = append(missions, convertMainMission(mm))
 	}
 
-	// add all received missions (for testing, later it will only be missions the player has received)
-	for _, loc := range missionsFile.Received {
-		for _, npc := range loc.NPCs {
+	// Add received missions
+	for _, group := range missionsFile.Received {
+		for _, npc := range group.NPCs {
 			for _, m := range npc.Missions {
 				rec := convertDataMission(m)
-				// if location is empty, fill it with the parent's location (for now)
+				// if location is empty, fill it with the group's location
 				if rec.Location == "" {
-					rec.Location = loc.Location
+					rec.Location = group.Location
 				}
 				missions = append(missions, rec)
 			}
@@ -152,35 +169,27 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					j.DetailCursor++
 				}
 			case "b":
-				// simulate a back action
+				// Simulate a back action.
 				j.DetailView = false
 			case "enter":
-				// execute the selected option
+				// Execute the selected option.
 				selectedOption := j.DetailOptions[j.DetailCursor]
 				switch selectedOption {
 				case "Back":
 					j.DetailView = false
 				case "Track":
-					// track the mission in the background and exit the detail view
 					trackedMission := j.getSelectedMission()
 					j.DetailView = false
 					return j, func() tea.Msg {
 						return TrackMissionMsg{Mission: trackedMission}
 					}
-				case "Open in Map":
-					// TODO: Add map-opening functionality.
-					fmt.Println("Opening mission in map...")
-				case "Assign to Crew Member":
-					// TODO: Add crew assignment functionality.
-					fmt.Println("Assigning mission to a crew member...")
+				case "Start Mission":
+					// TODO: Add start mission functionality.
 				case "Abandon":
-					// for demonstration, mark the mission as "Abandoned".
 					mission := j.getSelectedMission()
 					mission.Status = "Abandoned"
 					j.updateMission(mission)
 					j.DetailView = false
-				case "Start Mission":
-
 				}
 			case "esc":
 				j.DetailView = false
@@ -198,13 +207,11 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					j.SearchQuery = j.SearchQuery[:len(j.SearchQuery)-1]
 				}
 			case "enter":
-				// Finalize search.
 				j.SearchMode = false
 				j.Page = 0
 				j.Cursor = 0
 				return j, nil
 			case "esc":
-				// Cancel search.
 				j.SearchMode = false
 				j.SearchQuery = ""
 				j.FilteredMissions = nil
@@ -264,13 +271,11 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				j.Cursor = 0
 			}
 		case "enter":
-			// Enter detail view if there is at least one item.
 			if pageItemsCount > 0 {
 				j.DetailView = true
 				j.DetailCursor = 0
 			}
 		case "/":
-			// Activate search mode.
 			j.SearchMode = true
 			j.SearchQuery = ""
 			j.FilteredMissions = nil
@@ -309,7 +314,7 @@ func (j *JournalModel) updateMission(updated Mission) {
 
 func (j JournalModel) View() string {
 	if j.DetailView {
-		// detail view: use the current list based on search
+		// display options and full mission details
 		currentList := j.currentList()
 		totalItems := len(currentList)
 		startIndex := j.Page * j.PageSize
@@ -326,7 +331,7 @@ func (j JournalModel) View() string {
 		}
 		selectedMission := missionsOnPage[j.Cursor]
 
-		// left Panel: mission options
+		// left panel mission list
 		var optionsList strings.Builder
 		for i, option := range j.DetailOptions {
 			if i == j.DetailCursor {
@@ -343,9 +348,9 @@ func (j JournalModel) View() string {
 			BorderForeground(lipgloss.Color("63")).
 			Render(optionsList.String())
 
-		// right panel: Detailed mission information
+		// right panel detailed mission information
 		titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-		labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Bold(true)
+		labelStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
 		details := fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s",
 			titleStyle.Render(selectedMission.Title),
 			labelStyle.Render("Description:")+" "+selectedMission.Description,
@@ -359,7 +364,6 @@ func (j JournalModel) View() string {
 			labelStyle.Render("Fuel Needed:")+" "+fmt.Sprintf("%d", selectedMission.FuelNeeded)+" units",
 			labelStyle.Render("Destination:")+" "+selectedMission.DestinationPlanet,
 		)
-
 		rightPanel := lipgloss.NewStyle().
 			Width(60).
 			Height(18).
@@ -397,7 +401,7 @@ func (j JournalModel) View() string {
 		totalPages = int(math.Ceil(float64(totalItems) / float64(j.PageSize)))
 	}
 
-	// left panel: mission list
+	// left panel mission list
 	leftStyle := lipgloss.NewStyle().
 		Width(60).
 		Height(18).
@@ -412,7 +416,7 @@ func (j JournalModel) View() string {
 	hintStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Italic(true)
 
 	var missionList strings.Builder
-	if j.SearchMode {
+	if j.SearchQuery != "" {
 		missionList.WriteString("Search: " + j.SearchQuery + "\n\n")
 	}
 	for i, mission := range missionsOnPage {
@@ -421,9 +425,7 @@ func (j JournalModel) View() string {
 			titleText = titleText + " " + "✓"
 		}
 		if i == j.Cursor {
-			missionList.WriteString(fmt.Sprintf("%s %s\n",
-				arrowStyle.Render(">"),
-				hoverStyle.Render(titleText)))
+			missionList.WriteString(fmt.Sprintf("%s %s\n", arrowStyle.Render(">"), hoverStyle.Render(titleText)))
 		} else {
 			missionList.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(titleText)))
 		}
@@ -434,7 +436,7 @@ func (j JournalModel) View() string {
 	missionList.WriteString("\n" + pageInfo + "\n" + hintStyle.Render(hints))
 	leftPanel := leftStyle.Render(missionList.String())
 
-	// right panel: mission details
+	// right panel mission details
 	rightStyle := lipgloss.NewStyle().
 		Width(60).
 		Height(18).
@@ -472,6 +474,7 @@ func (j JournalModel) View() string {
 │
 │
 │
+|
 │
 │
 │
