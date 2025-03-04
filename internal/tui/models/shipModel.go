@@ -116,7 +116,7 @@ func (s ShipModel) View() string {
 	// Styling for the main panel.
 	panelStyle := lipgloss.NewStyle().
 		Width(60).
-		Height(18).
+		Height(22).
 		Padding(1).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63"))

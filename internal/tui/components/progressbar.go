@@ -14,8 +14,8 @@ func NewProgressBar() ProgressBar {
 
 	// rogress bar styles
 	p := progress.New(
-		progress.WithScaledGradient("#008FE9", "#F00065"),
-        //tesing this out:: progress.WithoutPercentage(),
+		progress.WithScaledGradient("#F00065", "#008FE9"),
+		//tesing this out:: progress.WithoutPercentage(),
 	)
 	return ProgressBar{Model: p}
 }
@@ -38,4 +38,3 @@ func (p ProgressBar) RenderProgressBar(current, max int) string {
 
 	return barStyle.Render(p.Model.ViewAs(percent))
 }
-

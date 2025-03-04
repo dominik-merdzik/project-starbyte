@@ -66,15 +66,31 @@ func convertMainMission(mm data.Mission) Mission {
 	}
 }
 
-// currentList returns the missions to be displayed based on search mode
+// currentList returns the missions to be displayed based on search mode,
+// filtering out any missions with status "complete" or "completed"
 func (j JournalModel) currentList() []Mission {
+	var baseList []Mission
 	if j.SearchQuery != "" {
 		if len(j.FilteredMissions) > 0 {
-			return j.FilteredMissions
+			baseList = j.FilteredMissions
+		} else {
+			baseList = []Mission{}
 		}
-		return []Mission{}
+	} else {
+		baseList = j.Missions
 	}
-	return j.Missions
+
+	// filtering out missions whose status is "complete" or "completed"
+	var filtered []Mission
+	for _, m := range baseList {
+		lowerStatus := strings.ToLower(m.Status)
+		if lowerStatus == "complete" || lowerStatus == "completed" {
+			continue
+		}
+		filtered = append(filtered, m)
+	}
+
+	return filtered
 }
 
 // JournalModel represents the mission journal
