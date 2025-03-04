@@ -17,11 +17,28 @@ type TrackMissionMsg struct {
 	Mission Mission
 }
 
+// MissionStatus enums, so we don't have to do string comparisons to check mission status
+type MissionStatus int
+
+const (
+	MissionStatusNotStarted MissionStatus = iota
+	MissionStatusInProgress
+	MissionStatusCompleted
+	MissionStatusFailed
+	MissionStatusAbandoned
+)
+
+// String returns the string representation of a MissionStatus
+// Basically a ToString() method
+func (ms MissionStatus) String() string {
+	return [...]string{"Not Started", "In Progress", "Completed", "Failed", "Abandoned"}[ms]
+}
+
 // Mission represents a mission in the journal
 type Mission struct {
 	Title             string
 	Description       string
-	Status            string
+	Status            MissionStatus
 	Location          string
 	Income            int
 	Requirements      string
@@ -37,7 +54,7 @@ func convertDataMission(dm data.Mission) Mission {
 	return Mission{
 		Title:             dm.Title,
 		Description:       dm.Description,
-		Status:            dm.Status,
+		Status:            statusFromString(dm.Status),
 		Location:          dm.Location,
 		Income:            dm.Income,
 		Requirements:      dm.Requirements,
@@ -54,7 +71,7 @@ func convertMainMission(mm data.Mission) Mission {
 	return Mission{
 		Title:             fmt.Sprintf("Step %d: %s", mm.Step, mm.Title),
 		Description:       mm.Description,
-		Status:            mm.Status,
+		Status:            statusFromString(mm.Status),
 		Location:          mm.Location,
 		Income:            mm.Income,
 		Requirements:      mm.Requirements,
@@ -63,6 +80,23 @@ func convertMainMission(mm data.Mission) Mission {
 		TravelTime:        mm.TravelTime,
 		FuelNeeded:        mm.FuelNeeded,
 		DestinationPlanet: mm.DestinationPlanet,
+	}
+}
+
+// statusFromString converts a string to a MissionStatus enum
+func statusFromString(s string) MissionStatus {
+	// Convert to lowercase for case-insensitive comparison
+	switch strings.ToLower(s) {
+	case "in progress":
+		return MissionStatusInProgress
+	case "completed", "complete":
+		return MissionStatusCompleted
+	case "failed":
+		return MissionStatusFailed
+	case "abandoned":
+		return MissionStatusAbandoned
+	default:
+		return MissionStatusNotStarted
 	}
 }
 
@@ -83,8 +117,7 @@ func (j JournalModel) currentList() []Mission {
 	// filtering out missions whose status is "complete" or "completed"
 	var filtered []Mission
 	for _, m := range baseList {
-		lowerStatus := strings.ToLower(m.Status)
-		if lowerStatus == "complete" || lowerStatus == "completed" {
+		if m.Status == MissionStatusCompleted {
 			continue
 		}
 		filtered = append(filtered, m)
@@ -203,7 +236,7 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// TODO: Add start mission functionality.
 				case "Abandon":
 					mission := j.getSelectedMission()
-					mission.Status = "Abandoned"
+					mission.Status = MissionStatusAbandoned
 					j.updateMission(mission)
 					j.DetailView = false
 				}
@@ -370,7 +403,7 @@ func (j JournalModel) View() string {
 		details := fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s",
 			titleStyle.Render(selectedMission.Title),
 			labelStyle.Render("Description:")+" "+selectedMission.Description,
-			labelStyle.Render("Status:")+" "+selectedMission.Status,
+			labelStyle.Render("Status:")+" "+selectedMission.Status.String(),
 			labelStyle.Render("Location:")+" "+selectedMission.Location,
 			labelStyle.Render("Income:")+" "+fmt.Sprintf("%d", selectedMission.Income)+" credits",
 			labelStyle.Render("Requirements:")+" "+selectedMission.Requirements,
@@ -437,7 +470,7 @@ func (j JournalModel) View() string {
 	}
 	for i, mission := range missionsOnPage {
 		titleText := mission.Title
-		if strings.ToLower(mission.Status) == "completed" {
+		if mission.Status == MissionStatusCompleted {
 			titleText = titleText + " " + "✓"
 		}
 		if i == j.Cursor {
@@ -467,7 +500,7 @@ func (j JournalModel) View() string {
 		details = fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n%s\n%s",
 			titleStyle.Render(selectedMission.Title),
 			labelStyle.Render("Description:")+" "+selectedMission.Description,
-			labelStyle.Render("Status:")+" "+selectedMission.Status,
+			labelStyle.Render("Status:")+" "+selectedMission.Status.String(),
 			labelStyle.Render("Location:")+" "+selectedMission.Location,
 			labelStyle.Render("Income:")+" "+fmt.Sprintf("%d", selectedMission.Income),
 			labelStyle.Render("Requirements:")+" "+selectedMission.Requirements,

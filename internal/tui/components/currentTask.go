@@ -31,7 +31,7 @@ func (c CurrentTaskComponent) Render(task *model.Mission) string {
 
 	content := fmt.Sprintf("%s\n\n%s",
 		titleStyle.Render("Tracking Mission: "+task.Title),
-		labelStyle.Render("Status:")+" "+task.Status,
+		labelStyle.Render("Status:")+" "+task.Status.String(),
 	)
 	return boxStyle.Render(content)
 }

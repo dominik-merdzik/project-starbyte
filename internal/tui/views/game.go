@@ -160,7 +160,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case " ":
 			if g.TrackedMission != nil && !g.isTravelling {
-				if g.TrackedMission.Status == "Not Started" {
+				if g.TrackedMission.Status == model.MissionStatusNotStarted {
 					g.isTravelling = true
 					g.travelStartTime = time.Now()
 					g.travelDuration = time.Duration(g.TrackedMission.TravelTime) * time.Second
@@ -169,8 +169,8 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return travelTickMsg{} }),
 						g.travelProgress.Init(),
 					)
-				} else if g.TrackedMission.Status == "In Progress" {
-					g.TrackedMission.Status = "Completed"
+				} else if g.TrackedMission.Status == model.MissionStatusInProgress {
+					g.TrackedMission.Status = model.MissionStatusCompleted
 				}
 			}
 		}
@@ -192,7 +192,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd := g.travelProgress.SetPercent(percentComplete)
 			if elapsed >= g.travelDuration {
 				g.isTravelling = false
-				g.TrackedMission.Status = "In Progress"
+				g.TrackedMission.Status = model.MissionStatusInProgress
 				return g, nil
 			}
 			return g, tea.Batch(
@@ -435,6 +435,6 @@ func StartMission(mission model.Mission, ship model.ShipModel) model.ShipModel {
 		return ship
 	}
 	ship.EngineFuel -= mission.FuelNeeded
-	mission.Status = "In Progress"
+	mission.Status = model.MissionStatusInProgress
 	return ship
 }
