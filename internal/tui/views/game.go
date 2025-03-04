@@ -160,7 +160,10 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case " ":
 			if g.TrackedMission != nil && !g.isTravelling {
-				if g.TrackedMission.Status == model.MissionStatusNotStarted {
+				// Switch cases for Mission Status
+				switch g.TrackedMission.Status {
+				case model.MissionStatusNotStarted:
+					// Travel timer for loading screen
 					g.isTravelling = true
 					g.travelStartTime = time.Now()
 					g.travelDuration = time.Duration(g.TrackedMission.TravelTime) * time.Second
@@ -169,8 +172,10 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return travelTickMsg{} }),
 						g.travelProgress.Init(),
 					)
-				} else if g.TrackedMission.Status == model.MissionStatusInProgress {
+				case model.MissionStatusInProgress:
 					g.TrackedMission.Status = model.MissionStatusCompleted
+				case model.MissionStatusCompleted:
+					g.TrackedMission = nil // Removes mission from bottomPanel
 				}
 			}
 		}
@@ -324,19 +329,37 @@ func (g GameModel) View() string {
 	case "Map":
 		bottomPanelContent = g.Map.View()
 	default:
+		// TODO: move this stuff into UI components
+		// TOOD: make styling prettier
 		if g.TrackedMission != nil {
+			currentTask := components.NewCurrentTaskComponent()
+			bottomPanelContent += currentTask.Render(g.TrackedMission)
+
 			if g.isTravelling {
+				// Player travelling to mission location
 				StartMission(*g.TrackedMission, g.Ship)
 				remainingTime := g.travelDuration - time.Since(g.travelStartTime)
 				if remainingTime < 0 {
 					remainingTime = 0
 				}
 				progressBar := g.travelProgress.View()
-				bottomPanelContent = fmt.Sprintf("%s Travelling to %s\n\n%s\n\nTime remaining: %v\n",
+				bottomPanelContent += fmt.Sprintf("\n%s Travelling to %s\n\n%s\n\nTime remaining: %v\n",
 					g.spinner.View(), g.TrackedMission.Location, progressBar, remainingTime.Round(time.Millisecond))
 			}
-			currentTask := components.NewCurrentTaskComponent()
-			bottomPanelContent += currentTask.Render(g.TrackedMission)
+			if g.TrackedMission.Status == model.MissionStatusInProgress {
+				// Player arrived at destination
+				bottomPanelContent += fmt.Sprintf("\nArrived at %s.\n", g.TrackedMission.Location)
+
+				dialogue := components.NewDialogueComponent()
+				bottomPanelContent += dialogue.Render("Thank goodness you're here!\nPlease help me!\nI'll also need a health pack.\n")
+				bottomPanelContent += "\nPress [Space] to aid the astronaut.\n"
+			}
+			if g.TrackedMission.Status == model.MissionStatusCompleted {
+				// Player completed mission
+				bottomPanelContent += fmt.Sprintf("\nMission at %s completed!\n", g.TrackedMission.Location)
+				bottomPanelContent += fmt.Sprintf("You earned %d credits.\n", g.TrackedMission.Income)
+				bottomPanelContent += "\nPress [Space] to continue.\n"
+			}
 		} else {
 			bottomPanelContent = "This is the bottom panel."
 		}
