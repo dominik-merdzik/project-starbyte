@@ -148,18 +148,20 @@ type Skills struct {
 // ---------------------
 
 type Mission struct {
-	Step              int    `json:"Step,omitempty"`
-	Title             string `json:"Title"`
-	Description       string `json:"Description"`
-	Status            string `json:"Status"`
-	Location          string `json:"Location"`
-	Income            int    `json:"Income"`
-	Requirements      string `json:"Requirements"`
-	Received          string `json:"Received"`
-	Category          string `json:"Category"`
-	TravelTime        int    `json:"TravelTime"`
-	FuelNeeded        int    `json:"FuelNeeded"`
-	DestinationPlanet string `json:"DestinationPlanet"`
+	Step              int      `json:"Step,omitempty"`
+	MissionId         string   `json:"missionId"`
+	Title             string   `json:"Title"`
+	Description       string   `json:"Description"`
+	Status            string   `json:"Status"`
+	Location          string   `json:"Location"`
+	Income            int      `json:"Income"`
+	Requirements      string   `json:"Requirements"`
+	Received          string   `json:"Received"`
+	Category          string   `json:"Category"`
+	TravelTime        int      `json:"TravelTime"`
+	FuelNeeded        int      `json:"FuelNeeded"`
+	DestinationPlanet string   `json:"DestinationPlanet"`
+	Dialogue          []string `json:"dialogue"`
 }
 
 type NPC struct {
@@ -388,10 +390,12 @@ func DefaultFullGameSave() *FullGameSave {
 	now := time.Now()
 
 	// Define default missions.
+	// Define default missions.
 	defaultMissions := Missions{
 		Main: []Mission{
 			{
 				Step:              0,
+				MissionId:         generateRandomID("MISSION_"),
 				Title:             "Rescue Mission",
 				Description:       "Rescue the stranded astronaut on a rogue asteroid",
 				Status:            "Not Started",
@@ -403,6 +407,11 @@ func DefaultFullGameSave() *FullGameSave {
 				TravelTime:        5,
 				FuelNeeded:        10,
 				DestinationPlanet: "Planet A",
+				Dialogue: []string{
+					"Commander, we have received a distress signal from a stranded astronaut on a rogue asteroid.",
+					"Your mission is to rescue the astronaut and bring them back to safety.",
+					"Time is of the essence, Commander. We need you to act quickly.",
+				},
 			},
 		},
 		Received: []ReceivedMissionGroup{
@@ -413,6 +422,7 @@ func DefaultFullGameSave() *FullGameSave {
 						Name: "Commander Vega",
 						Missions: []Mission{
 							{
+								MissionId:         generateRandomID("MISSION_"),
 								Title:             "Solar Flare Response",
 								Description:       "Monitor and respond to unpredictable solar flare activities.",
 								Status:            "In Progress",
@@ -423,6 +433,11 @@ func DefaultFullGameSave() *FullGameSave {
 								TravelTime:        3,
 								FuelNeeded:        30,
 								DestinationPlanet: "Mars",
+								Dialogue: []string{
+									"Commander, a massive solar flare is imminent.",
+									"Prepare your shields and adjust your course to minimize damage.",
+									"Your swift action is needed to protect our assets.",
+								},
 							},
 						},
 					},
@@ -575,4 +590,24 @@ func LoadFullGameSave() (*FullGameSave, error) {
 		return nil, nil
 	}
 	return &saves[0], nil
+}
+
+// writes the current full game save to disk
+func SaveGame(save *FullGameSave) error {
+	// Wrap the save data in a slice as per your JSON structure.
+	saveData := []FullGameSave{*save}
+
+	dataBytes, err := json.MarshalIndent(saveData, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	// Write to a temporary file first.
+	tmpFilePath := SaveFilePath + ".tmp"
+	if err := ioutil.WriteFile(tmpFilePath, dataBytes, 0644); err != nil {
+		return err
+	}
+
+	// Rename temporary file to actual save file.
+	return os.Rename(tmpFilePath, SaveFilePath)
 }
