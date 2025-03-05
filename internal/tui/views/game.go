@@ -37,6 +37,7 @@ type GameModel struct {
 
 	TrackedMission *model.Mission
 	Dialogue       *components.DialogueComponent
+	Dialogue       *components.DialogueComponent
 
 	isTravelling    bool
 	travelStartTime time.Time
@@ -67,6 +68,27 @@ type clearNotificationMsg struct{}
 
 type autoSaveMsg time.Time
 
+	dirty             bool
+	gameSave          *data.FullGameSave
+	lastAutoSaveTime  time.Time
+	notification      string
+	autoSaveInitiated bool
+}
+
+type ActiveView int
+
+const (
+	ViewNone ActiveView = iota
+	ViewJournal
+	ViewCrew
+	ViewMap
+	ViewShip
+)
+
+type clearNotificationMsg struct{}
+
+type autoSaveMsg time.Time
+
 type travelTickMsg struct{}
 
 func (g GameModel) Init() tea.Cmd {
@@ -75,6 +97,13 @@ func (g GameModel) Init() tea.Cmd {
 
 func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
+
+	if !g.autoSaveInitiated {
+		g.autoSaveInitiated = true
+		cmds = append(cmds, tea.Tick(1*time.Second, func(t time.Time) tea.Msg {
+			return autoSaveMsg(t)
+		}))
+	}
 
 	if !g.autoSaveInitiated {
 		g.autoSaveInitiated = true
@@ -146,6 +175,27 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clearNotificationMsg:
 		g.notification = ""
 		return g, nil
+	case autoSaveMsg:
+		// calculate elapsed time since last auto-save
+		elapsed := time.Since(g.lastAutoSaveTime)
+		addDurationToPlayTime(&g.gameSave.GameMetadata.TotalPlayTime, elapsed)
+		g.lastAutoSaveTime = time.Now()
+
+		// sync current game state
+		g.syncSaveData()
+
+		// save the game asynchronously with a goroutine
+		go func(save *data.FullGameSave) {
+			if err := data.SaveGame(save); err != nil {
+				fmt.Println("Error auto-saving game:", err)
+			}
+		}(g.gameSave)
+
+		// schedule the next auto-save tick after 2 seconds
+		return g, tea.Tick(2*time.Second, func(t time.Time) tea.Msg { return autoSaveMsg(t) })
+	case clearNotificationMsg:
+		g.notification = ""
+		return g, nil
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		g.spinner, cmd = g.spinner.Update(msg)
@@ -182,6 +232,25 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// normal key handling
+		// if a mission is tracked and in progress, then pressing "enter" should advance dialogue
+		if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusInProgress {
+			if msg.String() == "enter" {
+				if g.Dialogue == nil {
+					// initialize dialogue with the first line already shown
+					d := components.NewDialogueComponentFromMission(g.TrackedMission.Dialogue)
+					g.Dialogue = &d
+				} else {
+					g.Dialogue.Next()
+				}
+				// if we've advanced past all dialogue lines, mark mission as completed
+				if g.Dialogue.CurrentLine > len(g.TrackedMission.Dialogue) {
+					g.TrackedMission.Status = model.MissionStatusCompleted
+				}
+				return g, nil
+			}
+		}
+
+		// normal key handling
 		switch msg.String() {
 		case "q":
 			return g, tea.Quit
@@ -191,11 +260,13 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.currentHealth = 0
 			}
 			g.dirty = true
+			g.dirty = true
 		case "h":
 			g.currentHealth += 10
 			if g.currentHealth > g.maxHealth {
 				g.currentHealth = g.maxHealth
 			}
+			g.dirty = true
 			g.dirty = true
 		case "up", "k":
 			if g.menuCursor > 0 {
@@ -236,6 +307,25 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			// Schedule the notification to clear after 3 seconds.
 			return g, tea.Tick(3*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+		case "s":
+			// update total play time before saving
+			elapsed := time.Since(g.lastAutoSaveTime)
+			addDurationToPlayTime(&g.gameSave.GameMetadata.TotalPlayTime, elapsed)
+			// reset the last auto-save time
+			g.lastAutoSaveTime = time.Now()
+
+			// now sync the rest of the game state
+			g.syncSaveData()
+
+			// attempt to save synchronously for testing
+			if err := data.SaveGame(g.gameSave); err != nil {
+				g.notification = fmt.Sprintf("Error saving game: %v", err)
+			} else {
+				g.notification = "Game saved successfully!"
+				g.dirty = false
+			}
+			// Schedule the notification to clear after 3 seconds.
+			return g, tea.Tick(3*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
 		case " ":
 			if g.TrackedMission != nil && !g.isTravelling {
 				switch g.TrackedMission.Status {
@@ -251,6 +341,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case model.MissionStatusInProgress:
 					g.TrackedMission.Status = model.MissionStatusCompleted
 				case model.MissionStatusCompleted:
+					g.TrackedMission = nil
 					g.TrackedMission = nil
 				}
 			}
@@ -408,7 +499,7 @@ func (g GameModel) View() string {
 		// TODO: move this stuff into UI components
 		// TOOD: make styling prettier
 		if g.TrackedMission != nil {
-			// render current task (this might include mission title, objectives, etc.)
+			// Render current task (this might include mission title, objectives, etc.)
 			currentTask := components.NewCurrentTaskComponent()
 			bottomPanelContent += currentTask.Render(g.TrackedMission)
 
@@ -417,7 +508,7 @@ func (g GameModel) View() string {
 			}
 
 			if g.isTravelling {
-				// player is traveling to mission location
+				// Player is traveling to mission location.
 				StartMission(*g.TrackedMission, g.Ship)
 				remainingTime := g.travelDuration - time.Since(g.travelStartTime)
 				if remainingTime < 0 {
@@ -428,7 +519,9 @@ func (g GameModel) View() string {
 					g.spinner.View(), g.TrackedMission.Location, progressBar, remainingTime.Round(time.Millisecond))
 			}
 
+
 			if g.TrackedMission.Status == model.MissionStatusInProgress {
+				// player has arrived at destination
 				// player has arrived at destination
 				bottomPanelContent += fmt.Sprintf("\nArrived at %s.\n", g.TrackedMission.Location)
 				// initialize dialogue component if needed
@@ -439,14 +532,25 @@ func (g GameModel) View() string {
 				// render the dialogue component
 				bottomPanelContent += g.Dialogue.View()
 				bottomPanelContent += "\nPress [Enter] for next dialogue line.\n"
+				// initialize dialogue component if needed
+				if g.Dialogue == nil {
+					d := components.NewDialogueComponentFromMission(g.TrackedMission.Dialogue)
+					g.Dialogue = &d
+				}
+				// render the dialogue component
+				bottomPanelContent += g.Dialogue.View()
+				bottomPanelContent += "\nPress [Enter] for next dialogue line.\n"
 			}
 
+
 			if g.TrackedMission.Status == model.MissionStatusCompleted {
+				// player completed mission
 				// player completed mission
 				bottomPanelContent += fmt.Sprintf("\nMission at %s completed!\n", g.TrackedMission.Location)
 				bottomPanelContent += fmt.Sprintf("You earned %d credits.\n", g.TrackedMission.Income)
 				bottomPanelContent += "\nPress [Space] to continue.\n"
 			}
+
 
 		} else {
 			bottomPanelContent = "This is the bottom panel."
@@ -467,6 +571,13 @@ func (g GameModel) View() string {
 	if selected == "" {
 		selected = "none"
 	}
+
+	notificationText := ""
+	if g.notification != "" {
+		notificationText = " ~ " + g.notification
+	}
+
+	selectedText := fmt.Sprintf("Selected [%s] %s", selected, notificationText)
 
 	notificationText := ""
 	if g.notification != "" {
@@ -545,6 +656,15 @@ func NewGameModel() tea.Model {
 		dirty:            false,
 		gameSave:         fullSave,
 		lastAutoSaveTime: time.Now(),
+		activeView:       ViewNone,
+		spinner:          s,
+		isTravelling:     false,
+		travelProgress:   p,
+		Credits:          fullSave.Player.Credits,
+		Version:          fullSave.GameMetadata.Version,
+		dirty:            false,
+		gameSave:         fullSave,
+		lastAutoSaveTime: time.Now(),
 	}
 }
 
@@ -556,6 +676,24 @@ func StartMission(mission model.Mission, ship model.ShipModel) model.ShipModel {
 	ship.EngineFuel -= mission.FuelNeeded
 	mission.Status = model.MissionStatusInProgress
 	return ship
+}
+
+// syncSaveData updates the gameSave data with the latest state from the GameModel
+// syncSaveData updates gameSave with the latest in-memory state
+func (g *GameModel) syncSaveData() {
+	g.gameSave.Ship.HullIntegrity = g.currentHealth
+	g.gameSave.Player.Credits = g.Credits
+	g.gameSave.GameMetadata.LastSaveTime = time.Now().Format(time.RFC3339)
+}
+
+// helper: add elapsed duration to TotalPlayTime, normalizing seconds/minutes/hours
+func addDurationToPlayTime(tt *data.TotalPlayTime, d time.Duration) {
+	secondsToAdd := int(d.Seconds())
+	tt.Seconds += secondsToAdd
+	tt.Minutes += tt.Seconds / 60
+	tt.Seconds = tt.Seconds % 60
+	tt.Hours += tt.Minutes / 60
+	tt.Minutes = tt.Minutes % 60
 }
 
 // syncSaveData updates the gameSave data with the latest state from the GameModel
