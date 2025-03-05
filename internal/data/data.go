@@ -212,6 +212,11 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 				TravelTime:        5,
 				FuelNeeded:        10,
 				DestinationPlanet: "Planet A",
+				Dialogue: []string{
+					"Commander, we have received a distress signal from a stranded astronaut on a rogue asteroid.",
+					"Your mission is to rescue the astronaut and bring them back to safety.",
+					"Time is of the essence, Commander. We need you to act quickly.",
+				},
 			},
 		},
 		Received: []ReceivedMissionGroup{
@@ -232,6 +237,11 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 								TravelTime:        3,
 								FuelNeeded:        30,
 								DestinationPlanet: "Mars",
+								Dialogue: []string{
+									"Commander, a massive solar flare is imminent.",
+									"Prepare your shields and adjust your course to minimize damage.",
+									"Your swift action is needed to protect our assets.",
+								},
 							},
 						},
 					},
@@ -389,8 +399,6 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 func DefaultFullGameSave() *FullGameSave {
 	now := time.Now()
 
-	// Define default missions.
-	// Define default missions.
 	defaultMissions := Missions{
 		Main: []Mission{
 			{
