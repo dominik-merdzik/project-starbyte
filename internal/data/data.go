@@ -144,6 +144,33 @@ type Skills struct {
 }
 
 // ---------------------
+// Map structures
+// ---------------------
+type GameMap struct {
+	StarSystems []StarSystem `json:"starSystems"`
+}
+
+type StarSystem struct {
+	SystemID    string      `json:"systemId"`
+	Name        string      `json:"name"`
+	Coordinates Coordinates `json:"coordinates"`
+	Planets     []Planet    `json:"planets"`
+}
+
+type Planet struct {
+	PlanetID    string      `json:"planetId"`
+	Name        string      `json:"name"`
+	Type        string      `json:"type"`
+	Resources   []Resource  `json:"resources"`
+	Coordinates Coordinates `json:"coordinates"`
+}
+
+type Resource struct {
+	Name     string `json:"name"`
+	Quantity int    `json:"quantity"`
+}
+
+// ---------------------
 // mission structures
 // ---------------------
 
