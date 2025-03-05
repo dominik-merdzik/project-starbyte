@@ -47,6 +47,7 @@ type Mission struct {
 	TravelTime        int
 	FuelNeeded        int
 	DestinationPlanet string
+	Dialogue          []string
 }
 
 // convertDataMission converts a data.Mission into a model.Mission
@@ -63,6 +64,7 @@ func convertDataMission(dm data.Mission) Mission {
 		TravelTime:        dm.TravelTime,
 		FuelNeeded:        dm.FuelNeeded,
 		DestinationPlanet: dm.DestinationPlanet,
+		Dialogue:          dm.Dialogue,
 	}
 }
 
@@ -80,6 +82,7 @@ func convertMainMission(mm data.Mission) Mission {
 		TravelTime:        mm.TravelTime,
 		FuelNeeded:        mm.FuelNeeded,
 		DestinationPlanet: mm.DestinationPlanet,
+		Dialogue:          mm.Dialogue,
 	}
 }
 

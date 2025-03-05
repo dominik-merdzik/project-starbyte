@@ -7,28 +7,36 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type DialogueComponent struct{}
+type DialogueComponent struct {
+	Lines       []string
+	CurrentLine int
+}
 
-func NewDialogueComponent() DialogueComponent {
-	return DialogueComponent{}
+// NewDialogueComponentFromMission creates a new DialogueComponent from a mission's dialogue
+func NewDialogueComponentFromMission(missionDialogue []string) DialogueComponent {
+	return DialogueComponent{
+		Lines:       missionDialogue,
+		CurrentLine: 1,
+	}
+}
+
+// next advances the dialogue to the next line, if available
+func (d *DialogueComponent) Next() {
+	if d.CurrentLine < len(d.Lines) {
+		d.CurrentLine++
+	}
 }
 
 // Renders dialogue like so:
 // > Dialogue line 1
 // > Dialogue line 2
 // > Dialogue line n
-func (c DialogueComponent) Render(dialogue string) string {
-	style := lipgloss.NewStyle().Align(lipgloss.Left)
-
-	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-
-	lines := strings.Split(dialogue, "\n")
-	var content string
-
-	for _, line := range lines {
-		if line != "" {
-			content += fmt.Sprintf("%s\n", titleStyle.Render("> ")+line)
-		}
+func (d DialogueComponent) View() string {
+	var content strings.Builder
+	prefixStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
+	containerStyle := lipgloss.NewStyle().Align(lipgloss.Left)
+	for i := 0; i < d.CurrentLine && i < len(d.Lines); i++ {
+		content.WriteString(fmt.Sprintf("%s %s\n", prefixStyle.Render(">"), d.Lines[i]))
 	}
-	return style.Render(content)
+	return containerStyle.Render(content.String())
 }
