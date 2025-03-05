@@ -499,7 +499,7 @@ func (g GameModel) View() string {
 		// TODO: move this stuff into UI components
 		// TOOD: make styling prettier
 		if g.TrackedMission != nil {
-			// Render current task (this might include mission title, objectives, etc.)
+			// render current task (this might include mission title, objectives, etc.)
 			currentTask := components.NewCurrentTaskComponent()
 			bottomPanelContent += currentTask.Render(g.TrackedMission)
 
@@ -508,7 +508,7 @@ func (g GameModel) View() string {
 			}
 
 			if g.isTravelling {
-				// Player is traveling to mission location.
+				// player is traveling to mission location
 				StartMission(*g.TrackedMission, g.Ship)
 				remainingTime := g.travelDuration - time.Since(g.travelStartTime)
 				if remainingTime < 0 {
