@@ -153,6 +153,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case model.TrackMissionMsg:
 		g.TrackedMission = &msg.Mission
 	case tea.KeyMsg:
+		// First, if an active view is set, process escape.
 		if g.activeView != ViewNone && msg.String() == "esc" {
 			g.activeView = ViewNone
 			g.selectedItem = ""
@@ -407,7 +408,7 @@ func (g GameModel) View() string {
 		// TODO: move this stuff into UI components
 		// TOOD: make styling prettier
 		if g.TrackedMission != nil {
-			// Render current task (this might include mission title, objectives, etc.)
+			// render current task (this might include mission title, objectives, etc.)
 			currentTask := components.NewCurrentTaskComponent()
 			bottomPanelContent += currentTask.Render(g.TrackedMission)
 
@@ -416,7 +417,7 @@ func (g GameModel) View() string {
 			}
 
 			if g.isTravelling {
-				// Player is traveling to mission location.
+				// player is traveling to mission location
 				StartMission(*g.TrackedMission, g.Ship)
 				remainingTime := g.travelDuration - time.Since(g.travelStartTime)
 				if remainingTime < 0 {
@@ -501,7 +502,6 @@ func (g GameModel) View() string {
 	return mainView
 }
 
-// NewGameModel creates and returns a new GameModel instance
 func NewGameModel() tea.Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -548,7 +548,7 @@ func NewGameModel() tea.Model {
 	}
 }
 
-// StartMission updates the ship model based on mission fuel requirements.
+// startMission updates the ship model based on mission fuel requirements
 func StartMission(mission model.Mission, ship model.ShipModel) model.ShipModel {
 	if ship.EngineFuel < mission.FuelNeeded {
 		return ship
