@@ -27,6 +27,7 @@ type FullGameSave struct {
 	Ship         Ship         `json:"ship"`
 	Crew         []CrewMember `json:"crew"`
 	Missions     Missions     `json:"missions"`
+	GameMap      GameMap      `json:"gameMap"`
 }
 
 type GameMetadata struct {
@@ -208,6 +209,18 @@ type Missions struct {
 // helper functions
 // -------------------
 
+// Searches for a planet by name across all star systems
+func FindPlanet(gameMap GameMap, planetName string) *Planet {
+	for _, system := range gameMap.StarSystems {
+		for _, planet := range system.Planets {
+			if planet.Name == planetName {
+				return &planet // Return full planet struct
+			}
+		}
+	}
+	return nil // Return nil if not found
+}
+
 // returns a random ID string with the given prefix
 func generateRandomID(prefix string) string {
 	return prefix + strconv.Itoa(rand.Intn(1000000))
@@ -259,6 +272,30 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 								DestinationPlanet: "Mars",
 							},
 						},
+					},
+				},
+			},
+		},
+	}
+	// Define default planets
+	defaultGameMap := GameMap{
+		StarSystems: []StarSystem{
+			{
+				SystemID:    "SYS_499172",
+				Name:        "Sol",
+				Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
+				Planets: []Planet{
+					{
+						PlanetID:    "Earth",
+						Name:        "Earth",
+						Type:        "Terrestrial",
+						Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
+					},
+					{
+						PlanetID:    "Mars",
+						Name:        "Mars",
+						Type:        "Terrestrial",
+						Coordinates: Coordinates{X: 5, Y: 3, Z: 1},
 					},
 				},
 			},
@@ -391,6 +428,7 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 			},
 		},
 		Missions: defaultMissions,
+		GameMap:  defaultGameMap,
 	}
 
 	// Wrap the save data in an array (slice) as per your JSON structure.
@@ -452,6 +490,29 @@ func DefaultFullGameSave() *FullGameSave {
 								DestinationPlanet: "Mars",
 							},
 						},
+					},
+				},
+			},
+		},
+	}
+	defaultGameMap := GameMap{
+		StarSystems: []StarSystem{
+			{
+				SystemID:    "SYS_499172",
+				Name:        "Sol",
+				Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
+				Planets: []Planet{
+					{
+						PlanetID:    "Earth",
+						Name:        "Earth",
+						Type:        "Terrestrial",
+						Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
+					},
+					{
+						PlanetID:    "Mars",
+						Name:        "Mars",
+						Type:        "Terrestrial",
+						Coordinates: Coordinates{X: 5, Y: 3, Z: 1},
 					},
 				},
 			},
@@ -579,6 +640,7 @@ func DefaultFullGameSave() *FullGameSave {
 			},
 		},
 		Missions: defaultMissions,
+		GameMap:  defaultGameMap,
 	}
 }
 

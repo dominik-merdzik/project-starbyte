@@ -434,19 +434,19 @@ func NewGameModel() tea.Model {
 	shipModel := model.NewShipModel(fullSave.Ship)
 	crewModel := model.NewCrewModel(fullSave.Crew)
 	journalModel := model.NewJournalModel()
-	// mapModel := model.NewMapModel()
+	mapModel := model.NewMapModel(fullSave.GameMap)
 
 	return GameModel{
-		ProgressBar:   components.NewProgressBar(),
-		currentHealth: currentHealth,
-		maxHealth:     maxHealth,
-		Yuta:          components.NewYuta(),
-		menuItems:     []string{"Ship", "Crew", "Journal", "Map", "Exit"},
-		menuCursor:    0,
-		Ship:          shipModel,
-		Crew:          crewModel,
-		Journal:       journalModel,
-		// Map:         mapModel,
+		ProgressBar:    components.NewProgressBar(),
+		currentHealth:  currentHealth,
+		maxHealth:      maxHealth,
+		Yuta:           components.NewYuta(),
+		menuItems:      []string{"Ship", "Crew", "Journal", "Map", "Exit"},
+		menuCursor:     0,
+		Ship:           shipModel,
+		Crew:           crewModel,
+		Journal:        journalModel,
+		Map:            mapModel,
 		activeView:     ViewNone,
 		spinner:        s,
 		isTravelling:   false,
