@@ -3,6 +3,7 @@ package data
 import (
 	"encoding/json"
 	"io/ioutil"
+	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -219,6 +220,25 @@ func FindPlanet(gameMap GameMap, planetName string) *Planet {
 		}
 	}
 	return nil // Return nil if not found
+}
+
+// GetDistance calculates the distance from the ship to a certain planet by name
+func GetDistance(gameMap GameMap, ship Ship, planetName string) int {
+	// Get ships coords
+	shipCoords := ship.Location.Coordinates
+
+	// Find the planet using helper function
+	planet := FindPlanet(gameMap, planetName)
+	if planet == nil {
+		return -1
+	}
+
+	// (X + X, Y + Y, Z + Z) * 10
+	distance := (int(math.Abs(float64(shipCoords.X+planet.Coordinates.X))) +
+		int(math.Abs(float64(shipCoords.Y+planet.Coordinates.Y))) +
+		int(math.Abs(float64(shipCoords.Z+planet.Coordinates.Z)))) * 10
+
+	return distance
 }
 
 // returns a random ID string with the given prefix

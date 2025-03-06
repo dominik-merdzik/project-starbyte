@@ -12,15 +12,17 @@ import (
 // MapModel represents the map interface, and is displaying star systems and planets
 type MapModel struct {
 	GameMap        data.GameMap
+	Ship           data.Ship
 	Cursor         int
 	ViewingPlanets bool
 	SelectedSystem data.StarSystem
 }
 
 // NewMapModel initializes the star system list
-func NewMapModel(gameMap data.GameMap) MapModel {
+func NewMapModel(gameMap data.GameMap, ship data.Ship) MapModel {
 	return MapModel{
 		GameMap:        gameMap,
+		Ship:           ship,
 		Cursor:         0,
 		ViewingPlanets: false, // Start in star system view
 	}
@@ -156,7 +158,7 @@ func (m MapModel) renderStarSystemView() string {
 // Renders the list of planets within a selected star system
 func (m MapModel) renderPlanetView() string {
 	leftStyle := lipgloss.NewStyle().
-		Width(40).
+		Width(50).
 		Height(15).
 		Padding(1).
 		Border(lipgloss.RoundedBorder()).
@@ -181,7 +183,7 @@ func (m MapModel) renderPlanetView() string {
 	leftPanel := leftStyle.Render(planetList.String())
 
 	rightStyle := lipgloss.NewStyle().
-		Width(40).
+		Width(50).
 		Height(15).
 		Padding(1).
 		Border(lipgloss.RoundedBorder()).
@@ -191,13 +193,16 @@ func (m MapModel) renderPlanetView() string {
 	labelStyle := lipgloss.NewStyle().Bold(true)
 
 	var planetDetails string
+
 	if len(m.SelectedSystem.Planets) > 0 {
 		planet := m.SelectedSystem.Planets[m.Cursor]
+		distance := data.GetDistance(m.GameMap, m.Ship, planet.Name)
 		planetDetails = titleStyle.Render(planet.Name) + "\n" +
 			labelStyle.Render("Planet ID: ") + planet.PlanetID + "\n" +
 			labelStyle.Render("Type: ") + planet.Type + "\n" +
 			labelStyle.Render("Coordinates: ") +
-			fmt.Sprintf("(%d, %d, %d)", planet.Coordinates.X, planet.Coordinates.Y, planet.Coordinates.Z)
+			fmt.Sprintf("(%d, %d, %d)", planet.Coordinates.X, planet.Coordinates.Y, planet.Coordinates.Z) + "\n" +
+			titleStyle.Render(fmt.Sprintf("Travel Time: %d hours", distance))
 	}
 
 	rightPanel := rightStyle.Render(planetDetails)

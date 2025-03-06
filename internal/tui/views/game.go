@@ -434,7 +434,7 @@ func NewGameModel() tea.Model {
 	shipModel := model.NewShipModel(fullSave.Ship)
 	crewModel := model.NewCrewModel(fullSave.Crew)
 	journalModel := model.NewJournalModel()
-	mapModel := model.NewMapModel(fullSave.GameMap)
+	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship)
 
 	return GameModel{
 		ProgressBar:    components.NewProgressBar(),
