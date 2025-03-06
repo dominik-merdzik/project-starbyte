@@ -9,8 +9,8 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Your App Title",
-  description: "Your App Description",
+  title: "Project Starbyte",
+  description: "Embark on an interstellar adventure in your terminal!",
 };
 
 export default function RootLayout({

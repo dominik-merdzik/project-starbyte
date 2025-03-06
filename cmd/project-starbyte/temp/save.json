@@ -1,0 +1,189 @@
+[
+  {
+    "gameTitle": "Project Starbyte",
+    "gameMetadata": {
+      "version": "0.0.1",
+      "dateCreated": "2025-03-05",
+      "lastSaveTime": "2025-03-05T17:41:54-05:00",
+      "totalPlayTime": {
+        "hours": 0,
+        "minutes": 30,
+        "seconds": 51
+      },
+      "difficultySettings": {
+        "difficultyLevel": "d",
+        "resourceMultiplier": 1,
+        "crewMoraleImpact": 1
+      }
+    },
+    "player": {
+      "playerId": "PLAYER_798479",
+      "playerName": "Commander SHIP",
+      "faction": "Independent",
+      "experiencePoints": 0,
+      "level": 1,
+      "credits": 1000,
+      "reputation": {
+        "alliedFactions": {
+          "GalacticUnion": 50
+        },
+        "enemyFactions": {
+          "PirateClan": -20
+        }
+      }
+    },
+    "ship": {
+      "shipId": "SHIP_971009",
+      "shipName": "SHIP",
+      "hullIntegrity": 100,
+      "maxHullIntegrity": 100,
+      "shieldStrength": 50,
+      "maxShieldStrength": 50,
+      "fuel": 100,
+      "maxFuel": 200,
+      "engineHealth": 100,
+      "ftlDriveHealth": 70,
+      "ftlDriveCharge": 0,
+      "food": 100,
+      "location": {
+        "starSystemId": "SYS_658800",
+        "planetId": "Earth",
+        "coordinates": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        }
+      },
+      "cargo": {
+        "capacity": 100,
+        "usedCapacity": 0,
+        "items": [
+          {
+            "itemId": "ITEM_505387",
+            "name": "Iron Ore",
+            "quantity": 10
+          },
+          {
+            "itemId": "ITEM_889800",
+            "name": "Water",
+            "quantity": 5
+          }
+        ]
+      },
+      "modules": [
+        {
+          "moduleId": "MOD_ENG_626613",
+          "name": "Basic Engine",
+          "level": 1,
+          "status": "operational"
+        },
+        {
+          "moduleId": "MOD_LIFE_482457",
+          "name": "Life Support",
+          "level": 1,
+          "status": "operational"
+        }
+      ],
+      "upgrades": {
+        "engine": {
+          "currentLevel": 1,
+          "maxLevel": 5
+        },
+        "weaponSystems": {
+          "currentLevel": 0,
+          "maxLevel": 5
+        },
+        "cargoExpansion": {
+          "currentLevel": 0,
+          "maxLevel": 5
+        }
+      }
+    },
+    "crew": [
+      {
+        "crewId": "CREW_253803",
+        "name": "Alice",
+        "role": "Pilot",
+        "degree": 1,
+        "experience": 0,
+        "morale": 100,
+        "health": 100,
+        "skills": {
+          "piloting": 5,
+          "engineering": 1,
+          "combat": 2
+        },
+        "assignedTaskId": null
+      },
+      {
+        "crewId": "CREW_328561",
+        "name": "Bob",
+        "role": "Engineer",
+        "degree": 1,
+        "experience": 0,
+        "morale": 95,
+        "health": 100,
+        "skills": {
+          "piloting": 1,
+          "engineering": 5,
+          "combat": 1
+        },
+        "assignedTaskId": null
+      }
+    ],
+    "missions": {
+      "main": [
+        {
+          "missionId": "",
+          "Title": "Rescue Mission",
+          "Description": "Rescue the stranded astronaut on a rogue asteroid",
+          "Status": "Not Started",
+          "Location": "Planet A",
+          "Income": 1000,
+          "Requirements": "None",
+          "Received": "Game",
+          "Category": "Main",
+          "TravelTime": 5,
+          "FuelNeeded": 10,
+          "DestinationPlanet": "Planet A",
+          "dialogue": [
+            "Commander, we have received a distress signal from a stranded astronaut on a rogue asteroid.",
+            "Your mission is to rescue the astronaut and bring them back to safety.",
+            "Time is of the essence, Commander. We need you to act quickly."
+          ]
+        }
+      ],
+      "received": [
+        {
+          "Location": "Mars",
+          "NPCs": [
+            {
+              "Name": "Commander Vega",
+              "Missions": [
+                {
+                  "missionId": "",
+                  "Title": "Solar Flare Response",
+                  "Description": "Monitor and respond to unpredictable solar flare activities.",
+                  "Status": "In Progress",
+                  "Location": "",
+                  "Income": 4000,
+                  "Requirements": "Shielded Satellite",
+                  "Received": "Commander Vega",
+                  "Category": "Received",
+                  "TravelTime": 3,
+                  "FuelNeeded": 30,
+                  "DestinationPlanet": "Mars",
+                  "dialogue": [
+                    "Commander, a massive solar flare is imminent.",
+                    "Prepare your shields and adjust your course to minimize damage.",
+                    "Your swift action is needed to protect our assets."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

@@ -8,7 +8,7 @@ export default function Home() {
       
     >
       {/* Hero Section */}
-      <section className="relative w-full h-[85vh] bg-[#2c2c2c] flex items-center justify-center">
+      <section className="relative w-full h-[95vh] bg-[#2c2c2c] flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-5xl font-bold">Project Starbyte</h1>
           <p className="mt-4 text-xl text-[#adadad]">
@@ -24,7 +24,7 @@ export default function Home() {
 
       {/* Demo Section */}
       <section className="w-full h-screen flex flex-col items-center justify-center px-4">
-        <h2 className="text-4xl font-bold mb-6">Download the Latest Demo</h2>
+        <h2 className="text-4xl font-bold text-center mb-6">Download the Latest Demo</h2>
         <p className="text-lg mb-8 text-center max-w-xl">
           Visit our GitHub repository to download the latest executable.
           Stay updated with all the newest features and improvements!
