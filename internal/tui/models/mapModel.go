@@ -14,17 +14,19 @@ type MapModel struct {
 	GameMap        data.GameMap
 	Ship           data.Ship
 	Cursor         int
-	ViewingPlanets bool
+	ConfirmCursor  int
+	ActiveView     ActiveView
 	SelectedSystem data.StarSystem
+	SelectedPlanet data.Planet
 }
 
 // NewMapModel initializes the star system list
 func NewMapModel(gameMap data.GameMap, ship data.Ship) MapModel {
 	return MapModel{
-		GameMap:        gameMap,
-		Ship:           ship,
-		Cursor:         0,
-		ViewingPlanets: false, // Start in star system view
+		GameMap:    gameMap,
+		Ship:       ship,
+		Cursor:     0,
+		ActiveView: ViewStarSystems, // Start in star system view
 	}
 }
 
@@ -32,52 +34,99 @@ func (m MapModel) Init() tea.Cmd {
 	return nil
 }
 
+type ActiveView int
+
+const (
+	ViewStarSystems ActiveView = iota
+	ViewPlanets
+	ViewTravelConfirm
+)
+
 func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-
 		case "up", "k":
-			if m.Cursor > 0 {
-				m.Cursor--
+			switch m.ActiveView {
+			case ViewStarSystems:
+				if m.Cursor > 0 {
+					m.Cursor--
+				}
+			case ViewPlanets:
+				if m.Cursor > 0 {
+					m.Cursor--
+				}
+			case ViewTravelConfirm:
+				if m.ConfirmCursor > 0 {
+					m.ConfirmCursor-- // Only two options: confirm or cancel
+				}
 			}
 
 		case "down", "j":
-			if m.ViewingPlanets {
+			switch m.ActiveView {
+			case ViewStarSystems:
+				if m.Cursor < len(m.GameMap.StarSystems)-1 {
+					m.Cursor++
+				}
+			case ViewPlanets:
 				if m.Cursor < len(m.SelectedSystem.Planets)-1 {
 					m.Cursor++
 				}
-			} else {
-				if m.Cursor < len(m.GameMap.StarSystems)-1 {
-					m.Cursor++
+			case ViewTravelConfirm:
+				if m.ConfirmCursor < 1 {
+					m.ConfirmCursor++ // Only two options: confirm or cancel
 				}
 			}
 
 		case "enter":
-			if !m.ViewingPlanets {
+			switch m.ActiveView {
+			case ViewStarSystems:
 				// Entering planet view
-				m.ViewingPlanets = true
+				m.ActiveView = ViewPlanets
 				m.SelectedSystem = m.GameMap.StarSystems[m.Cursor]
 				m.Cursor = 0 // Reset cursor to the first planet
+			case ViewPlanets:
+				// Entering planet travel confirmation view
+				m.ActiveView = ViewTravelConfirm
+				m.SelectedPlanet = m.SelectedSystem.Planets[m.Cursor]
+				m.Cursor = 0 // Reset cursor to the first star system
+
+			case ViewTravelConfirm:
+				if m.ConfirmCursor == 0 {
+					// travel() function
+					// Exit mapModel
+				}
+				// Else nothing happens, go back to planet view
+				m.ActiveView = ViewPlanets
 			}
 
 		case "esc":
-			if m.ViewingPlanets {
+			if m.ActiveView == ViewPlanets {
 				// Go back to star system view
-				m.ViewingPlanets = false
+				m.ActiveView = ViewStarSystems
 				m.Cursor = 0 // Reset cursor to the first star system
+			} else if m.ActiveView == ViewTravelConfirm {
+				// Go back to planet view
+				m.ActiveView = ViewPlanets
 			}
 		}
 	}
+
 	return m, nil
 }
 
 // View renders the list of star systems or planets
 func (m MapModel) View() string {
-	if m.ViewingPlanets {
+	switch m.ActiveView {
+	case ViewStarSystems:
+		return m.renderStarSystemView()
+	case ViewPlanets:
 		return m.renderPlanetView()
+	case ViewTravelConfirm:
+		return m.renderTravelConfirm()
+	default:
+		return "Unknown view"
 	}
-	return m.renderStarSystemView()
 }
 
 // Renders the list of star systems
@@ -227,4 +276,52 @@ func (m MapModel) renderPlanetView() string {
 `)
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, divider, rightPanel)
+}
+
+func (m MapModel) renderTravelConfirm() string {
+	// Render list of two options: confirm or cancel
+	style := lipgloss.NewStyle().
+		Width(60).
+		Padding(1).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("63")).
+		Align(lipgloss.Center)
+
+	defaultStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("217"))
+	hoverStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
+	arrowStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
+
+	var content strings.Builder
+
+	planet := m.SelectedSystem.Planets[m.ConfirmCursor]
+	distance := data.GetDistance(m.GameMap, m.Ship, planet.Name)
+
+	content.WriteString(fmt.Sprintf("Confirm travel to %s?\n", planet.Name))
+	content.WriteString(fmt.Sprintf("Travel time: %d hours\n\n", distance))
+
+	// Travel options
+	options := []string{"Confirm", "Cancel"}
+	for i, option := range options {
+		if i == m.ConfirmCursor {
+			content.WriteString(fmt.Sprintf("%s %s\n",
+				arrowStyle.Render(">"),
+				hoverStyle.Render(option)))
+		} else {
+			content.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(option)))
+		}
+	}
+
+	return style.Render(content.String())
+}
+
+// Update the location of the ship in the save file
+func (m MapModel) travel() {
+	// Get the selected planet
+	selectedPlanet := m.SelectedPlanet
+
+	// Update the ship's location
+	m.Ship.Location.PlanetId = selectedPlanet.PlanetID
+	m.Ship.Location.Coordinates = selectedPlanet.Coordinates
+
+	// TODO: Save the game
 }
