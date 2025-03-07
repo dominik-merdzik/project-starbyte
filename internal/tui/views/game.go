@@ -475,12 +475,12 @@ func (g GameModel) View() string {
 
 	selectedText := fmt.Sprintf("Selected [%s] %s", selected, notificationText)
 	leftSide := lipgloss.NewStyle().
-		Width(65).
+		Width(58).
 		PaddingLeft(2).
 		Render(selectedText)
-	hints := "[k ↑ j ↓ arrow keys] Navigate • [Enter] Select • [q] Quit"
+	hints := "[k ↑ | j ↓ | h ← | l → ~ arrow keys] Navigate • [Enter] Select • [q] Quit"
 	rightSide := lipgloss.NewStyle().
-		Width(69).
+		Width(76).
 		Align(lipgloss.Right).
 		PaddingRight(2).
 		Render(hints)
@@ -523,19 +523,19 @@ func NewGameModel() tea.Model {
 	shipModel := model.NewShipModel(fullSave.Ship)
 	crewModel := model.NewCrewModel(fullSave.Crew)
 	journalModel := model.NewJournalModel()
-	//mapModel := model.NewMapModel(fullSave.GameMap)
+	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship)
 
 	return GameModel{
-		ProgressBar:   components.NewProgressBar(),
-		currentHealth: currentHealth,
-		maxHealth:     maxHealth,
-		Yuta:          components.NewYuta(),
-		menuItems:     []string{"Ship", "Crew", "Journal", "Map", "Exit"},
-		menuCursor:    0,
-		Ship:          shipModel,
-		Crew:          crewModel,
-		Journal:       journalModel,
-		// Map:         mapModel,
+		ProgressBar:      components.NewProgressBar(),
+		currentHealth:    currentHealth,
+		maxHealth:        maxHealth,
+		Yuta:             components.NewYuta(),
+		menuItems:        []string{"Ship", "Crew", "Journal", "Map", "Exit"},
+		menuCursor:       0,
+		Ship:             shipModel,
+		Crew:             crewModel,
+		Journal:          journalModel,
+		Map:              mapModel,
 		activeView:       ViewNone,
 		spinner:          s,
 		isTravelling:     false,

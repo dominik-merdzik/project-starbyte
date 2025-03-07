@@ -9,13 +9,24 @@ import (
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
 )
 
-// MapModel represents the map interface, and is displaying star systems and planets
+// PanelFocus represents which panel is currently focused
+type PanelFocus int
+
+const (
+	PanelLeft PanelFocus = iota
+	PanelCenter
+	PanelRight
+)
+
+// MapModel represents the map interface
 type MapModel struct {
 	GameMap        data.GameMap
 	Ship           data.Ship
-	Cursor         int
+	SystemCursor   int
+	PlanetCursor   int
 	ConfirmCursor  int
 	ActiveView     ActiveView
+	ActivePanel    PanelFocus
 	SelectedSystem data.StarSystem
 	SelectedPlanet data.Planet
 }
@@ -23,10 +34,12 @@ type MapModel struct {
 // NewMapModel initializes the star system list
 func NewMapModel(gameMap data.GameMap, ship data.Ship) MapModel {
 	return MapModel{
-		GameMap:    gameMap,
-		Ship:       ship,
-		Cursor:     0,
-		ActiveView: ViewStarSystems, // Start in star system view
+		GameMap:      gameMap,
+		Ship:         ship,
+		SystemCursor: 0,
+		PlanetCursor: 0,
+		ActiveView:   ViewStarSystems,
+		ActivePanel:  PanelLeft,
 	}
 }
 
@@ -45,283 +58,281 @@ const (
 func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
+		key := msg.String()
+		// horizontal navigation only in planet view
+		if m.ActiveView == ViewPlanets {
+			switch key {
+			case "l", "right":
+				if m.ActivePanel < PanelRight {
+					m.ActivePanel++
+				}
+				return m, nil
+			case "h", "left":
+				if m.ActivePanel > PanelLeft {
+					m.ActivePanel--
+				}
+				return m, nil
+			}
+		}
+
+		switch key {
 		case "up", "k":
-			switch m.ActiveView {
-			case ViewStarSystems:
-				if m.Cursor > 0 {
-					m.Cursor--
+			// vertical navigation
+			if m.ActiveView == ViewStarSystems || (m.ActiveView == ViewPlanets && m.ActivePanel == PanelLeft) {
+				if m.SystemCursor > 0 {
+					m.SystemCursor--
 				}
-			case ViewPlanets:
-				if m.Cursor > 0 {
-					m.Cursor--
+				if m.ActiveView == ViewPlanets && m.ActivePanel == PanelLeft {
+					m.SelectedSystem = m.GameMap.StarSystems[m.SystemCursor]
+					m.PlanetCursor = 0
 				}
-			case ViewTravelConfirm:
+			} else if m.ActiveView == ViewPlanets && (m.ActivePanel == PanelCenter || m.ActivePanel == PanelRight) {
+				if m.PlanetCursor > 0 {
+					m.PlanetCursor--
+				}
+			} else if m.ActiveView == ViewTravelConfirm {
 				if m.ConfirmCursor > 0 {
-					m.ConfirmCursor-- // Only two options: confirm or cancel
+					m.ConfirmCursor--
 				}
 			}
-
 		case "down", "j":
-			switch m.ActiveView {
-			case ViewStarSystems:
-				if m.Cursor < len(m.GameMap.StarSystems)-1 {
-					m.Cursor++
+			if m.ActiveView == ViewStarSystems || (m.ActiveView == ViewPlanets && m.ActivePanel == PanelLeft) {
+				if m.SystemCursor < len(m.GameMap.StarSystems)-1 {
+					m.SystemCursor++
 				}
-			case ViewPlanets:
-				if m.Cursor < len(m.SelectedSystem.Planets)-1 {
-					m.Cursor++
+				if m.ActiveView == ViewPlanets && m.ActivePanel == PanelLeft {
+					m.SelectedSystem = m.GameMap.StarSystems[m.SystemCursor]
+					m.PlanetCursor = 0
 				}
-			case ViewTravelConfirm:
+			} else if m.ActiveView == ViewPlanets && (m.ActivePanel == PanelCenter || m.ActivePanel == PanelRight) {
+				if m.PlanetCursor < len(m.SelectedSystem.Planets)-1 {
+					m.PlanetCursor++
+				}
+			} else if m.ActiveView == ViewTravelConfirm {
 				if m.ConfirmCursor < 1 {
-					m.ConfirmCursor++ // Only two options: confirm or cancel
+					m.ConfirmCursor++
 				}
 			}
-
 		case "enter":
 			switch m.ActiveView {
 			case ViewStarSystems:
-				// Entering planet view
+				// select star system and switch to planet view
+				m.SelectedSystem = m.GameMap.StarSystems[m.SystemCursor]
 				m.ActiveView = ViewPlanets
-				m.SelectedSystem = m.GameMap.StarSystems[m.Cursor]
-				m.Cursor = 0 // Reset cursor to the first planet
+				m.ActivePanel = PanelCenter
+				m.PlanetCursor = 0
 			case ViewPlanets:
-				// Entering planet travel confirmation view
-				m.ActiveView = ViewTravelConfirm
-				m.SelectedPlanet = m.SelectedSystem.Planets[m.Cursor]
-				m.Cursor = 0 // Reset cursor to the first star system
-
+				// only allow selecting a planet if the center panel is active
+				if m.ActivePanel == PanelCenter {
+					m.SelectedPlanet = m.SelectedSystem.Planets[m.PlanetCursor]
+					m.ActiveView = ViewTravelConfirm
+					m.ConfirmCursor = 0
+				}
 			case ViewTravelConfirm:
 				if m.ConfirmCursor == 0 {
-					// travel() function
-					// Exit mapModel
+					m.travel()
 				}
-				// Else nothing happens, go back to planet view
 				m.ActiveView = ViewPlanets
 			}
-
 		case "esc":
-			if m.ActiveView == ViewPlanets {
-				// Go back to star system view
+			switch m.ActiveView {
+			case ViewPlanets:
 				m.ActiveView = ViewStarSystems
-				m.Cursor = 0 // Reset cursor to the first star system
-			} else if m.ActiveView == ViewTravelConfirm {
-				// Go back to planet view
+				m.ActivePanel = PanelLeft
+			case ViewTravelConfirm:
 				m.ActiveView = ViewPlanets
 			}
 		}
 	}
-
 	return m, nil
 }
 
-// View renders the list of star systems or planets
 func (m MapModel) View() string {
-	switch m.ActiveView {
-	case ViewStarSystems:
-		return m.renderStarSystemView()
-	case ViewPlanets:
-		return m.renderPlanetView()
-	case ViewTravelConfirm:
-		return m.renderTravelConfirm()
-	default:
-		return "Unknown view"
+	// in non-modal modes, render the composite three-panel view
+	if m.ActiveView == ViewStarSystems || m.ActiveView == ViewPlanets {
+		leftPanel := m.renderStarSystemList()
+		centerPanel := m.renderPlanetList()
+		rightPanel := m.renderPlanetDetails()
+		return lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, centerPanel, rightPanel)
 	}
+	// in travel confirmation mode, show only the modal
+	return m.renderTravelConfirm()
 }
 
-// Renders the list of star systems
-func (m MapModel) renderStarSystemView() string {
-	if len(m.GameMap.StarSystems) == 0 {
-		return "No star systems available."
-	}
-
-	leftStyle := lipgloss.NewStyle().
-		Width(50).
+// Renders the star system list.
+func (m MapModel) renderStarSystemList() string {
+	panelStyle := lipgloss.NewStyle().
+		Width(30).
 		Height(15).
 		Padding(1).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("63"))
+		Border(lipgloss.RoundedBorder())
+	// use a highlighted border when the panel is active
+	if m.ActiveView == ViewStarSystems || (m.ActiveView == ViewPlanets && m.ActivePanel == PanelLeft) {
+		panelStyle = panelStyle.BorderForeground(lipgloss.Color("215")).Bold(true)
+	} else {
+		panelStyle = panelStyle.BorderForeground(lipgloss.Color("63"))
+	}
 
 	defaultStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("217"))
 	hoverStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
 	arrowStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
 
-	var starList strings.Builder
+	var sb strings.Builder
 	for i, system := range m.GameMap.StarSystems {
-		titleText := fmt.Sprintf("%s [%s]", system.Name, system.SystemID)
-		if i == m.Cursor {
-			starList.WriteString(fmt.Sprintf("%s %s\n",
-				arrowStyle.Render(">"),
-				hoverStyle.Render(titleText)))
-		} else {
-			starList.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(titleText)))
+		titleText := system.Name
+		// Wwen in star system view or if left panel is active in planet view, use SystemCursor
+		if m.ActiveView == ViewStarSystems || (m.ActiveView == ViewPlanets && m.ActivePanel == PanelLeft) {
+			if i == m.SystemCursor {
+				sb.WriteString(fmt.Sprintf("%s %s\n", arrowStyle.Render(">"), hoverStyle.Render(titleText)))
+			} else {
+				sb.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(titleText)))
+			}
+		} else if m.ActiveView == ViewPlanets {
+			if m.SelectedSystem.SystemID == system.SystemID {
+				sb.WriteString(fmt.Sprintf("%s %s\n", arrowStyle.Render(">"), hoverStyle.Render(titleText)))
+			} else {
+				sb.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(titleText)))
+			}
 		}
 	}
-
-	leftPanel := leftStyle.Render(starList.String())
-
-	rightStyle := lipgloss.NewStyle().
-		Width(50).
-		Height(15).
-		Padding(1).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("63"))
-
-	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-	labelStyle := lipgloss.NewStyle().Bold(true)
-
-	var systemDetails string
-	if len(m.GameMap.StarSystems) > 0 {
-		system := m.GameMap.StarSystems[m.Cursor]
-		systemDetails = titleStyle.Render(system.Name) + "\n" +
-			labelStyle.Render("System ID: ") + system.SystemID + "\n" +
-			labelStyle.Render("Coordinates: ") +
-			fmt.Sprintf("(%d, %d, %d)", system.Coordinates.X, system.Coordinates.Y, system.Coordinates.Z) + "\n" +
-			labelStyle.Render("Planets: ") + fmt.Sprintf("%d", len(system.Planets))
-	}
-
-	rightPanel := rightStyle.Render(systemDetails)
-
-	divider := lipgloss.NewStyle().Width(1).Height(15).Align(lipgloss.Center).
-		Foreground(lipgloss.Color("240")).Render(`
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-`)
-
-	return lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, divider, rightPanel)
+	return panelStyle.Render(sb.String())
 }
 
-// Renders the list of planets within a selected star system
-func (m MapModel) renderPlanetView() string {
-	leftStyle := lipgloss.NewStyle().
-		Width(50).
+// renders the planet list
+func (m MapModel) renderPlanetList() string {
+	panelStyle := lipgloss.NewStyle().
+		Width(30).
 		Height(15).
 		Padding(1).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("63"))
+		Border(lipgloss.RoundedBorder())
+
+	if m.ActiveView == ViewPlanets && m.ActivePanel == PanelCenter {
+		panelStyle = panelStyle.BorderForeground(lipgloss.Color("215")).Bold(true)
+	} else {
+		panelStyle = panelStyle.BorderForeground(lipgloss.Color("63"))
+	}
 
 	defaultStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("217"))
 	hoverStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
 	arrowStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
 
-	var planetList strings.Builder
+	var sb strings.Builder
 	for i, planet := range m.SelectedSystem.Planets {
-		titleText := fmt.Sprintf("%s [%s]", planet.Name, planet.PlanetID)
-		if i == m.Cursor {
-			planetList.WriteString(fmt.Sprintf("%s %s\n",
-				arrowStyle.Render(">"),
-				hoverStyle.Render(titleText)))
+		titleText := planet.Name
+
+		// only show the arrow if the center panel is active
+		if m.ActiveView == ViewPlanets && m.ActivePanel == PanelCenter && i == m.PlanetCursor {
+			sb.WriteString(fmt.Sprintf("%s %s\n", arrowStyle.Render(">"), hoverStyle.Render(titleText)))
 		} else {
-			planetList.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(titleText)))
+			sb.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(titleText)))
+		}
+	}
+	return panelStyle.Render(sb.String())
+}
+
+// renders planet details
+func (m MapModel) renderPlanetDetails() string {
+	panelStyle := lipgloss.NewStyle().
+		Width(30).
+		Height(15).
+		Padding(1).
+		Border(lipgloss.RoundedBorder())
+	if m.ActiveView == ViewPlanets && m.ActivePanel == PanelRight {
+		panelStyle = panelStyle.BorderForeground(lipgloss.Color("215")).Bold(true)
+	} else {
+		panelStyle = panelStyle.BorderForeground(lipgloss.Color("63"))
+	}
+
+	// Define text styles.
+	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
+	labelStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("246"))
+	bulletStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
+
+	// If no system is selected or there are no planets, return a default message.
+	if m.SelectedSystem.SystemID == "" || len(m.SelectedSystem.Planets) == 0 {
+		return panelStyle.Render(` 
+                .::.
+                  .:'  .:
+        ,MMM8&&&.:'   .:'
+       MMMMM88&&&&  .:'
+      MMMMM88&&&&&&:'
+      MMMMM88&&&&&&
+    .:MMMMM88&&&&&&
+  .:'  MMMMM88&&&&
+.:'   .:'MMM8&&&'
+:'  .:'
+'::'  
+		`)
+	}
+
+	// Safely get the planet using PlanetCursor.
+	planet := m.SelectedSystem.Planets[m.PlanetCursor]
+	distance := data.GetDistance(m.GameMap, m.Ship, planet.Name)
+
+	var b strings.Builder
+
+	// Write basic planet info.
+	b.WriteString(titleStyle.Render(planet.Name) + "\n")
+	b.WriteString(labelStyle.Render("Planet ID: ") + valueStyle.Render(planet.PlanetID) + "\n")
+	b.WriteString(labelStyle.Render("Type: ") + valueStyle.Render(planet.Type) + "\n")
+	b.WriteString(labelStyle.Render("Coordinates: ") + valueStyle.Render(
+		fmt.Sprintf("(%d, %d, %d)", planet.Coordinates.X, planet.Coordinates.Y, planet.Coordinates.Z)) + "\n")
+	b.WriteString(titleStyle.Render(fmt.Sprintf("Travel Time: %d hours", distance)) + "\n")
+
+	// Add a divider.
+	divider := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Repeat("─", 28))
+	b.WriteString(divider + "\n")
+
+	// Append the requirements section.
+	b.WriteString(labelStyle.Render("Requirements:") + "\n")
+	if len(planet.Requirements) == 0 {
+		b.WriteString("  " + valueStyle.Render("None"))
+	} else {
+		for _, req := range planet.Requirements {
+			b.WriteString(fmt.Sprintf("  • %s (Degree: %d, Count: %d)\n",
+				bulletStyle.Render(req.Role), req.Degree, req.Count))
 		}
 	}
 
-	leftPanel := leftStyle.Render(planetList.String())
-
-	rightStyle := lipgloss.NewStyle().
-		Width(50).
-		Height(15).
-		Padding(1).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("63"))
-
-	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-	labelStyle := lipgloss.NewStyle().Bold(true)
-
-	var planetDetails string
-
-	if len(m.SelectedSystem.Planets) > 0 {
-		planet := m.SelectedSystem.Planets[m.Cursor]
-		distance := data.GetDistance(m.GameMap, m.Ship, planet.Name)
-		planetDetails = titleStyle.Render(planet.Name) + "\n" +
-			labelStyle.Render("Planet ID: ") + planet.PlanetID + "\n" +
-			labelStyle.Render("Type: ") + planet.Type + "\n" +
-			labelStyle.Render("Coordinates: ") +
-			fmt.Sprintf("(%d, %d, %d)", planet.Coordinates.X, planet.Coordinates.Y, planet.Coordinates.Z) + "\n" +
-			titleStyle.Render(fmt.Sprintf("Travel Time: %d hours", distance))
-	}
-
-	rightPanel := rightStyle.Render(planetDetails)
-
-	divider := lipgloss.NewStyle().Width(1).Height(15).Align(lipgloss.Center).
-		Foreground(lipgloss.Color("240")).Render(`
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-│
-`)
-
-	return lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, divider, rightPanel)
+	return panelStyle.Render(b.String())
 }
 
+// renders the travel confirmation pop-up modal
 func (m MapModel) renderTravelConfirm() string {
-	// Render list of two options: confirm or cancel
 	style := lipgloss.NewStyle().
 		Width(60).
 		Padding(1).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63")).
 		Align(lipgloss.Center)
-
 	defaultStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("217"))
 	hoverStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
 	arrowStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
 
 	var content strings.Builder
-
-	planet := m.SelectedSystem.Planets[m.ConfirmCursor]
+	planet := m.SelectedPlanet
 	distance := data.GetDistance(m.GameMap, m.Ship, planet.Name)
 
 	content.WriteString(fmt.Sprintf("Confirm travel to %s?\n", planet.Name))
 	content.WriteString(fmt.Sprintf("Travel time: %d hours\n\n", distance))
 
-	// Travel options
+	// Travel options.
 	options := []string{"Confirm", "Cancel"}
 	for i, option := range options {
 		if i == m.ConfirmCursor {
-			content.WriteString(fmt.Sprintf("%s %s\n",
-				arrowStyle.Render(">"),
-				hoverStyle.Render(option)))
+			content.WriteString(fmt.Sprintf("%s %s\n", arrowStyle.Render(">"), hoverStyle.Render(option)))
 		} else {
 			content.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(option)))
 		}
 	}
-
 	return style.Render(content.String())
 }
 
-// Update the location of the ship in the save file
+// travel updates the ship's location to the selected planet
 func (m MapModel) travel() {
-	// Get the selected planet
 	selectedPlanet := m.SelectedPlanet
-
-	// Update the ship's location
 	m.Ship.Location.PlanetId = selectedPlanet.PlanetID
 	m.Ship.Location.Coordinates = selectedPlanet.Coordinates
-
-	// TODO: Save the game
+	// TODO: Save the game.
 }

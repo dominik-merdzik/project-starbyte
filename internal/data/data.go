@@ -159,12 +159,19 @@ type StarSystem struct {
 	Planets     []Planet    `json:"planets"`
 }
 
+type CrewRequirement struct {
+	Role   string `json:"role"`
+	Degree int    `json:"degree"`
+	Count  int    `json:"count"`
+}
+
 type Planet struct {
-	PlanetID    string      `json:"planetId"`
-	Name        string      `json:"name"`
-	Type        string      `json:"type"`
-	Resources   []Resource  `json:"resources"`
-	Coordinates Coordinates `json:"coordinates"`
+	PlanetID     string            `json:"planetId"`
+	Name         string            `json:"name"`
+	Type         string            `json:"type"`
+	Resources    []Resource        `json:"resources"`
+	Coordinates  Coordinates       `json:"coordinates"`
+	Requirements []CrewRequirement `json:"requirements"`
 }
 
 type Resource struct {
@@ -209,39 +216,8 @@ type Missions struct {
 }
 
 // -------------------
-// helper functions
+// Helper Functions
 // -------------------
-
-// Searches for a planet by name across all star systems
-func FindPlanet(gameMap GameMap, planetName string) *Planet {
-	for _, system := range gameMap.StarSystems {
-		for _, planet := range system.Planets {
-			if planet.Name == planetName {
-				return &planet // Return full planet struct
-			}
-		}
-	}
-	return nil // Return nil if not found
-}
-
-// GetDistance calculates the distance from the ship to a certain planet by name
-func GetDistance(gameMap GameMap, ship Ship, planetName string) int {
-	// Get ships coords
-	shipCoords := ship.Location.Coordinates
-
-	// Find the planet using helper function
-	planet := FindPlanet(gameMap, planetName)
-	if planet == nil {
-		return -1
-	}
-
-	// (X + X, Y + Y, Z + Z) * 10
-	distance := (int(math.Abs(float64(shipCoords.X+planet.Coordinates.X))) +
-		int(math.Abs(float64(shipCoords.Y+planet.Coordinates.Y))) +
-		int(math.Abs(float64(shipCoords.Z+planet.Coordinates.Z)))) * 10
-
-	return distance
-}
 
 // returns a random ID string with the given prefix
 func generateRandomID(prefix string) string {
@@ -309,7 +285,7 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 			},
 		},
 	}
-	// Define default planets
+
 	defaultGameMap := GameMap{
 		StarSystems: []StarSystem{
 			{
@@ -322,12 +298,106 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 						Name:        "Earth",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 1, Count: 1},
+							{Role: "Engineer", Degree: 1, Count: 1},
+						},
 					},
 					{
 						PlanetID:    "Mars",
 						Name:        "Mars",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 5, Y: 3, Z: 1},
+						Requirements: []CrewRequirement{
+							{Role: "Engineer", Degree: 1, Count: 1},
+						},
+					},
+				},
+			},
+			{
+				SystemID:    "SYS_872431",
+				Name:        "Alpha Centauri",
+				Coordinates: Coordinates{X: 4, Y: 2, Z: 1},
+				Planets: []Planet{
+					{
+						PlanetID:    "Proxima-b",
+						Name:        "Proxima b",
+						Type:        "Terrestrial",
+						Coordinates: Coordinates{X: 1, Y: 2, Z: 3},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 1, Count: 1},
+							{Role: "Engineer", Degree: 2, Count: 1},
+						},
+					},
+					{
+						PlanetID:    "AlphaC-B",
+						Name:        "Alpha Centauri Bb",
+						Type:        "Gas Giant",
+						Coordinates: Coordinates{X: 2, Y: 1, Z: 0},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 1, Count: 1},
+							{Role: "Engineer", Degree: 2, Count: 2},
+						},
+					},
+				},
+			},
+			{
+				SystemID:    "SYS_927381",
+				Name:        "Sirius",
+				Coordinates: Coordinates{X: -5, Y: 10, Z: 3},
+				Planets: []Planet{
+					{
+						PlanetID:    "Sirius-1",
+						Name:        "Sirius I",
+						Type:        "Terrestrial",
+						Coordinates: Coordinates{X: -1, Y: 0, Z: 2},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 2, Count: 1},
+						},
+					},
+					{
+						PlanetID:    "Sirius-2",
+						Name:        "Sirius II",
+						Type:        "Gas Giant",
+						Coordinates: Coordinates{X: -2, Y: 3, Z: 1},
+						Requirements: []CrewRequirement{
+							{Role: "Engineer", Degree: 2, Count: 1},
+						},
+					},
+					{
+						PlanetID:    "Sirius-3",
+						Name:        "Sirius III",
+						Type:        "Ice Giant",
+						Coordinates: Coordinates{X: -3, Y: 3, Z: 3},
+						Requirements: []CrewRequirement{
+							{Role: "Scientist", Degree: 3, Count: 1},
+						},
+					},
+				},
+			},
+			{
+				SystemID:    "SYS_182736",
+				Name:        "Vega",
+				Coordinates: Coordinates{X: 10, Y: -3, Z: 7},
+				Planets: []Planet{
+					{
+						PlanetID:    "Vega-1",
+						Name:        "Vega I",
+						Type:        "Terrestrial",
+						Coordinates: Coordinates{X: 0, Y: 1, Z: -1},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 1, Count: 1},
+							{Role: "Engineer", Degree: 1, Count: 1},
+						},
+					},
+					{
+						PlanetID:    "Vega-2",
+						Name:        "Vega II",
+						Type:        "Gas Giant",
+						Coordinates: Coordinates{X: 1, Y: 1, Z: 1},
+						Requirements: []CrewRequirement{
+							{Role: "Engineer", Degree: 2, Count: 2},
+						},
 					},
 				},
 			},
@@ -550,12 +620,106 @@ func DefaultFullGameSave() *FullGameSave {
 						Name:        "Earth",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 1, Count: 1},
+							{Role: "Engineer", Degree: 1, Count: 1},
+						},
 					},
 					{
 						PlanetID:    "Mars",
 						Name:        "Mars",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 5, Y: 3, Z: 1},
+						Requirements: []CrewRequirement{
+							{Role: "Engineer", Degree: 1, Count: 1},
+						},
+					},
+				},
+			},
+			{
+				SystemID:    "SYS_872431",
+				Name:        "Alpha Centauri",
+				Coordinates: Coordinates{X: 4, Y: 2, Z: 1},
+				Planets: []Planet{
+					{
+						PlanetID:    "Proxima-b",
+						Name:        "Proxima b",
+						Type:        "Terrestrial",
+						Coordinates: Coordinates{X: 1, Y: 2, Z: 3},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 1, Count: 1},
+							{Role: "Engineer", Degree: 2, Count: 1},
+						},
+					},
+					{
+						PlanetID:    "AlphaC-B",
+						Name:        "Alpha Centauri Bb",
+						Type:        "Gas Giant",
+						Coordinates: Coordinates{X: 2, Y: 1, Z: 0},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 1, Count: 1},
+							{Role: "Engineer", Degree: 2, Count: 2},
+						},
+					},
+				},
+			},
+			{
+				SystemID:    "SYS_927381",
+				Name:        "Sirius",
+				Coordinates: Coordinates{X: -5, Y: 10, Z: 3},
+				Planets: []Planet{
+					{
+						PlanetID:    "Sirius-1",
+						Name:        "Sirius I",
+						Type:        "Terrestrial",
+						Coordinates: Coordinates{X: -1, Y: 0, Z: 2},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 2, Count: 1},
+						},
+					},
+					{
+						PlanetID:    "Sirius-2",
+						Name:        "Sirius II",
+						Type:        "Gas Giant",
+						Coordinates: Coordinates{X: -2, Y: 3, Z: 1},
+						Requirements: []CrewRequirement{
+							{Role: "Engineer", Degree: 2, Count: 1},
+						},
+					},
+					{
+						PlanetID:    "Sirius-3",
+						Name:        "Sirius III",
+						Type:        "Ice Giant",
+						Coordinates: Coordinates{X: -3, Y: 3, Z: 3},
+						Requirements: []CrewRequirement{
+							{Role: "Scientist", Degree: 3, Count: 1},
+						},
+					},
+				},
+			},
+			{
+				SystemID:    "SYS_182736",
+				Name:        "Vega",
+				Coordinates: Coordinates{X: 10, Y: -3, Z: 7},
+				Planets: []Planet{
+					{
+						PlanetID:    "Vega-1",
+						Name:        "Vega I",
+						Type:        "Terrestrial",
+						Coordinates: Coordinates{X: 0, Y: 1, Z: -1},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 1, Count: 1},
+							{Role: "Engineer", Degree: 1, Count: 1},
+						},
+					},
+					{
+						PlanetID:    "Vega-2",
+						Name:        "Vega II",
+						Type:        "Gas Giant",
+						Coordinates: Coordinates{X: 1, Y: 1, Z: 1},
+						Requirements: []CrewRequirement{
+							{Role: "Engineer", Degree: 2, Count: 2},
+						},
 					},
 				},
 			},
@@ -727,4 +891,38 @@ func SaveGame(save *FullGameSave) error {
 
 	// Rename temporary file to actual save file.
 	return os.Rename(tmpFilePath, SaveFilePath)
+}
+
+// ------------------------------
+// Game Map Helper Functions
+// ------------------------------
+// Searches for a planet by name across all star systems
+func FindPlanet(gameMap GameMap, planetName string) *Planet {
+	for _, system := range gameMap.StarSystems {
+		for _, planet := range system.Planets {
+			if planet.Name == planetName {
+				return &planet // Return full planet struct
+			}
+		}
+	}
+	return nil // Return nil if not found
+}
+
+// GetDistance calculates the distance from the ship to a certain planet by name
+func GetDistance(gameMap GameMap, ship Ship, planetName string) int {
+	// Get ships coords
+	shipCoords := ship.Location.Coordinates
+
+	// Find the planet using helper function
+	planet := FindPlanet(gameMap, planetName)
+	if planet == nil {
+		return -1
+	}
+
+	// (X + X, Y + Y, Z + Z) * 10
+	distance := (int(math.Abs(float64(shipCoords.X+planet.Coordinates.X))) +
+		int(math.Abs(float64(shipCoords.Y+planet.Coordinates.Y))) +
+		int(math.Abs(float64(shipCoords.Z+planet.Coordinates.Z)))) * 10
+
+	return distance
 }
