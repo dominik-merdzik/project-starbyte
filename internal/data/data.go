@@ -29,6 +29,7 @@ type FullGameSave struct {
 	Crew         []CrewMember `json:"crew"`
 	Missions     Missions     `json:"missions"`
 	GameMap      GameMap      `json:"gameMap"`
+	Collection   Collection   `json:"collection"`
 }
 
 type GameMetadata struct {
@@ -66,6 +67,11 @@ type Reputation struct {
 	EnemyFactions  map[string]int `json:"enemyFactions"`
 }
 
+// ---------------------
+// Ship structures
+// ---------------------
+
+// Ship represents the player's ship in the game
 type Ship struct {
 	ShipId            string   `json:"shipId"`
 	ShipName          string   `json:"shipName"`
@@ -85,30 +91,35 @@ type Ship struct {
 	Upgrades          Upgrades `json:"upgrades"`
 }
 
+// Location represents the current location of the ship in the game
 type Location struct {
 	StarSystemId string      `json:"starSystemId"`
 	PlanetId     string      `json:"planetId"`
 	Coordinates  Coordinates `json:"coordinates"`
 }
 
+// Coordinates represents the 3D coordinates of a location in the game
 type Coordinates struct {
 	X int `json:"x"`
 	Y int `json:"y"`
 	Z int `json:"z"`
 }
 
+// Cargo represents the ship's cargo hold with capacity, used capacity, and items
 type Cargo struct {
 	Capacity     int         `json:"capacity"`
 	UsedCapacity int         `json:"usedCapacity"`
 	Items        []CargoItem `json:"items"`
 }
 
+// CargoItem represents an item in the ship's cargo hold
 type CargoItem struct {
 	ItemId   string `json:"itemId"`
 	Name     string `json:"name"`
 	Quantity int    `json:"quantity"`
 }
 
+// Module represents a ship module with a name, level, and status
 type Module struct {
 	ModuleId string `json:"moduleId"`
 	Name     string `json:"name"`
@@ -116,29 +127,55 @@ type Module struct {
 	Status   string `json:"status"`
 }
 
+// Upgrades represents the current upgrade levels for the ship
 type Upgrades struct {
 	Engine         UpgradeLevel `json:"engine"`
 	WeaponSystems  UpgradeLevel `json:"weaponSystems"`
 	CargoExpansion UpgradeLevel `json:"cargoExpansion"`
 }
 
+// UpgradeLevel represents the current and maximum level of an upgrade
 type UpgradeLevel struct {
 	CurrentLevel int `json:"currentLevel"`
 	MaxLevel     int `json:"maxLevel"`
 }
 
+// ---------------------
+// Crew structures
+// ---------------------
+
+// CrewRole defines the valid roles for a crew member.
+type CrewRole string
+
+const (
+	CrewRolePilot                 CrewRole = "Pilot"
+	CrewRoleEngineer              CrewRole = "Engineer"
+	CrewRoleScientist             CrewRole = "Scientist"
+	CrewRoleMedic                 CrewRole = "Medic"
+	CrewRoleSecurityOfficer       CrewRole = "Security Officer"
+	CrewRoleNavigator             CrewRole = "Navigator"
+	CrewRoleCommunicationsOfficer CrewRole = "Communications Officer"
+	CrewRoleMechanic              CrewRole = "Mechanic"
+	CrewRoleWeaponsSpecialist     CrewRole = "Weapons Specialist"
+	CrewRoleResearchSpecialist    CrewRole = "Research Specialist"
+)
+
+// CrewMember represents a single crew member in the game.
+// Note: MasterWorkLevel acts as a prestige level after reaching level 10.
 type CrewMember struct {
-	CrewId         string  `json:"crewId"`
-	Name           string  `json:"name"`
-	Role           string  `json:"role"`
-	Degree         int     `json:"degree"`
-	Experience     int     `json:"experience"`
-	Morale         int     `json:"morale"`
-	Health         int     `json:"health"`
-	Skills         Skills  `json:"skills"`
-	AssignedTaskId *string `json:"assignedTaskId"`
+	CrewId          string   `json:"crewId"`
+	Name            string   `json:"name"`
+	Role            CrewRole `json:"role"`
+	Degree          int      `json:"degree"`
+	Experience      int      `json:"experience"`
+	Morale          int      `json:"morale"`
+	Health          int      `json:"health"`
+	MasterWorkLevel int      `json:"masterWorkLevel"`
+	Skills          Skills   `json:"skills"`
+	AssignedTaskId  *string  `json:"assignedTaskId"`
 }
 
+// Skills represents the skills of a crew
 type Skills struct {
 	Piloting    int `json:"piloting"`
 	Engineering int `json:"engineering"`
@@ -148,10 +185,13 @@ type Skills struct {
 // ---------------------
 // Map structures
 // ---------------------
+
+// GameMap represents the game map with star systems and planets
 type GameMap struct {
 	StarSystems []StarSystem `json:"starSystems"`
 }
 
+// StarSystem represents a star system with planets
 type StarSystem struct {
 	SystemID    string      `json:"systemId"`
 	Name        string      `json:"name"`
@@ -159,12 +199,14 @@ type StarSystem struct {
 	Planets     []Planet    `json:"planets"`
 }
 
+// CrewRequirement represents the requirements for crew members on a planet
 type CrewRequirement struct {
 	Role   string `json:"role"`
 	Degree int    `json:"degree"`
 	Count  int    `json:"count"`
 }
 
+// Planet represents a single planet in the game
 type Planet struct {
 	PlanetID     string            `json:"planetId"`
 	Name         string            `json:"name"`
@@ -174,15 +216,17 @@ type Planet struct {
 	Requirements []CrewRequirement `json:"requirements"`
 }
 
+// Resource represents a resource available on a planet
 type Resource struct {
 	Name     string `json:"name"`
 	Quantity int    `json:"quantity"`
 }
 
 // ---------------------
-// mission structures
+// Mission structures
 // ---------------------
 
+// Mission represents a single mission in the game
 type Mission struct {
 	Step              int      `json:"Step,omitempty"`
 	MissionId         string   `json:"missionId"`
@@ -200,19 +244,51 @@ type Mission struct {
 	Dialogue          []string `json:"dialogue"`
 }
 
+// NPC represents a non-player character who can give missions
 type NPC struct {
 	Name     string    `json:"Name"`
 	Missions []Mission `json:"Missions"`
 }
 
+// ReceivedMissionGroup represents a group of missions received from an NPC at a specific location
 type ReceivedMissionGroup struct {
 	Location string `json:"Location"`
 	NPCs     []NPC  `json:"NPCs"`
 }
 
+// Missions represents the main and received missions in the game
 type Missions struct {
 	Main     []Mission              `json:"main"`
 	Received []ReceivedMissionGroup `json:"received"`
+}
+
+// ---------------------
+// Collection structures
+// ---------------------
+
+// Collection represents a container for items and research notes
+type Collection struct {
+	MaxCapacity   int                `json:"maxCapacity"`
+	UsedCapacity  int                `json:"usedCapacity"`
+	Items         []CollectionItem   `json:"items"`
+	ResearchNotes []ResearchNoteTier `json:"researchNotes"`
+}
+
+// CollectionItem defines the properties for each item in the collection
+type CollectionItem struct {
+	ItemId      string `json:"itemId"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Quantity    int    `json:"quantity"`
+}
+
+// ResearchNoteTier defines the structure for each tier of research notes
+type ResearchNoteTier struct {
+	Name     string `json:"name"`
+	Blurb    string `json:"blurb"`
+	Tier     int    `json:"tier"`
+	XP       int    `json:"xp"`
+	Quantity int    `json:"quantity"`
 }
 
 // -------------------
@@ -224,11 +300,57 @@ func generateRandomID(prefix string) string {
 	return prefix + strconv.Itoa(rand.Intn(1000000))
 }
 
+// DefaultCollection returns a new Collection with preset research note tiers.
+func DefaultCollection() Collection {
+	return Collection{
+		MaxCapacity:  100, // Example capacity; adjust as needed.
+		UsedCapacity: 0,
+		Items:        []CollectionItem{},
+		ResearchNotes: []ResearchNoteTier{
+			{
+				Name:     "Rough Scribbles",
+				Blurb:    "These are your earliest musings—quick sketches and fragmented ideas jotted down in the heat of discovery. They’re messy but full of potential.",
+				Tier:     1,
+				XP:       0,
+				Quantity: 0,
+			},
+			{
+				Name:     "Field Observations",
+				Blurb:    "Compiled during your initial forays into uncharted territory, these notes capture raw, firsthand experiences that hint at a larger mystery.",
+				Tier:     2,
+				XP:       0,
+				Quantity: 0,
+			},
+			{
+				Name:     "Experimental Logs",
+				Blurb:    "With a bit more structure, these logs document repeated tests and emerging patterns. They offer a clearer look at the phenomena you’re unraveling.",
+				Tier:     3,
+				XP:       0,
+				Quantity: 0,
+			},
+			{
+				Name:     "Analytical Reports",
+				Blurb:    "Now your notes take on a more refined shape—detailed, methodical, and filled with insightful analysis that bridges observation with theory.",
+				Tier:     4,
+				XP:       0,
+				Quantity: 0,
+			},
+			{
+				Name:     "Breakthrough Manuscripts",
+				Blurb:    "The pinnacle of your research journey, these manuscripts combine rigorous data and innovative thought to reveal groundbreaking insights that could change everything.",
+				Tier:     5,
+				XP:       0,
+				Quantity: 0,
+			},
+		},
+	}
+}
+
 // ------------------------------
 // Full Game Save File Operations
 // ------------------------------
 
-// creates a new full game save file using the provided parameters
+// CreateNewFullGameSave creates a new full game save file using the provided parameters.
 func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error {
 	now := time.Now()
 
@@ -507,30 +629,33 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 		},
 		Crew: []CrewMember{
 			{
-				CrewId:         generateRandomID("CREW_"),
-				Name:           "Alice",
-				Role:           "Pilot",
-				Degree:         1,
-				Experience:     0,
-				Morale:         100,
-				Health:         100,
-				Skills:         Skills{Piloting: 5, Engineering: 1, Combat: 2},
-				AssignedTaskId: nil,
+				CrewId:          generateRandomID("CREW_"),
+				Name:            "Alice",
+				Role:            CrewRolePilot,
+				Degree:          1,
+				Experience:      0,
+				Morale:          100,
+				Health:          100,
+				MasterWorkLevel: 0,
+				Skills:          Skills{Piloting: 5, Engineering: 1, Combat: 2},
+				AssignedTaskId:  nil,
 			},
 			{
-				CrewId:         generateRandomID("CREW_"),
-				Name:           "Bob",
-				Role:           "Engineer",
-				Degree:         1,
-				Experience:     0,
-				Morale:         95,
-				Health:         100,
-				Skills:         Skills{Piloting: 1, Engineering: 5, Combat: 1},
-				AssignedTaskId: nil,
+				CrewId:          generateRandomID("CREW_"),
+				Name:            "Bob",
+				Role:            CrewRoleEngineer,
+				Degree:          1,
+				Experience:      0,
+				Morale:          95,
+				Health:          100,
+				MasterWorkLevel: 0,
+				Skills:          Skills{Piloting: 1, Engineering: 5, Combat: 1},
+				AssignedTaskId:  nil,
 			},
 		},
-		Missions: defaultMissions,
-		GameMap:  defaultGameMap,
+		Missions:   defaultMissions,
+		GameMap:    defaultGameMap,
+		Collection: DefaultCollection(),
 	}
 
 	// Wrap the save data in an array (slice) as per your JSON structure.
@@ -550,7 +675,7 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 	return ioutil.WriteFile(SaveFilePath, dataBytes, 0644)
 }
 
-// returns a default FullGameSave structure with initial "new game" values
+// DefaultFullGameSave returns a default FullGameSave structure with initial "new game" values (Used for creating new game)
 func DefaultFullGameSave() *FullGameSave {
 	now := time.Now()
 
@@ -824,40 +949,47 @@ func DefaultFullGameSave() *FullGameSave {
 		},
 		Crew: []CrewMember{
 			{
-				CrewId:         "CREW_001",
-				Name:           "Alice",
-				Role:           "Pilot",
-				Degree:         1,
-				Experience:     0,
-				Morale:         100,
-				Health:         100,
-				Skills:         Skills{Piloting: 5, Engineering: 1, Combat: 2},
-				AssignedTaskId: nil,
+				CrewId:          "CREW_001",
+				Name:            "Alice",
+				Role:            CrewRolePilot,
+				Degree:          1,
+				Experience:      0,
+				Morale:          100,
+				Health:          100,
+				MasterWorkLevel: 0,
+				Skills:          Skills{Piloting: 5, Engineering: 1, Combat: 2},
+				AssignedTaskId:  nil,
 			},
 			{
-				CrewId:         "CREW_002",
-				Name:           "Bob",
-				Role:           "Engineer",
-				Degree:         1,
-				Experience:     0,
-				Morale:         95,
-				Health:         100,
-				Skills:         Skills{Piloting: 1, Engineering: 5, Combat: 1},
-				AssignedTaskId: nil,
+				CrewId:          "CREW_002",
+				Name:            "Bob",
+				Role:            CrewRoleEngineer,
+				Degree:          1,
+				Experience:      0,
+				Morale:          95,
+				Health:          100,
+				MasterWorkLevel: 0,
+				Skills:          Skills{Piloting: 1, Engineering: 5, Combat: 1},
+				AssignedTaskId:  nil,
 			},
 		},
-		Missions: defaultMissions,
-		GameMap:  defaultGameMap,
+		Missions:   defaultMissions,
+		GameMap:    defaultGameMap,
+		Collection: DefaultCollection(),
 	}
 }
 
-// checks whether a save file already exists
+// ---------------------
+// Save File Operations
+// ---------------------
+
+// SaveExists checks whether a save file already exists.
 func SaveExists() bool {
 	_, err := os.Stat(SaveFilePath)
 	return err == nil
 }
 
-// reads the JSON save file and returns the full game data
+// LoadFullGameSave reads the JSON save file and returns the full game data.
 func LoadFullGameSave() (*FullGameSave, error) {
 	dataBytes, err := ioutil.ReadFile(SaveFilePath)
 	if err != nil {
@@ -873,7 +1005,7 @@ func LoadFullGameSave() (*FullGameSave, error) {
 	return &saves[0], nil
 }
 
-// writes the current full game save to disk
+// SaveGame writes the current full game save to disk.
 func SaveGame(save *FullGameSave) error {
 	// Wrap the save data in a slice as per your JSON structure.
 	saveData := []FullGameSave{*save}
@@ -896,7 +1028,8 @@ func SaveGame(save *FullGameSave) error {
 // ------------------------------
 // Game Map Helper Functions
 // ------------------------------
-// Searches for a planet by name across all star systems
+
+// FindPlanet searches for a planet by name across all star systems.
 func FindPlanet(gameMap GameMap, planetName string) *Planet {
 	for _, system := range gameMap.StarSystems {
 		for _, planet := range system.Planets {
@@ -908,12 +1041,12 @@ func FindPlanet(gameMap GameMap, planetName string) *Planet {
 	return nil // Return nil if not found
 }
 
-// GetDistance calculates the distance from the ship to a certain planet by name
+// GetDistance calculates the distance from the ship to a certain planet by name.
 func GetDistance(gameMap GameMap, ship Ship, planetName string) int {
-	// Get ships coords
+	// Get ship's coordinates.
 	shipCoords := ship.Location.Coordinates
 
-	// Find the planet using helper function
+	// Find the planet using helper function.
 	planet := FindPlanet(gameMap, planetName)
 	if planet == nil {
 		return -1

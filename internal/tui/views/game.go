@@ -21,10 +21,11 @@ type GameModel struct {
 	spinner     spinner.Model
 
 	// additional models
-	Ship    model.ShipModel
-	Crew    model.CrewModel
-	Journal model.JournalModel
-	Map     model.MapModel
+	Ship       model.ShipModel
+	Crew       model.CrewModel
+	Journal    model.JournalModel
+	Map        model.MapModel
+	Collection model.CollectionModel // NEW: Collection model
 
 	currentHealth int
 	maxHealth     int
@@ -61,6 +62,7 @@ const (
 	ViewCrew
 	ViewMap
 	ViewShip
+	ViewCollection // NEW: Added Collection view
 )
 
 type clearNotificationMsg struct{}
@@ -122,6 +124,12 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.Map = m
 		}
 		cmds = append(cmds, shipCmd)
+	case ViewCollection: // NEW: Update Collection view
+		newCollection, CollectionCmd := g.Collection.Update(msg)
+		if col, ok := newCollection.(model.CollectionModel); ok {
+			g.Collection = col
+		}
+		cmds = append(cmds, CollectionCmd)
 	}
 
 	switch msg := msg.(type) {
@@ -216,6 +224,8 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.activeView = ViewMap
 			case "Ship":
 				g.activeView = ViewShip
+			case "Collection": // NEW: Activate Collection view
+				g.activeView = ViewCollection
 			}
 		case "s":
 			// update total play time before saving
@@ -404,6 +414,8 @@ func (g GameModel) View() string {
 		bottomPanelContent = g.Journal.View()
 	case "Map":
 		bottomPanelContent = g.Map.View()
+	case "Collection": // NEW: Display Collection view.
+		bottomPanelContent = g.Collection.View()
 	default:
 		// TODO: move this stuff into UI components
 		// TOOD: make styling prettier
@@ -524,17 +536,19 @@ func NewGameModel() tea.Model {
 	crewModel := model.NewCrewModel(fullSave.Crew)
 	journalModel := model.NewJournalModel()
 	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship)
+	collectionModel := model.NewCollectionModel(fullSave.Collection) // NEW: Initialize Collection model
 
 	return GameModel{
 		ProgressBar:      components.NewProgressBar(),
 		currentHealth:    currentHealth,
 		maxHealth:        maxHealth,
 		Yuta:             components.NewYuta(),
-		menuItems:        []string{"Ship", "Crew", "Journal", "Map", "Exit"},
+		menuItems:        []string{"Ship", "Crew", "Journal", "Map", "Collection", "Exit"},
 		menuCursor:       0,
 		Ship:             shipModel,
 		Crew:             crewModel,
 		Journal:          journalModel,
+		Collection:       collectionModel, // NEW: Set Collection model
 		Map:              mapModel,
 		activeView:       ViewNone,
 		spinner:          s,

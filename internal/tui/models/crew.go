@@ -6,39 +6,41 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/dominik-merdzik/project-starbyte/internal/data" // Import the package where saved crew data is defined.
+	"github.com/dominik-merdzik/project-starbyte/internal/data"
 )
 
-// a single crew member in our model
+// CrewMember represents a single crew member in our internal model
 type CrewMember struct {
-	Name       string
-	Role       string // e.g. Captain, Navigator, Engineer, Gunner, Cook, Deckhand
-	Degree     int
-	Experience int
-	Morale     int
-	Health     int
-	HireCost   int // to be used when recruiting crew members
+	Name            string
+	Role            string // Role is converted from data.CrewRole
+	Degree          int
+	Experience      int
+	Morale          int
+	Health          int
+	MasterWorkLevel int // New field: acts as a prestige level after level 10
+	HireCost        int // Used when recruiting crew members
 }
 
-// all of the crew on board the player's ship
+// CrewModel contains all crew on board the player's ship
 type CrewModel struct {
 	CrewMembers []CrewMember
 	Cursor      int
 }
 
 // NewCrewModel creates a new CrewModel based on saved crew data
-// it converts a slice of data.CrewMember (from the save file) into the internal CrewMember type
+// It converts a slice of data.CrewMember (from the save file) into our internal CrewMember type
 func NewCrewModel(savedCrew []data.CrewMember) CrewModel {
 	var crew []CrewMember
 	for _, s := range savedCrew {
 		crew = append(crew, CrewMember{
-			Name:       s.Name,
-			Role:       s.Role,
-			Degree:     s.Degree,
-			Experience: s.Experience,
-			Morale:     s.Morale,
-			Health:     s.Health,
-			HireCost:   100, // idea for later - adjust or compute based on s.Degree
+			Name:            s.Name,
+			Role:            string(s.Role),
+			Degree:          s.Degree,
+			Experience:      s.Experience,
+			Morale:          s.Morale,
+			Health:          s.Health,
+			MasterWorkLevel: s.MasterWorkLevel,
+			HireCost:        100, // Placeholder value; adjust based on s.Degree or other factors
 		})
 	}
 	return CrewModel{
@@ -113,9 +115,9 @@ func (c CrewModel) View() string {
 			labelStyle.Render("Role: ") + crew.Role + "\n" +
 			labelStyle.Render("Degree: ") + fmt.Sprintf("%d", crew.Degree) + "\n" +
 			labelStyle.Render("Experience: ") + fmt.Sprintf("%d", crew.Experience) + "\n" +
+			labelStyle.Render("Master Work Level: ") + fmt.Sprintf("%d", crew.MasterWorkLevel) + "\n" +
 			labelStyle.Render("Morale: ") + fmt.Sprintf("%d", crew.Morale) + "\n" +
 			labelStyle.Render("Health: ") + fmt.Sprintf("%d", crew.Health) + "\n"
-		//labelStyle.Render("Hire Cost: ") + "100 credits" + "\n"
 	}
 
 	rightPanel := rightStyle.Render(crewDetails)
