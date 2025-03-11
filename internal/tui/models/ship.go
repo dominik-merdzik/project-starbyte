@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
+	"github.com/dominik-merdzik/project-starbyte/internal/utilities"
 )
 
 // ShipModel represents the ship's status and components.
@@ -30,6 +31,8 @@ type ShipModel struct {
 	Modules           []data.Module
 	Upgrades          data.Upgrades
 	Cursor            int // Index of the currently selected ship component.
+
+	GameSave *data.FullGameSave
 }
 
 // NewShipModelDefaults creates a ShipModel with default values.
@@ -97,6 +100,26 @@ func (s ShipModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if s.Cursor < 5 { // Number of selectable items.
 				s.Cursor++
 			}
+		case "a":
+			// Subtract 10 units of EngineFuel.
+			s.EngineFuel -= 10
+			if s.EngineFuel < 0 {
+				s.EngineFuel = 0
+			}
+		case "d":
+			// Add 5 units of EngineFuel.
+			s.EngineFuel += 5
+			if s.EngineFuel > s.MaxFuel {
+				s.EngineFuel = s.MaxFuel
+			}
+		case "w":
+			// Set engine fuel to 0 immediately *FOR DEMO PURPOSES ONLY*
+			s.EngineFuel = 0
+			// push the save
+			return s, utilities.PushSave(s.GameSave, func() {
+				s.GameSave.Ship.Fuel = s.EngineFuel
+			})
+
 		}
 	}
 	return s, nil

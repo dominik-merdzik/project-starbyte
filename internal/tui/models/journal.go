@@ -48,6 +48,8 @@ type Mission struct {
 	FuelNeeded        int
 	DestinationPlanet string
 	Dialogue          []string
+
+	GameSave *data.FullGameSave
 }
 
 // convertDataMission converts a data.Mission into a model.Mission

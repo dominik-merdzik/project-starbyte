@@ -19,6 +19,8 @@ type CrewMember struct {
 	Health          int
 	MasterWorkLevel int // New field: acts as a prestige level after level 10
 	HireCost        int // Used when recruiting crew members
+
+	GameSave *data.FullGameSave
 }
 
 // CrewModel contains all crew on board the player's ship

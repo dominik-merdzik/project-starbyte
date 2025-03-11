@@ -4,11 +4,14 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dominik-merdzik/project-starbyte/internal/data"
 	model "github.com/dominik-merdzik/project-starbyte/internal/tui/models"
 )
 
 // CurrentTaskComponent is responsible for rendering the currently tracked mission
-type CurrentTaskComponent struct{}
+type CurrentTaskComponent struct {
+	GameSave *data.FullGameSave
+}
 
 // NewCurrentTaskComponent creates and returns a new CurrentTaskComponent
 func NewCurrentTaskComponent() CurrentTaskComponent {

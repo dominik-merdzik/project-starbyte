@@ -29,6 +29,8 @@ type MapModel struct {
 	ActivePanel    PanelFocus
 	SelectedSystem data.StarSystem
 	SelectedPlanet data.Planet
+
+	GameSave *data.FullGameSave
 }
 
 // NewMapModel initializes the star system list

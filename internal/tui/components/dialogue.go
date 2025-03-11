@@ -5,11 +5,14 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dominik-merdzik/project-starbyte/internal/data"
 )
 
 type DialogueComponent struct {
 	Lines       []string
 	CurrentLine int
+
+	GameSave *data.FullGameSave
 }
 
 // NewDialogueComponentFromMission creates a new DialogueComponent from a mission's dialogue

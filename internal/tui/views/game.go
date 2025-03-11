@@ -12,6 +12,7 @@ import (
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
 	"github.com/dominik-merdzik/project-starbyte/internal/tui/components"
 	model "github.com/dominik-merdzik/project-starbyte/internal/tui/models"
+	"github.com/dominik-merdzik/project-starbyte/internal/utilities"
 )
 
 type GameModel struct {
@@ -47,11 +48,12 @@ type GameModel struct {
 	Credits int
 	Version string
 
-	dirty             bool
-	gameSave          *data.FullGameSave
-	lastAutoSaveTime  time.Time
-	notification      string
-	autoSaveInitiated bool
+	dirty              bool
+	gameSave           *data.FullGameSave
+	lastAutoSaveTime   time.Time
+	lastManualSaveTime time.Time
+	notification       string
+	autoSaveInitiated  bool
 }
 
 type ActiveView int
@@ -80,7 +82,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if !g.autoSaveInitiated {
 		g.autoSaveInitiated = true
-		cmds = append(cmds, tea.Tick(1*time.Second, func(t time.Time) tea.Msg {
+		cmds = append(cmds, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 			return autoSaveMsg(t)
 		}))
 	}
@@ -149,8 +151,8 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}(g.gameSave)
 
-		// schedule the next auto-save tick after 2 seconds
-		return g, tea.Tick(2*time.Second, func(t time.Time) tea.Msg { return autoSaveMsg(t) })
+		// schedule the next auto-save tick after 2 seconds *UPDATED TO 5 FOR TESTING*
+		return g, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return autoSaveMsg(t) })
 	case clearNotificationMsg:
 		g.notification = ""
 		return g, nil
@@ -228,24 +230,26 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.activeView = ViewCollection
 			}
 		case "s":
+
+			// Check if 2 seconds have passed since the last manual save
+			if time.Since(g.lastManualSaveTime) < 2*time.Second {
+				g.notification = "Please wait before saving again."
+				return g, nil
+			}
+			g.lastManualSaveTime = time.Now()
+
 			// update total play time before saving
 			elapsed := time.Since(g.lastAutoSaveTime)
 			addDurationToPlayTime(&g.gameSave.GameMetadata.TotalPlayTime, elapsed)
+
 			// reset the last auto-save time
 			g.lastAutoSaveTime = time.Now()
 
-			// now sync the rest of the game state
-			g.syncSaveData()
-
-			// attempt to save synchronously for testing
-			if err := data.SaveGame(g.gameSave); err != nil {
-				g.notification = fmt.Sprintf("Error saving game: %v", err)
-			} else {
-				g.notification = "Game saved successfully!"
-				g.dirty = false
-			}
-			// Schedule the notification to clear after 3 seconds.
-			return g, tea.Tick(3*time.Second, func(t time.Time) tea.Msg { return clearNotificationMsg{} })
+			// Instead of saving synchronously here, call our helper
+			// The syncFunc here updates our in-memory game state (e.g. calling g.syncSaveData())
+			return g, utilities.ManualSave(g.gameSave, func() {
+				g.syncSaveData()
+			})
 		case " ":
 			if g.TrackedMission != nil && !g.isTravelling {
 				switch g.TrackedMission.Status {
@@ -291,7 +295,17 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmd,
 			)
 		}
+	case utilities.SaveRetryMsg:
+		// if saving failed, schedule a retry after 2 seconds
+		return g, utilities.RetryManualSave(g.gameSave, func() {
+			g.syncSaveData()
+		})
+	case utilities.SaveSuccessMsg:
+		// update the notification on a successful save
+		g.notification = "Game saved successfully!"
+		return g, tea.Batch(tea.Tick(2*time.Second, func(time.Time) tea.Msg { return clearNotificationMsg{} }))
 	}
+
 	cmds = append(cmds, g.spinner.Tick)
 	return g, tea.Batch(cmds...)
 }
@@ -533,6 +547,7 @@ func NewGameModel() tea.Model {
 	maxHealth := fullSave.Ship.MaxHullIntegrity
 
 	shipModel := model.NewShipModel(fullSave.Ship)
+	shipModel.GameSave = fullSave
 	crewModel := model.NewCrewModel(fullSave.Crew)
 	journalModel := model.NewJournalModel()
 	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship)
@@ -575,7 +590,18 @@ func StartMission(mission model.Mission, ship model.ShipModel) model.ShipModel {
 // syncSaveData updates the gameSave data with the latest state from the GameModel
 // syncSaveData updates gameSave with the latest in-memory state
 func (g *GameModel) syncSaveData() {
+
+	// Sync ship values
 	g.gameSave.Ship.HullIntegrity = g.currentHealth
+	g.gameSave.Ship.Fuel = g.Ship.EngineFuel
+	g.gameSave.Ship.EngineHealth = g.Ship.EngineHealth
+	g.gameSave.Ship.FTLDriveHealth = g.Ship.FTLDriveHealth
+	g.gameSave.Ship.FTLDriveCharge = g.Ship.FTLDriveCharge
+	g.gameSave.Ship.ShieldStrength = g.Ship.ShieldStrength
+	g.gameSave.Ship.MaxHullIntegrity = g.Ship.MaxHullHealth
+	g.gameSave.Ship.MaxFuel = g.Ship.MaxFuel
+	g.gameSave.Ship.Food = g.Ship.Food
+
 	g.gameSave.Player.Credits = g.Credits
 	g.gameSave.GameMetadata.LastSaveTime = time.Now().Format(time.RFC3339)
 }
