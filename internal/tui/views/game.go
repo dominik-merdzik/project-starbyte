@@ -551,6 +551,7 @@ func NewGameModel() tea.Model {
 	crewModel := model.NewCrewModel(fullSave.Crew)
 	journalModel := model.NewJournalModel()
 	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship)
+	mapModel.GameSave = fullSave
 	collectionModel := model.NewCollectionModel(fullSave.Collection) // NEW: Initialize Collection model
 
 	return GameModel{
@@ -604,6 +605,8 @@ func (g *GameModel) syncSaveData() {
 
 	g.gameSave.Player.Credits = g.Credits
 	g.gameSave.GameMetadata.LastSaveTime = time.Now().Format(time.RFC3339)
+
+	g.gameSave.Ship.Location.PlanetId = g.Ship.Location.PlanetId
 }
 
 // helper: add elapsed duration to TotalPlayTime, normalizing seconds/minutes/hours

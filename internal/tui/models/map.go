@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
+	"github.com/dominik-merdzik/project-starbyte/internal/utilities"
 )
 
 // PanelFocus represents which panel is currently focused
@@ -131,8 +132,19 @@ func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.ConfirmCursor = 0
 				}
 			case ViewTravelConfirm:
+				// When user confirms travel, update the ship's location and fuel
 				if m.ConfirmCursor == 0 {
-					m.travel()
+					// ATTEMPTING TO UPDATE THE STATE OF THE GAME
+					m.Ship.Location.PlanetId = "SOME PLANET"
+					m.Ship.Location.Coordinates = data.Coordinates{X: 99, Y: 99, Z: 99}
+					m.Ship.Fuel -= 30
+					//m.Ship.EngineFuel -= 30 // Wait why are the names ?
+
+					return m, utilities.PushSave(m.GameSave, func() {
+						m.GameSave.Ship.Location.PlanetId = m.Ship.Location.PlanetId
+						m.GameSave.Ship.Location.Coordinates = m.Ship.Location.Coordinates
+						m.GameSave.Ship.Fuel -= m.Ship.Fuel
+					})
 				}
 				m.ActiveView = ViewPlanets
 			}
@@ -332,9 +344,9 @@ func (m MapModel) renderTravelConfirm() string {
 }
 
 // travel updates the ship's location to the selected planet
-func (m MapModel) travel() {
-	selectedPlanet := m.SelectedPlanet
-	m.Ship.Location.PlanetId = selectedPlanet.PlanetID
-	m.Ship.Location.Coordinates = selectedPlanet.Coordinates
-	// TODO: Save the game.
-}
+// func (m MapModel) travel() tea.Cmd {
+// 	//selectedPlanet := m.SelectedPlanet
+// 	//m.Ship.Location.PlanetId = selectedPlanet.PlanetID
+// 	//m.Ship.Location.Coordinates = selectedPlanet.Coordinates
+
+// }
