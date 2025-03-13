@@ -7,7 +7,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
-	"github.com/dominik-merdzik/project-starbyte/internal/utilities"
 )
 
 // PanelFocus represents which panel is currently focused
@@ -57,6 +56,13 @@ const (
 	ViewPlanets
 	ViewTravelConfirm
 )
+
+// This signals game.go to update the ship's location and fuel
+// Used when travelling to a planet
+type TravelUpdateMsg struct {
+	Location data.Location
+	Fuel     int
+}
 
 func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -145,11 +151,13 @@ func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// Exit the modal and return to planet view
 					m.ActiveView = ViewPlanets
 
-					// Call save function
-					return m, utilities.PushSave(m.GameSave, func() {
-						m.GameSave.Ship.Location = m.Ship.Location
-						m.GameSave.Ship.Fuel = m.Ship.Fuel
-					})
+					// Return a message to signal an update the parent state in game.go
+					return m, func() tea.Msg {
+						return TravelUpdateMsg{
+							Location: m.Ship.Location,
+							Fuel:     m.Ship.Fuel,
+						}
+					}
 				}
 			}
 		case "esc":
@@ -346,11 +354,3 @@ func (m MapModel) renderTravelConfirm() string {
 	}
 	return style.Render(content.String())
 }
-
-// travel updates the ship's location to the selected planet
-// func (m MapModel) travel() tea.Cmd {
-// 	//selectedPlanet := m.SelectedPlanet
-// 	//m.Ship.Location.PlanetId = selectedPlanet.PlanetID
-// 	//m.Ship.Location.Coordinates = selectedPlanet.Coordinates
-
-// }

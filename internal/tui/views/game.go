@@ -87,19 +87,6 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}))
 	}
 
-	// always update Yuta and Ship
-	newYuta, yutaCmd := g.Yuta.Update(msg)
-	if y, ok := newYuta.(components.YutaModel); ok {
-		g.Yuta = y
-	}
-	cmds = append(cmds, yutaCmd)
-
-	newShip, shipCmd := g.Ship.Update(msg)
-	if s, ok := newShip.(model.ShipModel); ok {
-		g.Ship = s
-	}
-	cmds = append(cmds, shipCmd)
-
 	// update active view
 	switch g.activeView {
 	case ViewJournal:
@@ -121,9 +108,9 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		cmds = append(cmds, mapCmd)
 	case ViewShip:
-		newShip, shipCmd := g.Map.Update(msg)
-		if m, ok := newShip.(model.MapModel); ok {
-			g.Map = m
+		newShip, shipCmd := g.Ship.Update(msg)
+		if s, ok := newShip.(model.ShipModel); ok {
+			g.Ship = s
 		}
 		cmds = append(cmds, shipCmd)
 	case ViewCollection: // NEW: Update Collection view
@@ -304,6 +291,16 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// update the notification on a successful save
 		g.notification = "Game saved successfully!"
 		return g, tea.Batch(tea.Tick(2*time.Second, func(time.Time) tea.Msg { return clearNotificationMsg{} }))
+
+	// This message is received when travelling (map.go)
+	// It will update the ship's location and fuel and trigger a save
+	case model.TravelUpdateMsg:
+		g.Ship.Location = msg.Location
+		g.Ship.EngineFuel = msg.Fuel
+
+		return g, utilities.PushSave(g.gameSave, func() {
+			g.syncSaveData() // Sync the save data
+		})
 	}
 
 	cmds = append(cmds, g.spinner.Tick)
