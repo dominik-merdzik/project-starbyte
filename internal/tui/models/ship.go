@@ -8,7 +8,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
-	"github.com/dominik-merdzik/project-starbyte/internal/utilities"
 )
 
 // ShipModel represents the ship's status and components.
@@ -112,13 +111,13 @@ func (s ShipModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if s.EngineFuel > s.MaxFuel {
 				s.EngineFuel = s.MaxFuel
 			}
-		case "w":
-			// Set engine fuel to 0 immediately *FOR DEMO PURPOSES ONLY*
-			s.EngineFuel = 0
-			// push the save
-			return s, utilities.PushSave(s.GameSave, func() {
-				s.GameSave.Ship.Fuel = s.EngineFuel
-			})
+			// case "w":
+			// 	// Set engine fuel to 0 immediately *FOR DEMO PURPOSES ONLY*
+			// 	s.EngineFuel = 0
+			// 	// push the save
+			// 	return s, utilities.PushSave(s.GameSave, func() {
+			// 		s.GameSave.Ship.Fuel = s.EngineFuel
+			// 	})
 
 		}
 	}

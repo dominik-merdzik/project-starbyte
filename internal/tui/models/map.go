@@ -38,7 +38,7 @@ type MapModel struct {
 func NewMapModel(gameMap data.GameMap, ship data.Ship) MapModel {
 	return MapModel{
 		GameMap:      gameMap,
-		Ship:         ship,
+		Ship:         ship, // A copy of the global ship
 		SystemCursor: 0,
 		PlanetCursor: 0,
 		ActiveView:   ViewStarSystems,
@@ -132,21 +132,25 @@ func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.ConfirmCursor = 0
 				}
 			case ViewTravelConfirm:
-				// When user confirms travel, update the ship's location and fuel
+				// When user presses YES to travel, update the ship's location and fuel
 				if m.ConfirmCursor == 0 {
-					// ATTEMPTING TO UPDATE THE STATE OF THE GAME
-					m.Ship.Location.PlanetId = "SOME PLANET"
-					m.Ship.Location.Coordinates = data.Coordinates{X: 99, Y: 99, Z: 99}
-					m.Ship.Fuel -= 30
-					//m.Ship.EngineFuel -= 30 // Wait why are the names ?
+					// Update ship location
+					m.Ship.Location = data.Location{
+						StarSystemId: m.SelectedSystem.SystemID,
+						PlanetId:     m.SelectedPlanet.PlanetID,
+						Coordinates:  m.SelectedPlanet.Coordinates,
+					}
+					m.Ship.Fuel -= 10 // Temp hardcoded value. TODO: getFuelConsumption(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates)
 
+					// Exit the modal and return to planet view
+					m.ActiveView = ViewPlanets
+
+					// Call save function
 					return m, utilities.PushSave(m.GameSave, func() {
-						m.GameSave.Ship.Location.PlanetId = m.Ship.Location.PlanetId
-						m.GameSave.Ship.Location.Coordinates = m.Ship.Location.Coordinates
-						m.GameSave.Ship.Fuel -= m.Ship.Fuel
+						m.GameSave.Ship.Location = m.Ship.Location
+						m.GameSave.Ship.Fuel = m.Ship.Fuel
 					})
 				}
-				m.ActiveView = ViewPlanets
 			}
 		case "esc":
 			switch m.ActiveView {
