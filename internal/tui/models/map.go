@@ -62,8 +62,9 @@ const (
 // This signals game.go to update the ship's location and fuel
 // Used when travelling to a planet
 type TravelUpdateMsg struct {
-	Location data.Location
-	Fuel     int
+	Location   data.Location
+	Fuel       int
+	ShowTravel bool
 }
 
 func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -139,28 +140,36 @@ func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.ActiveView = ViewTravelConfirm
 					m.ConfirmCursor = 0
 				}
+			// When user presses YES to travel, update the ship's location and fuel
 			case ViewTravelConfirm:
-				// When user presses YES to travel, update the ship's location and fuel
-				if m.ConfirmCursor == 0 {
-					// Update ship location
-					m.Ship.Location = data.Location{
-						StarSystemName: m.SelectedSystem.Name,
-						PlanetName:     m.SelectedPlanet.Name,
-						Coordinates:    m.SelectedPlanet.Coordinates,
-					}
-					m.Ship.Fuel -= 10 // Temp hardcoded value. TODO: getFuelConsumption(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates)
-
-					// Exit the modal and return to planet view
-					m.ActiveView = ViewPlanets
-
-					// Return a message to signal an update the parent state in game.go
-					return m, func() tea.Msg {
-						return TravelUpdateMsg{
-							Location: m.Ship.Location,
-							Fuel:     m.Ship.Fuel,
-						}
-					}
+				// Create location
+				destination := data.Location{
+					StarSystemName: m.SelectedSystem.Name,
+					PlanetName:     m.SelectedPlanet.Name,
+					Coordinates:    m.SelectedPlanet.Coordinates,
 				}
+
+				// Calculate fuel cost
+				fuelCost := m.locationService.GetFuelCost(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates)
+
+				// Update ship location and fuel
+				m.Ship.Location = destination
+				m.Ship.Fuel -= fuelCost
+
+				// Return a message to signal an update to the parent state in game.go
+				return m, tea.Batch(
+					func() tea.Msg {
+						return TravelUpdateMsg{
+							Location:   destination,
+							Fuel:       m.Ship.Fuel,
+							ShowTravel: true, // Add this flag to indicate travel animation should show
+						}
+					},
+					func() tea.Msg {
+						// Exit the modal view by sending an ESC key message (janky method)
+						return tea.KeyMsg{Type: tea.KeyEsc}
+					},
+				)
 			}
 		case "esc":
 			switch m.ActiveView {

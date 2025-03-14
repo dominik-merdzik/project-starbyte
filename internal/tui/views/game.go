@@ -152,18 +152,13 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !g.isTravelling {
 			g.isTravelling = true
 
-			// // Convert mission location string to Location struct
-			// targetPlanet := g.locationService.FindByPlanetName(g.TrackedMission.Location.PlanetName)
-
-			// if targetPlanet == nil {
-			// 	fmt.Println("Error: Could not find location:", g.TrackedMission.Location)
-			// 	return g, nil
-			// }
-
 			// Set the mission on Travel component
 			g.Travel.Mission = g.TrackedMission
 
-			return g, g.Travel.StartTravel()
+			// Store the destination location
+			g.Travel.DestLocation = g.TrackedMission.Location
+
+			return g, g.Travel.StartTravel(g.TrackedMission.Location)
 		} else {
 			// If we're already there, just set the mission as in progress
 			g.TrackedMission.Status = model.MissionStatusInProgress
@@ -306,32 +301,68 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		g.Ship.Location = msg.Location
 		g.Ship.EngineFuel = msg.Fuel
 
+		// Start travel animation if requested
+		if msg.ShowTravel {
+			g.isTravelling = true
+			g.Travel.Mission = nil // Clear any mission - this is map travel
+			g.Travel.DestLocation = msg.Location
+			return g, tea.Batch(
+				utilities.PushSave(g.gameSave, func() {
+					g.syncSaveData() // Sync the save data
+				}),
+				g.Travel.StartTravel(msg.Location),
+			)
+		}
+
 		// Then save
 		return g, utilities.PushSave(g.gameSave, func() {
-			g.syncSaveData()       // Sync the save data
-			g.Travel.StartTravel() // Show travel screen
+			g.syncSaveData() // Sync the save data
 		})
 	}
 
 	// (3/3) More updates for the travel component
 	if g.isTravelling {
-		// !!! This case stops the animated progress bar from halting partially
-		switch msg.(type) {
-		case components.TravelTickMsg, progress.FrameMsg:
-		// Already handled these specific message types above
-		default:
-			newTravel, travelCmd := g.Travel.Update(msg)
-			g.Travel = newTravel
-			cmds = append(cmds, travelCmd)
-		}
-
-		// If travel is complete...
+		// Check if travel is complete
 		if g.Travel.TravelComplete {
 			g.isTravelling = false
-			g.TrackedMission.Status = model.MissionStatusInProgress
-			// Then show dialogue
-			d := components.NewDialogueComponentFromMission(g.TrackedMission.Dialogue)
-			g.Dialogue = &d
+
+			// Subtract fuel (HARDCODED COST FOR NOW)
+			g.Ship.EngineFuel -= g.locationService.GetFuelCost(g.Ship.Location.Coordinates, g.Travel.DestLocation.Coordinates)
+
+			// Always update ship location when travel completes
+			g.Ship.Location = g.Travel.DestLocation
+
+			// Update the game save
+			g.syncSaveData()
+
+			// Check if this was mission-related travel
+			if g.TrackedMission != nil && g.Travel.Mission != nil {
+				// Update mission status
+				g.TrackedMission.Status = model.MissionStatusInProgress
+
+				// Then show dialogue
+				d := components.NewDialogueComponentFromMission(g.TrackedMission.Dialogue)
+				g.Dialogue = &d
+			} else {
+				// This was map-based travel
+				// Just update the ship location which was already done by TravelUpdateMsg
+
+				// Show a notification
+				g.notification = fmt.Sprintf("Arrived at %s", g.Travel.DestLocation.PlanetName)
+				cmds = append(cmds, tea.Tick(2*time.Second, func(time.Time) tea.Msg {
+					return clearNotificationMsg{}
+				}))
+			}
+		} else {
+			// !!! This case updates the animated progress bar
+			switch msg.(type) {
+			case components.TravelTickMsg, progress.FrameMsg:
+				// Already handled these specific message types above
+			default:
+				newTravel, travelCmd := g.Travel.Update(msg)
+				g.Travel = newTravel
+				cmds = append(cmds, travelCmd)
+			}
 		}
 	}
 
@@ -463,20 +494,17 @@ func (g GameModel) View() string {
 			// render current task (this might include mission title, objectives, etc.)
 			currentTask := components.NewCurrentTaskComponent()
 			bottomPanelContent += currentTask.Render(g.TrackedMission)
+		}
 
-			// Show travel view if travelling
-			if g.isTravelling {
-				bottomPanelContent = g.Travel.View()
-			}
-
-			// Show dialogue when mission is in progress
-			if g.TrackedMission.Status == model.MissionStatusInProgress && g.Dialogue != nil {
-				bottomPanelContent = g.Dialogue.View()
-				bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
-			}
-
+		// Show travel view if travelling, regardless of mission
+		if g.isTravelling {
+			bottomPanelContent = g.Travel.View()
+		} else if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusInProgress && g.Dialogue != nil {
+			// If we're in a mission and dialogue is active, show dialogue
+			bottomPanelContent = g.Dialogue.View()
+			bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
 		} else {
-			bottomPanelContent = "This is the bottom panel."
+			bottomPanelContent = "This is the bottom panel"
 		}
 	}
 	bottomPanel := lipgloss.NewStyle().
@@ -571,6 +599,8 @@ func NewGameModel() tea.Model {
 }
 
 // startMission updates the ship model based on mission fuel requirements
+// This function is useless rn
+// TODO: figure out what to do with this
 func StartMission(mission model.Mission, ship model.ShipModel) model.ShipModel {
 
 	// if ship.EngineFuel < mission.FuelNeeded {
