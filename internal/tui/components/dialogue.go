@@ -2,24 +2,20 @@ package components
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/dominik-merdzik/project-starbyte/internal/data"
 )
 
 type DialogueComponent struct {
 	Lines       []string
 	CurrentLine int
-
-	GameSave *data.FullGameSave
 }
 
 // NewDialogueComponentFromMission creates a new DialogueComponent from a mission's dialogue
-func NewDialogueComponentFromMission(missionDialogue []string) DialogueComponent {
+func NewDialogueComponentFromMission(lines []string) DialogueComponent {
 	return DialogueComponent{
-		Lines:       missionDialogue,
-		CurrentLine: 1,
+		Lines:       lines,
+		CurrentLine: 0,
 	}
 }
 
@@ -35,11 +31,28 @@ func (d *DialogueComponent) Next() {
 // > Dialogue line 2
 // > Dialogue line n
 func (d DialogueComponent) View() string {
-	var content strings.Builder
-	prefixStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-	containerStyle := lipgloss.NewStyle().Align(lipgloss.Left)
-	for i := 0; i < d.CurrentLine && i < len(d.Lines); i++ {
-		content.WriteString(fmt.Sprintf("%s %s\n", prefixStyle.Render(">"), d.Lines[i]))
+	// var content strings.Builder
+	// prefixStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
+	// containerStyle := lipgloss.NewStyle().Align(lipgloss.Left)
+	// for i := 0; i < d.CurrentLine && i < len(d.Lines); i++ {
+	// 	content.WriteString(fmt.Sprintf("%s %s\n", prefixStyle.Render(">"), d.Lines[i]))
+	// }
+	// return containerStyle.Render(content.String())
+
+	if len(d.Lines) == 0 || d.CurrentLine >= len(d.Lines) {
+		return "End of dialogue."
 	}
-	return containerStyle.Render(content.String())
+
+	dialogueStyle := lipgloss.NewStyle().
+		Width(120).
+		Padding(1).
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("63"))
+
+	content := fmt.Sprintf("%s", d.Lines[d.CurrentLine])
+
+	// Add a progress indicator
+	progress := fmt.Sprintf("\n\n[%d/%d]", d.CurrentLine+1, len(d.Lines))
+
+	return dialogueStyle.Render(content + progress)
 }

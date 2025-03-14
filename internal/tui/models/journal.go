@@ -17,6 +17,11 @@ type TrackMissionMsg struct {
 	Mission Mission
 }
 
+// Used to signal the start of a mission
+type StartMissionMsg struct {
+	Mission Mission
+}
+
 // MissionStatus enums, so we don't have to do string comparisons to check mission status
 type MissionStatus int
 
@@ -229,7 +234,21 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return TrackMissionMsg{Mission: trackedMission}
 					}
 				case "Start Mission":
-					// TODO: Add start mission functionality.
+					mission := j.getSelectedMission()
+					j.DetailView = false
+					if mission.Status == MissionStatusNotStarted {
+						// First return a command to exit the journal view entirely
+						return j, tea.Batch(
+							func() tea.Msg {
+								// Exit the journal view by sending an ESC key message
+								return tea.KeyMsg{Type: tea.KeyEsc}
+							},
+							func() tea.Msg {
+								// Then start the mission
+								return StartMissionMsg{Mission: mission}
+							},
+						)
+					}
 				case "Abandon":
 					mission := j.getSelectedMission()
 					mission.Status = MissionStatusAbandoned

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/progress"
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
@@ -19,7 +18,8 @@ type GameModel struct {
 	// components
 	ProgressBar components.ProgressBar
 	Yuta        components.YutaModel
-	spinner     spinner.Model
+	Travel      components.TravelComponent
+	Dialogue    *components.DialogueComponent
 
 	// additional models
 	Ship       model.ShipModel
@@ -38,12 +38,8 @@ type GameModel struct {
 	activeView   ActiveView
 
 	TrackedMission *model.Mission
-	Dialogue       *components.DialogueComponent
 
-	isTravelling    bool
-	travelStartTime time.Time
-	travelDuration  time.Duration
-	travelProgress  progress.Model
+	isTravelling bool
 
 	Credits int
 	Version string
@@ -71,10 +67,8 @@ type clearNotificationMsg struct{}
 
 type autoSaveMsg time.Time
 
-type travelTickMsg struct{}
-
 func (g GameModel) Init() tea.Cmd {
-	return g.spinner.Tick
+	return nil
 }
 
 func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -121,6 +115,10 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, CollectionCmd)
 	}
 
+	// ---------------------------
+	// Listen for messages
+	// ---------------------------
+
 	switch msg := msg.(type) {
 	case autoSaveMsg:
 		// calculate elapsed time since last auto-save
@@ -143,12 +141,38 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clearNotificationMsg:
 		g.notification = ""
 		return g, nil
-	case spinner.TickMsg:
-		var cmd tea.Cmd
-		g.spinner, cmd = g.spinner.Update(msg)
-		return g, cmd
-	case model.TrackMissionMsg:
+
+	case model.StartMissionMsg:
 		g.TrackedMission = &msg.Mission
+
+		// If we're not already at the mission location, start travelling there
+		if !g.isTravelling {
+			g.isTravelling = true
+			return g, g.Travel.StartTravel(g.TrackedMission)
+		} else {
+			// If we're already there, just set the mission as in progress
+			g.TrackedMission.Status = model.MissionStatusInProgress
+		}
+
+	// (1/3) Timer for travel component
+	case components.TravelTickMsg:
+		if g.isTravelling {
+			newTravel, cmd := g.Travel.Update(msg)
+			g.Travel = newTravel
+			cmds = append(cmds, cmd)
+		}
+	// (2/3) Animation for progress bar in travel component
+	case progress.FrameMsg:
+		if g.isTravelling {
+			newTravel, cmd := g.Travel.Update(msg)
+			g.Travel = newTravel
+			cmds = append(cmds, cmd)
+		}
+
+	// ---------------------------
+	// Handle key presses
+	// ---------------------------
+
 	case tea.KeyMsg:
 		// First, if an active view is set, process escape.
 		if g.activeView != ViewNone && msg.String() == "esc" {
@@ -160,7 +184,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return g, tea.Batch(cmds...)
 		}
 
-		// if a mission is tracked and in progress, then pressing "enter" should advance dialogue
+		// DIALOGUE -- Advance through it with Enter
 		if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusInProgress {
 			if msg.String() == "enter" {
 				if g.Dialogue == nil {
@@ -171,8 +195,9 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					g.Dialogue.Next()
 				}
 				// if we've advanced past all dialogue lines, mark mission as completed
-				if g.Dialogue.CurrentLine > len(g.TrackedMission.Dialogue) {
+				if g.Dialogue.CurrentLine >= len(g.TrackedMission.Dialogue) {
 					g.TrackedMission.Status = model.MissionStatusCompleted
+					g.Dialogue = nil // Clear dialogue when complete
 				}
 				return g, nil
 			}
@@ -242,45 +267,13 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch g.TrackedMission.Status {
 				case model.MissionStatusNotStarted:
 					g.isTravelling = true
-					g.travelStartTime = time.Now()
-					g.travelDuration = time.Duration(g.TrackedMission.TravelTime) * time.Second
-					g.travelProgress.SetPercent(0)
-					return g, tea.Batch(
-						tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return travelTickMsg{} }),
-						g.travelProgress.Init(),
-					)
-				case model.MissionStatusInProgress:
-					g.TrackedMission.Status = model.MissionStatusCompleted
+					// Start travel using our travel component
+					return g, g.Travel.StartTravel(g.TrackedMission)
 				case model.MissionStatusCompleted:
 					g.TrackedMission = nil
+					g.Dialogue = nil // Make sure dialogue is cleared
 				}
 			}
-		}
-	case progress.FrameMsg:
-		if g.isTravelling {
-			progressModel, cmd := g.travelProgress.Update(msg)
-			if p, ok := progressModel.(progress.Model); ok {
-				g.travelProgress = p
-			}
-			cmds = append(cmds, cmd)
-		}
-	case travelTickMsg:
-		if g.isTravelling && g.TrackedMission != nil {
-			elapsed := time.Since(g.travelStartTime)
-			percentComplete := float64(elapsed) / float64(g.travelDuration)
-			if percentComplete > 1.0 {
-				percentComplete = 1.0
-			}
-			cmd := g.travelProgress.SetPercent(percentComplete)
-			if elapsed >= g.travelDuration {
-				g.isTravelling = false
-				g.TrackedMission.Status = model.MissionStatusInProgress
-				return g, nil
-			}
-			return g, tea.Batch(
-				tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return travelTickMsg{} }),
-				cmd,
-			)
 		}
 	case utilities.SaveRetryMsg:
 		// if saving failed, schedule a retry after 2 seconds
@@ -303,7 +296,28 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		})
 	}
 
-	cmds = append(cmds, g.spinner.Tick)
+	// (3/3) More updates for the travel component
+	if g.isTravelling {
+		// !!! This case stops the animated progress bar from halting partially
+		switch msg.(type) {
+		case components.TravelTickMsg, progress.FrameMsg:
+		// Already handled these specific message types above
+		default:
+			newTravel, travelCmd := g.Travel.Update(msg)
+			g.Travel = newTravel
+			cmds = append(cmds, travelCmd)
+		}
+
+		// If travel is complete...
+		if g.Travel.TravelComplete {
+			g.isTravelling = false
+			g.TrackedMission.Status = model.MissionStatusInProgress
+			// Then initialize dialogue right after travel completes
+			d := components.NewDialogueComponentFromMission(g.TrackedMission.Dialogue)
+			g.Dialogue = &d
+		}
+	}
+
 	return g, tea.Batch(cmds...)
 }
 
@@ -428,49 +442,26 @@ func (g GameModel) View() string {
 	case "Collection": // NEW: Display Collection view.
 		bottomPanelContent = g.Collection.View()
 	default:
-		// TODO: move this stuff into UI components
-		// TOOD: make styling prettier
 		if g.TrackedMission != nil {
 			// render current task (this might include mission title, objectives, etc.)
 			currentTask := components.NewCurrentTaskComponent()
-			bottomPanelContent += currentTask.Render(g.TrackedMission)
 
-			if g.TrackedMission.Status == model.MissionStatusNotStarted {
-				bottomPanelContent += "\nPress [Space] to travel to the mission location.\n"
+			// If mission is in progress and dialogue exists, show dialogue
+			if g.TrackedMission.Status == model.MissionStatusInProgress && g.Dialogue != nil {
+				bottomPanelContent = g.Dialogue.View()
+				bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
+			} else {
+				// Otherwise show default mission info
+				bottomPanelContent += currentTask.Render(g.TrackedMission)
+				if g.TrackedMission.Status == model.MissionStatusCompleted {
+					bottomPanelContent += "\nMission completed! Press [Space] to dismiss.\n"
+				}
 			}
 
+			// Show travel view if travelling
 			if g.isTravelling {
-				// player is traveling to mission location
-				StartMission(*g.TrackedMission, g.Ship)
-				remainingTime := g.travelDuration - time.Since(g.travelStartTime)
-				if remainingTime < 0 {
-					remainingTime = 0
-				}
-				progressBar := g.travelProgress.View()
-				bottomPanelContent = fmt.Sprintf("%s Travelling to %s\n\n%s\n\nTime remaining: %v\n",
-					g.spinner.View(), g.TrackedMission.Location, progressBar, remainingTime.Round(time.Millisecond))
+				bottomPanelContent = g.Travel.View()
 			}
-
-			if g.TrackedMission.Status == model.MissionStatusInProgress {
-				// player has arrived at destination
-				bottomPanelContent += fmt.Sprintf("\nArrived at %s.\n", g.TrackedMission.Location)
-				// initialize dialogue component if needed
-				if g.Dialogue == nil {
-					d := components.NewDialogueComponentFromMission(g.TrackedMission.Dialogue)
-					g.Dialogue = &d
-				}
-				// render the dialogue component
-				bottomPanelContent += g.Dialogue.View()
-				bottomPanelContent += "\nPress [Enter] for next dialogue line.\n"
-			}
-
-			if g.TrackedMission.Status == model.MissionStatusCompleted {
-				// player completed mission
-				bottomPanelContent += fmt.Sprintf("\nMission at %s completed!\n", g.TrackedMission.Location)
-				bottomPanelContent += fmt.Sprintf("You earned %d credits.\n", g.TrackedMission.Income)
-				bottomPanelContent += "\nPress [Space] to continue.\n"
-			}
-
 		} else {
 			bottomPanelContent = "This is the bottom panel."
 		}
@@ -526,15 +517,6 @@ func (g GameModel) View() string {
 }
 
 func NewGameModel() tea.Model {
-	s := spinner.New()
-	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("217"))
-
-	p := progress.New(
-		progress.WithDefaultGradient(),
-		progress.WithWidth(40),
-	)
-
 	fullSave, err := data.LoadFullGameSave()
 	if err != nil || fullSave == nil {
 		fmt.Println("Error loading save file or save file not found; using default values")
@@ -563,10 +545,9 @@ func NewGameModel() tea.Model {
 		Journal:          journalModel,
 		Collection:       collectionModel, // NEW: Set Collection model
 		Map:              mapModel,
+		Travel:           components.NewTravelComponent(),
 		activeView:       ViewNone,
-		spinner:          s,
 		isTravelling:     false,
-		travelProgress:   p,
 		Credits:          fullSave.Player.Credits,
 		Version:          fullSave.GameMetadata.Version,
 		dirty:            false,
@@ -577,6 +558,7 @@ func NewGameModel() tea.Model {
 
 // startMission updates the ship model based on mission fuel requirements
 func StartMission(mission model.Mission, ship model.ShipModel) model.ShipModel {
+
 	// if ship.EngineFuel < mission.FuelNeeded {
 	// 	return ship
 	// }
