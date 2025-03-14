@@ -30,18 +30,20 @@ type MapModel struct {
 	SelectedSystem data.StarSystem
 	SelectedPlanet data.Planet
 
-	GameSave *data.FullGameSave
+	GameSave        *data.FullGameSave
+	locationService *data.LocationService
 }
 
 // NewMapModel initializes the star system list
 func NewMapModel(gameMap data.GameMap, ship data.Ship) MapModel {
 	return MapModel{
-		GameMap:      gameMap,
-		Ship:         ship, // A copy of the global ship
-		SystemCursor: 0,
-		PlanetCursor: 0,
-		ActiveView:   ViewStarSystems,
-		ActivePanel:  PanelLeft,
+		GameMap:         gameMap,
+		Ship:            ship, // A copy of the global ship
+		SystemCursor:    0,
+		PlanetCursor:    0,
+		ActiveView:      ViewStarSystems,
+		ActivePanel:     PanelLeft,
+		locationService: data.NewLocationService(gameMap),
 	}
 }
 
@@ -142,9 +144,9 @@ func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.ConfirmCursor == 0 {
 					// Update ship location
 					m.Ship.Location = data.Location{
-						StarSystemId: m.SelectedSystem.SystemID,
-						PlanetId:     m.SelectedPlanet.PlanetID,
-						Coordinates:  m.SelectedPlanet.Coordinates,
+						StarSystemName: m.SelectedSystem.Name,
+						PlanetName:     m.SelectedPlanet.Name,
+						Coordinates:    m.SelectedPlanet.Coordinates,
 					}
 					m.Ship.Fuel -= 10 // Temp hardcoded value. TODO: getFuelConsumption(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates)
 
@@ -214,7 +216,7 @@ func (m MapModel) renderStarSystemList() string {
 				sb.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(titleText)))
 			}
 		} else if m.ActiveView == ViewPlanets {
-			if m.SelectedSystem.SystemID == system.SystemID {
+			if m.SelectedSystem.Name == system.Name {
 				sb.WriteString(fmt.Sprintf("%s %s\n", arrowStyle.Render(">"), hoverStyle.Render(titleText)))
 			} else {
 				sb.WriteString(fmt.Sprintf("  %s\n", defaultStyle.Render(titleText)))
@@ -276,7 +278,7 @@ func (m MapModel) renderPlanetDetails() string {
 	bulletStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
 
 	// If no system is selected or there are no planets, return a default message.
-	if m.SelectedSystem.SystemID == "" || len(m.SelectedSystem.Planets) == 0 {
+	if m.SelectedSystem.Name == "" || len(m.SelectedSystem.Planets) == 0 {
 		return panelStyle.Render(` 
                 .::.
                   .:'  .:
@@ -294,13 +296,12 @@ func (m MapModel) renderPlanetDetails() string {
 
 	// Safely get the planet using PlanetCursor.
 	planet := m.SelectedSystem.Planets[m.PlanetCursor]
-	distance := data.GetDistance(m.GameMap, m.Ship, planet.Name)
+	distance := m.locationService.CalculateDistance(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates)
 
 	var b strings.Builder
 
 	// Write basic planet info.
-	b.WriteString(titleStyle.Render(planet.Name) + "\n")
-	b.WriteString(labelStyle.Render("Planet ID: ") + valueStyle.Render(planet.PlanetID) + "\n")
+	b.WriteString(labelStyle.Render("Planet: ") + valueStyle.Render(planet.Name) + "\n")
 	b.WriteString(labelStyle.Render("Type: ") + valueStyle.Render(planet.Type) + "\n")
 	b.WriteString(labelStyle.Render("Coordinates: ") + valueStyle.Render(
 		fmt.Sprintf("(%d, %d, %d)", planet.Coordinates.X, planet.Coordinates.Y, planet.Coordinates.Z)) + "\n")
@@ -338,10 +339,11 @@ func (m MapModel) renderTravelConfirm() string {
 
 	var content strings.Builder
 	planet := m.SelectedPlanet
-	distance := data.GetDistance(m.GameMap, m.Ship, planet.Name)
+	distance := m.locationService.CalculateDistance(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates)
 
 	content.WriteString(fmt.Sprintf("Confirm travel to %s?\n", planet.Name))
-	content.WriteString(fmt.Sprintf("Travel time: %d hours\n\n", distance))
+	content.WriteString(fmt.Sprintf("Travel time: %d hours\n", distance))
+	content.WriteString(fmt.Sprintf("Fuel cost: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates)))
 
 	// Travel options.
 	options := []string{"Confirm", "Cancel"}

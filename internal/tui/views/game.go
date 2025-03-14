@@ -41,6 +41,8 @@ type GameModel struct {
 
 	isTravelling bool
 
+	locationService *data.LocationService
+
 	Credits int
 	Version string
 
@@ -142,13 +144,26 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		g.notification = ""
 		return g, nil
 
+	// Mission started. Trigger mission travel sequence
 	case model.StartMissionMsg:
-		g.TrackedMission = &msg.Mission
+		g.TrackedMission = &msg.Mission // Set the mission to track
 
 		// If we're not already at the mission location, start travelling there
 		if !g.isTravelling {
 			g.isTravelling = true
-			return g, g.Travel.StartTravel(g.TrackedMission)
+
+			// // Convert mission location string to Location struct
+			// targetPlanet := g.locationService.FindByPlanetName(g.TrackedMission.Location.PlanetName)
+
+			// if targetPlanet == nil {
+			// 	fmt.Println("Error: Could not find location:", g.TrackedMission.Location)
+			// 	return g, nil
+			// }
+
+			// Set the mission on Travel component
+			g.Travel.Mission = g.TrackedMission
+
+			return g, g.Travel.StartTravel()
 		} else {
 			// If we're already there, just set the mission as in progress
 			g.TrackedMission.Status = model.MissionStatusInProgress
@@ -287,11 +302,14 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// This message is received when travelling (map.go)
 	// It will update the ship's location and fuel and trigger a save
 	case model.TravelUpdateMsg:
+		// Update parent Ship var
 		g.Ship.Location = msg.Location
 		g.Ship.EngineFuel = msg.Fuel
 
+		// Then save
 		return g, utilities.PushSave(g.gameSave, func() {
-			g.syncSaveData() // Sync the save data
+			g.syncSaveData()       // Sync the save data
+			g.Travel.StartTravel() // Show travel screen
 		})
 	}
 
@@ -548,6 +566,7 @@ func NewGameModel() tea.Model {
 		dirty:            false,
 		gameSave:         fullSave,
 		lastAutoSaveTime: time.Now(),
+		locationService:  data.NewLocationService(fullSave.GameMap),
 	}
 }
 

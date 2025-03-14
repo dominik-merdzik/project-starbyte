@@ -3,7 +3,6 @@ package data
 import (
 	"encoding/json"
 	"io/ioutil"
-	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -89,13 +88,6 @@ type Ship struct {
 	Cargo             Cargo    `json:"cargo"`
 	Modules           []Module `json:"modules"`
 	Upgrades          Upgrades `json:"upgrades"`
-}
-
-// Location represents the current location of the ship in the game
-type Location struct {
-	StarSystemId string      `json:"starSystemId"`
-	PlanetId     string      `json:"planetId"`
-	Coordinates  Coordinates `json:"coordinates"`
 }
 
 // Coordinates represents the 3D coordinates of a location in the game
@@ -186,6 +178,13 @@ type Skills struct {
 // Map structures
 // ---------------------
 
+// Location is for storing the location of the Ship or a Mission
+type Location struct {
+	StarSystemName string      `json:"starSystemName"`
+	PlanetName     string      `json:"planetName"`
+	Coordinates    Coordinates `json:"coordinates"`
+}
+
 // GameMap represents the game map with star systems and planets
 type GameMap struct {
 	StarSystems []StarSystem `json:"starSystems"`
@@ -193,22 +192,12 @@ type GameMap struct {
 
 // StarSystem represents a star system with planets
 type StarSystem struct {
-	SystemID    string      `json:"systemId"`
-	Name        string      `json:"name"`
-	Coordinates Coordinates `json:"coordinates"`
-	Planets     []Planet    `json:"planets"`
-}
-
-// CrewRequirement represents the requirements for crew members on a planet
-type CrewRequirement struct {
-	Role   string `json:"role"`
-	Degree int    `json:"degree"`
-	Count  int    `json:"count"`
+	Name    string   `json:"name"`
+	Planets []Planet `json:"planets"`
 }
 
 // Planet represents a single planet in the game
 type Planet struct {
-	PlanetID     string            `json:"planetId"`
 	Name         string            `json:"name"`
 	Type         string            `json:"type"`
 	Resources    []Resource        `json:"resources"`
@@ -222,6 +211,13 @@ type Resource struct {
 	Quantity int    `json:"quantity"`
 }
 
+// CrewRequirement represents the requirements for crew members on a planet
+type CrewRequirement struct {
+	Role   string `json:"role"`
+	Degree int    `json:"degree"`
+	Count  int    `json:"count"`
+}
+
 // ---------------------
 // Mission structures
 // ---------------------
@@ -233,7 +229,7 @@ type Mission struct {
 	Title        string   `json:"Title"`
 	Description  string   `json:"Description"`
 	Status       string   `json:"Status"`
-	Location     string   `json:"Location"`
+	Location     Location `json:"Location"`
 	Income       int      `json:"Income"`
 	Requirements string   `json:"Requirements"`
 	Received     string   `json:"Received"`
@@ -249,8 +245,8 @@ type NPC struct {
 
 // ReceivedMissionGroup represents a group of missions received from an NPC at a specific location
 type ReceivedMissionGroup struct {
-	Location string `json:"Location"`
-	NPCs     []NPC  `json:"NPCs"`
+	Location Location `json:"Location"`
+	NPCs     []NPC    `json:"NPCs"`
 }
 
 // Missions represents the main and received missions in the game
@@ -359,7 +355,7 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 				Title:        "Rescue Mission",
 				Description:  "Rescue the stranded astronaut on a rogue asteroid",
 				Status:       "Not Started",
-				Location:     "Planet A",
+				Location:     Location{StarSystemName: "Sol", PlanetName: "Earth", Coordinates: Coordinates{X: 0, Y: 0, Z: 0}},
 				Income:       1000,
 				Requirements: "None",
 				Received:     "Game",
@@ -373,7 +369,7 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 		},
 		Received: []ReceivedMissionGroup{
 			{
-				Location: "Mars",
+				Location: Location{StarSystemName: "Sol", PlanetName: "Mars", Coordinates: Coordinates{X: 5, Y: 3, Z: 1}},
 				NPCs: []NPC{
 					{
 						Name: "Commander Vega",
@@ -402,12 +398,9 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 	defaultGameMap := GameMap{
 		StarSystems: []StarSystem{
 			{
-				SystemID:    "SYS_499172",
-				Name:        "Sol",
-				Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
+				Name: "Sol",
 				Planets: []Planet{
 					{
-						PlanetID:    "Earth",
 						Name:        "Earth",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
@@ -417,7 +410,6 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 						},
 					},
 					{
-						PlanetID:    "Mars",
 						Name:        "Mars",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 5, Y: 3, Z: 1},
@@ -428,12 +420,9 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 				},
 			},
 			{
-				SystemID:    "SYS_872431",
-				Name:        "Alpha Centauri",
-				Coordinates: Coordinates{X: 4, Y: 2, Z: 1},
+				Name: "Alpha Centauri",
 				Planets: []Planet{
 					{
-						PlanetID:    "Proxima-b",
 						Name:        "Proxima b",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 1, Y: 2, Z: 3},
@@ -443,7 +432,6 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 						},
 					},
 					{
-						PlanetID:    "AlphaC-B",
 						Name:        "Alpha Centauri Bb",
 						Type:        "Gas Giant",
 						Coordinates: Coordinates{X: 2, Y: 1, Z: 0},
@@ -455,12 +443,9 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 				},
 			},
 			{
-				SystemID:    "SYS_927381",
-				Name:        "Sirius",
-				Coordinates: Coordinates{X: -5, Y: 10, Z: 3},
+				Name: "Sirius",
 				Planets: []Planet{
 					{
-						PlanetID:    "Sirius-1",
 						Name:        "Sirius I",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: -1, Y: 0, Z: 2},
@@ -469,7 +454,6 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 						},
 					},
 					{
-						PlanetID:    "Sirius-2",
 						Name:        "Sirius II",
 						Type:        "Gas Giant",
 						Coordinates: Coordinates{X: -2, Y: 3, Z: 1},
@@ -478,7 +462,6 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 						},
 					},
 					{
-						PlanetID:    "Sirius-3",
 						Name:        "Sirius III",
 						Type:        "Ice Giant",
 						Coordinates: Coordinates{X: -3, Y: 3, Z: 3},
@@ -489,12 +472,9 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 				},
 			},
 			{
-				SystemID:    "SYS_182736",
-				Name:        "Vega",
-				Coordinates: Coordinates{X: 10, Y: -3, Z: 7},
+				Name: "Vega",
 				Planets: []Planet{
 					{
-						PlanetID:    "Vega-1",
 						Name:        "Vega I",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 0, Y: 1, Z: -1},
@@ -504,7 +484,6 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 						},
 					},
 					{
-						PlanetID:    "Vega-2",
 						Name:        "Vega II",
 						Type:        "Gas Giant",
 						Coordinates: Coordinates{X: 1, Y: 1, Z: 1},
@@ -565,13 +544,9 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 			FTLDriveCharge:    0,
 			Food:              100,
 			Location: Location{
-				StarSystemId: generateRandomID("SYS_"),
-				PlanetId:     startingLocation,
-				Coordinates: Coordinates{
-					X: 0,
-					Y: 0,
-					Z: 0,
-				},
+				StarSystemName: "Sol",
+				PlanetName:     "Earth",
+				Coordinates:    Coordinates{X: 0, Y: 0, Z: 0},
 			},
 			Cargo: Cargo{
 				Capacity:     100,
@@ -678,7 +653,7 @@ func DefaultFullGameSave() *FullGameSave {
 				Title:        "Rescue Mission",
 				Description:  "Rescue the stranded astronaut on a rogue asteroid",
 				Status:       "Not Started",
-				Location:     "Planet A",
+				Location:     Location{StarSystemName: "Sol", PlanetName: "Earth", Coordinates: Coordinates{X: 0, Y: 0, Z: 0}},
 				Income:       1000,
 				Requirements: "None",
 				Received:     "Game",
@@ -692,7 +667,7 @@ func DefaultFullGameSave() *FullGameSave {
 		},
 		Received: []ReceivedMissionGroup{
 			{
-				Location: "Mars",
+				Location: Location{StarSystemName: "Sol", PlanetName: "Mars", Coordinates: Coordinates{X: 5, Y: 3, Z: 1}},
 				NPCs: []NPC{
 					{
 						Name: "Commander Vega",
@@ -721,12 +696,9 @@ func DefaultFullGameSave() *FullGameSave {
 	defaultGameMap := GameMap{
 		StarSystems: []StarSystem{
 			{
-				SystemID:    "SYS_499172",
-				Name:        "Sol",
-				Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
+				Name: "Sol",
 				Planets: []Planet{
 					{
-						PlanetID:    "Earth",
 						Name:        "Earth",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
@@ -736,7 +708,6 @@ func DefaultFullGameSave() *FullGameSave {
 						},
 					},
 					{
-						PlanetID:    "Mars",
 						Name:        "Mars",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 5, Y: 3, Z: 1},
@@ -747,12 +718,9 @@ func DefaultFullGameSave() *FullGameSave {
 				},
 			},
 			{
-				SystemID:    "SYS_872431",
-				Name:        "Alpha Centauri",
-				Coordinates: Coordinates{X: 4, Y: 2, Z: 1},
+				Name: "Alpha Centauri",
 				Planets: []Planet{
 					{
-						PlanetID:    "Proxima-b",
 						Name:        "Proxima b",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 1, Y: 2, Z: 3},
@@ -762,7 +730,6 @@ func DefaultFullGameSave() *FullGameSave {
 						},
 					},
 					{
-						PlanetID:    "AlphaC-B",
 						Name:        "Alpha Centauri Bb",
 						Type:        "Gas Giant",
 						Coordinates: Coordinates{X: 2, Y: 1, Z: 0},
@@ -774,12 +741,9 @@ func DefaultFullGameSave() *FullGameSave {
 				},
 			},
 			{
-				SystemID:    "SYS_927381",
-				Name:        "Sirius",
-				Coordinates: Coordinates{X: -5, Y: 10, Z: 3},
+				Name: "Sirius",
 				Planets: []Planet{
 					{
-						PlanetID:    "Sirius-1",
 						Name:        "Sirius I",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: -1, Y: 0, Z: 2},
@@ -788,7 +752,6 @@ func DefaultFullGameSave() *FullGameSave {
 						},
 					},
 					{
-						PlanetID:    "Sirius-2",
 						Name:        "Sirius II",
 						Type:        "Gas Giant",
 						Coordinates: Coordinates{X: -2, Y: 3, Z: 1},
@@ -797,7 +760,6 @@ func DefaultFullGameSave() *FullGameSave {
 						},
 					},
 					{
-						PlanetID:    "Sirius-3",
 						Name:        "Sirius III",
 						Type:        "Ice Giant",
 						Coordinates: Coordinates{X: -3, Y: 3, Z: 3},
@@ -808,12 +770,9 @@ func DefaultFullGameSave() *FullGameSave {
 				},
 			},
 			{
-				SystemID:    "SYS_182736",
-				Name:        "Vega",
-				Coordinates: Coordinates{X: 10, Y: -3, Z: 7},
+				Name: "Vega",
 				Planets: []Planet{
 					{
-						PlanetID:    "Vega-1",
 						Name:        "Vega I",
 						Type:        "Terrestrial",
 						Coordinates: Coordinates{X: 0, Y: 1, Z: -1},
@@ -823,7 +782,6 @@ func DefaultFullGameSave() *FullGameSave {
 						},
 					},
 					{
-						PlanetID:    "Vega-2",
 						Name:        "Vega II",
 						Type:        "Gas Giant",
 						Coordinates: Coordinates{X: 1, Y: 1, Z: 1},
@@ -883,9 +841,9 @@ func DefaultFullGameSave() *FullGameSave {
 			FTLDriveCharge:    0,
 			Food:              100,
 			Location: Location{
-				StarSystemId: "SYS_0001",
-				PlanetId:     "Earth",
-				Coordinates:  Coordinates{X: 0, Y: 0, Z: 0},
+				StarSystemName: "Sol",
+				PlanetName:     "Earth",
+				Coordinates:    Coordinates{X: 0, Y: 0, Z: 0},
 			},
 			Cargo: Cargo{
 				Capacity:     100,
@@ -1012,35 +970,36 @@ func SaveGame(save *FullGameSave) error {
 
 // ------------------------------
 // Game Map Helper Functions
+// MOVED TO location_service.go - Andrew
 // ------------------------------
 
-// FindPlanet searches for a planet by name across all star systems.
-func FindPlanet(gameMap GameMap, planetName string) *Planet {
-	for _, system := range gameMap.StarSystems {
-		for _, planet := range system.Planets {
-			if planet.Name == planetName {
-				return &planet // Return full planet struct
-			}
-		}
-	}
-	return nil // Return nil if not found
-}
+// // FindPlanet searches for a planet by name across all star systems.
+// func FindPlanet(gameMap GameMap, planetName string) *Planet {
+// 	for _, system := range gameMap.StarSystems {
+// 		for _, planet := range system.Planets {
+// 			if planet.Name == planetName {
+// 				return &planet // Return full planet struct
+// 			}
+// 		}
+// 	}
+// 	return nil // Return nil if not found
+// }
 
-// GetDistance calculates the distance from the ship to a certain planet by name.
-func GetDistance(gameMap GameMap, ship Ship, planetName string) int {
-	// Get ship's coordinates.
-	shipCoords := ship.Location.Coordinates
+// // GetDistance calculates the distance from the ship to a certain planet by name.
+// func GetDistance(gameMap GameMap, ship Ship, planetName string) int {
+// 	// Get ship's coordinates.
+// 	shipCoords := ship.Location.Coordinates
 
-	// Find the planet using helper function.
-	planet := FindPlanet(gameMap, planetName)
-	if planet == nil {
-		return -1
-	}
+// 	// Find the planet using helper function.
+// 	planet := FindPlanet(gameMap, planetName)
+// 	if planet == nil {
+// 		return -1
+// 	}
 
-	// (X + X, Y + Y, Z + Z) * 10
-	distance := (int(math.Abs(float64(shipCoords.X+planet.Coordinates.X))) +
-		int(math.Abs(float64(shipCoords.Y+planet.Coordinates.Y))) +
-		int(math.Abs(float64(shipCoords.Z+planet.Coordinates.Z)))) * 10
+// 	// (X + X, Y + Y, Z + Z) * 10
+// 	distance := (int(math.Abs(float64(shipCoords.X+planet.Coordinates.X))) +
+// 		int(math.Abs(float64(shipCoords.Y+planet.Coordinates.Y))) +
+// 		int(math.Abs(float64(shipCoords.Z+planet.Coordinates.Z)))) * 10
 
-	return distance
-}
+// 	return distance
+// }

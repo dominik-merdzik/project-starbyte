@@ -50,7 +50,7 @@ func NewShipModelDefaults() ShipModel {
 		MaxFuel:           200,
 		Crew:              []CrewMember{},
 		Food:              100,
-		Location:          data.Location{StarSystemId: "SYS_DEFAULT", PlanetId: "Earth", Coordinates: data.Coordinates{X: 0, Y: 0, Z: 0}},
+		Location:          data.Location{StarSystemName: "Sol", PlanetName: "Earth", Coordinates: data.Coordinates{X: 0, Y: 0, Z: 0}},
 		Cargo:             data.Cargo{Capacity: 100, UsedCapacity: 0, Items: []data.CargoItem{}},
 		Modules:           []data.Module{},
 		Upgrades:          data.Upgrades{Engine: data.UpgradeLevel{CurrentLevel: 1, MaxLevel: 5}, WeaponSystems: data.UpgradeLevel{CurrentLevel: 0, MaxLevel: 5}, CargoExpansion: data.UpgradeLevel{CurrentLevel: 0, MaxLevel: 5}},
@@ -190,9 +190,9 @@ func (s ShipModel) View() string {
 	// location
 	extraDetails.WriteString(fmt.Sprintf("%s: %s\n%s: %s\n",
 		labelStyle.Render("Star System"),
-		s.Location.StarSystemId,
+		s.Location.StarSystemName,
 		labelStyle.Render("Planet"),
-		s.Location.PlanetId))
+		s.Location.PlanetName))
 	// cargo
 	extraDetails.WriteString(fmt.Sprintf("%s: %d/%d used, %d items\n",
 		labelStyle.Render("Cargo"),

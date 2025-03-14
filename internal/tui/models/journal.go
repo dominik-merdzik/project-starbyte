@@ -44,7 +44,7 @@ type Mission struct {
 	Title        string
 	Description  string
 	Status       MissionStatus
-	Location     string
+	Location     data.Location
 	Income       int
 	Requirements string
 	Received     string
@@ -178,7 +178,7 @@ func NewJournalModel() JournalModel {
 			for _, m := range npc.Missions {
 				rec := convertDataMission(m)
 				// if location is empty, fill it with the group's location
-				if rec.Location == "" {
+				if rec.Location == (data.Location{}) {
 					rec.Location = group.Location
 				}
 				missions = append(missions, rec)
@@ -193,7 +193,7 @@ func NewJournalModel() JournalModel {
 		PageSize:      5,
 		DetailView:    false,
 		DetailCursor:  0,
-		DetailOptions: []string{"Track", "Start Mission", "Abandon", "Back"},
+		DetailOptions: []string{"Start Mission", "Track", "Abandon", "Back"},
 	}
 }
 
@@ -419,7 +419,7 @@ func (j JournalModel) View() string {
 			titleStyle.Render(selectedMission.Title),
 			labelStyle.Render("Description:")+" "+selectedMission.Description,
 			labelStyle.Render("Status:")+" "+selectedMission.Status.String(),
-			labelStyle.Render("Location:")+" "+selectedMission.Location,
+			labelStyle.Render("Location:")+" "+selectedMission.Location.PlanetName,
 			labelStyle.Render("Income:")+" "+fmt.Sprintf("%d", selectedMission.Income)+" credits",
 			labelStyle.Render("Requirements:")+" "+selectedMission.Requirements,
 			labelStyle.Render("Received:")+" "+selectedMission.Received,
@@ -513,7 +513,7 @@ func (j JournalModel) View() string {
 			titleStyle.Render(selectedMission.Title),
 			labelStyle.Render("Description:")+" "+selectedMission.Description,
 			labelStyle.Render("Status:")+" "+selectedMission.Status.String(),
-			labelStyle.Render("Location:")+" "+selectedMission.Location,
+			labelStyle.Render("Location:")+" "+selectedMission.Location.PlanetName,
 			labelStyle.Render("Income:")+" "+fmt.Sprintf("%d", selectedMission.Income),
 			labelStyle.Render("Requirements:")+" "+selectedMission.Requirements,
 			labelStyle.Render("Received:")+" "+selectedMission.Received,

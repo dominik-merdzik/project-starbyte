@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dominik-merdzik/project-starbyte/internal/data"
 	model "github.com/dominik-merdzik/project-starbyte/internal/tui/models"
 )
 
@@ -20,7 +21,7 @@ type TravelComponent struct {
 	Duration       time.Duration
 	Progress       progress.Model
 	TravelComplete bool
-	DestLocation   string
+	DestLocation   data.Location
 }
 
 // NewTravelComponent creates a new travel component
@@ -35,15 +36,13 @@ func NewTravelComponent() TravelComponent {
 	}
 }
 
-// StartTravel begins a travel journey to a mission location
-func (t *TravelComponent) StartTravel(mission *model.Mission) tea.Cmd {
-	t.Mission = mission
+// Called when you want to show the travel UI component
+func (t *TravelComponent) StartTravel() tea.Cmd {
 	t.IsTravelling = true
 	t.TravelComplete = false
 	t.StartTime = time.Now()
 	t.Duration = 2 * time.Second // Hardcoded 2 seconds travel time
 	t.Progress.SetPercent(0)
-	t.DestLocation = mission.Location
 
 	return tea.Batch(
 		tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return TravelTickMsg{} }),
@@ -102,8 +101,8 @@ func (t *TravelComponent) View() string {
 
 	progressBar := t.Progress.View()
 
-	return fmt.Sprintf("Travelling to %s\n\n%s\n\nTime remaining: %v\n",
-		t.Mission.Location,
+	return fmt.Sprintf("Travelling to %s, %s\n\n%s\n\nTime remaining: %v\n",
+		t.Mission.Location.PlanetName, t.Mission.Location.StarSystemName,
 		progressBar,
 		remainingTime.Round(time.Millisecond))
 }
