@@ -36,18 +36,15 @@ func (ms MissionStatus) String() string {
 
 // Mission represents a mission in the journal
 type Mission struct {
-	Title             string
-	Description       string
-	Status            MissionStatus
-	Location          string
-	Income            int
-	Requirements      string
-	Received          string
-	Category          string
-	TravelTime        int
-	FuelNeeded        int
-	DestinationPlanet string
-	Dialogue          []string
+	Title        string
+	Description  string
+	Status       MissionStatus
+	Location     string
+	Income       int
+	Requirements string
+	Received     string
+	Category     string
+	Dialogue     []string
 
 	GameSave *data.FullGameSave
 }
@@ -55,36 +52,30 @@ type Mission struct {
 // convertDataMission converts a data.Mission into a model.Mission
 func convertDataMission(dm data.Mission) Mission {
 	return Mission{
-		Title:             dm.Title,
-		Description:       dm.Description,
-		Status:            statusFromString(dm.Status),
-		Location:          dm.Location,
-		Income:            dm.Income,
-		Requirements:      dm.Requirements,
-		Received:          dm.Received,
-		Category:          dm.Category,
-		TravelTime:        dm.TravelTime,
-		FuelNeeded:        dm.FuelNeeded,
-		DestinationPlanet: dm.DestinationPlanet,
-		Dialogue:          dm.Dialogue,
+		Title:        dm.Title,
+		Description:  dm.Description,
+		Status:       statusFromString(dm.Status),
+		Location:     dm.Location,
+		Income:       dm.Income,
+		Requirements: dm.Requirements,
+		Received:     dm.Received,
+		Category:     dm.Category,
+		Dialogue:     dm.Dialogue,
 	}
 }
 
 // convertMainMission converts a data.Mission (used for main missions) into a model.Mission
 func convertMainMission(mm data.Mission) Mission {
 	return Mission{
-		Title:             fmt.Sprintf("Step %d: %s", mm.Step, mm.Title),
-		Description:       mm.Description,
-		Status:            statusFromString(mm.Status),
-		Location:          mm.Location,
-		Income:            mm.Income,
-		Requirements:      mm.Requirements,
-		Received:          mm.Received,
-		Category:          mm.Category,
-		TravelTime:        mm.TravelTime,
-		FuelNeeded:        mm.FuelNeeded,
-		DestinationPlanet: mm.DestinationPlanet,
-		Dialogue:          mm.Dialogue,
+		Title:        fmt.Sprintf("Step %d: %s", mm.Step, mm.Title),
+		Description:  mm.Description,
+		Status:       statusFromString(mm.Status),
+		Location:     mm.Location,
+		Income:       mm.Income,
+		Requirements: mm.Requirements,
+		Received:     mm.Received,
+		Category:     mm.Category,
+		Dialogue:     mm.Dialogue,
 	}
 }
 
@@ -405,7 +396,7 @@ func (j JournalModel) View() string {
 		// right panel detailed mission information
 		titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
 		labelStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
-		details := fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s",
+		details := fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s",
 			titleStyle.Render(selectedMission.Title),
 			labelStyle.Render("Description:")+" "+selectedMission.Description,
 			labelStyle.Render("Status:")+" "+selectedMission.Status.String(),
@@ -414,9 +405,6 @@ func (j JournalModel) View() string {
 			labelStyle.Render("Requirements:")+" "+selectedMission.Requirements,
 			labelStyle.Render("Received:")+" "+selectedMission.Received,
 			labelStyle.Render("Category:")+" "+selectedMission.Category,
-			labelStyle.Render("Travel Time:")+" "+fmt.Sprintf("%d", selectedMission.TravelTime)+" minutes",
-			labelStyle.Render("Fuel Needed:")+" "+fmt.Sprintf("%d", selectedMission.FuelNeeded)+" units",
-			labelStyle.Render("Destination:")+" "+selectedMission.DestinationPlanet,
 		)
 		rightPanel := lipgloss.NewStyle().
 			Width(60).

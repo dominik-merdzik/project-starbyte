@@ -577,10 +577,10 @@ func NewGameModel() tea.Model {
 
 // startMission updates the ship model based on mission fuel requirements
 func StartMission(mission model.Mission, ship model.ShipModel) model.ShipModel {
-	if ship.EngineFuel < mission.FuelNeeded {
-		return ship
-	}
-	ship.EngineFuel -= mission.FuelNeeded
+	// if ship.EngineFuel < mission.FuelNeeded {
+	// 	return ship
+	// }
+	// ship.EngineFuel -= mission.FuelNeeded
 	mission.Status = model.MissionStatusInProgress
 	return ship
 }

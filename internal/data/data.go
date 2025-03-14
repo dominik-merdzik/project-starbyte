@@ -228,20 +228,17 @@ type Resource struct {
 
 // Mission represents a single mission in the game
 type Mission struct {
-	Step              int      `json:"Step,omitempty"`
-	MissionId         string   `json:"missionId"`
-	Title             string   `json:"Title"`
-	Description       string   `json:"Description"`
-	Status            string   `json:"Status"`
-	Location          string   `json:"Location"`
-	Income            int      `json:"Income"`
-	Requirements      string   `json:"Requirements"`
-	Received          string   `json:"Received"`
-	Category          string   `json:"Category"`
-	TravelTime        int      `json:"TravelTime"`
-	FuelNeeded        int      `json:"FuelNeeded"`
-	DestinationPlanet string   `json:"DestinationPlanet"`
-	Dialogue          []string `json:"dialogue"`
+	Step         int      `json:"Step,omitempty"`
+	MissionId    string   `json:"missionId"`
+	Title        string   `json:"Title"`
+	Description  string   `json:"Description"`
+	Status       string   `json:"Status"`
+	Location     string   `json:"Location"`
+	Income       int      `json:"Income"`
+	Requirements string   `json:"Requirements"`
+	Received     string   `json:"Received"`
+	Category     string   `json:"Category"`
+	Dialogue     []string `json:"dialogue"`
 }
 
 // NPC represents a non-player character who can give missions
@@ -358,18 +355,15 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 	defaultMissions := Missions{
 		Main: []Mission{
 			{
-				Step:              0,
-				Title:             "Rescue Mission",
-				Description:       "Rescue the stranded astronaut on a rogue asteroid",
-				Status:            "Not Started",
-				Location:          "Planet A",
-				Income:            1000,
-				Requirements:      "None",
-				Received:          "Game",
-				Category:          "Main",
-				TravelTime:        5,
-				FuelNeeded:        10,
-				DestinationPlanet: "Planet A",
+				Step:         0,
+				Title:        "Rescue Mission",
+				Description:  "Rescue the stranded astronaut on a rogue asteroid",
+				Status:       "Not Started",
+				Location:     "Planet A",
+				Income:       1000,
+				Requirements: "None",
+				Received:     "Game",
+				Category:     "Main",
 				Dialogue: []string{
 					"Commander, we have received a distress signal from a stranded astronaut on a rogue asteroid.",
 					"Your mission is to rescue the astronaut and bring them back to safety.",
@@ -385,16 +379,13 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 						Name: "Commander Vega",
 						Missions: []Mission{
 							{
-								Title:             "Solar Flare Response",
-								Description:       "Monitor and respond to unpredictable solar flare activities.",
-								Status:            "In Progress",
-								Income:            4000,
-								Requirements:      "Shielded Satellite",
-								Received:          "Commander Vega",
-								Category:          "Received",
-								TravelTime:        3,
-								FuelNeeded:        30,
-								DestinationPlanet: "Mars",
+								Title:        "Solar Flare Response",
+								Description:  "Monitor and respond to unpredictable solar flare activities.",
+								Status:       "In Progress",
+								Income:       4000,
+								Requirements: "Shielded Satellite",
+								Received:     "Commander Vega",
+								Category:     "Received",
 								Dialogue: []string{
 									"Commander, a massive solar flare is imminent.",
 									"Prepare your shields and adjust your course to minimize damage.",
@@ -682,19 +673,16 @@ func DefaultFullGameSave() *FullGameSave {
 	defaultMissions := Missions{
 		Main: []Mission{
 			{
-				Step:              0,
-				MissionId:         generateRandomID("MISSION_"),
-				Title:             "Rescue Mission",
-				Description:       "Rescue the stranded astronaut on a rogue asteroid",
-				Status:            "Not Started",
-				Location:          "Planet A",
-				Income:            1000,
-				Requirements:      "None",
-				Received:          "Game",
-				Category:          "Main",
-				TravelTime:        5,
-				FuelNeeded:        10,
-				DestinationPlanet: "Planet A",
+				Step:         0,
+				MissionId:    generateRandomID("MISSION_"),
+				Title:        "Rescue Mission",
+				Description:  "Rescue the stranded astronaut on a rogue asteroid",
+				Status:       "Not Started",
+				Location:     "Planet A",
+				Income:       1000,
+				Requirements: "None",
+				Received:     "Game",
+				Category:     "Main",
 				Dialogue: []string{
 					"Commander, we have received a distress signal from a stranded astronaut on a rogue asteroid.",
 					"Your mission is to rescue the astronaut and bring them back to safety.",
@@ -710,17 +698,14 @@ func DefaultFullGameSave() *FullGameSave {
 						Name: "Commander Vega",
 						Missions: []Mission{
 							{
-								MissionId:         generateRandomID("MISSION_"),
-								Title:             "Solar Flare Response",
-								Description:       "Monitor and respond to unpredictable solar flare activities.",
-								Status:            "In Progress",
-								Income:            4000,
-								Requirements:      "Shielded Satellite",
-								Received:          "Commander Vega",
-								Category:          "Received",
-								TravelTime:        3,
-								FuelNeeded:        30,
-								DestinationPlanet: "Mars",
+								MissionId:    generateRandomID("MISSION_"),
+								Title:        "Solar Flare Response",
+								Description:  "Monitor and respond to unpredictable solar flare activities.",
+								Status:       "In Progress",
+								Income:       4000,
+								Requirements: "Shielded Satellite",
+								Received:     "Commander Vega",
+								Category:     "Received",
 								Dialogue: []string{
 									"Commander, a massive solar flare is imminent.",
 									"Prepare your shields and adjust your course to minimize damage.",
