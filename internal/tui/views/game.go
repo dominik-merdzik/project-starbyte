@@ -263,16 +263,10 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.syncSaveData()
 			})
 		case " ":
-			if g.TrackedMission != nil && !g.isTravelling {
-				switch g.TrackedMission.Status {
-				case model.MissionStatusNotStarted:
-					g.isTravelling = true
-					// Start travel using our travel component
-					return g, g.Travel.StartTravel(g.TrackedMission)
-				case model.MissionStatusCompleted:
-					g.TrackedMission = nil
-					g.Dialogue = nil // Make sure dialogue is cleared
-				}
+			// Press SPACE to dismiss mission complete screen
+			if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusCompleted {
+				g.TrackedMission = nil
+				g.Dialogue = nil
 			}
 		}
 	case utilities.SaveRetryMsg:
@@ -284,6 +278,11 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// update the notification on a successful save
 		g.notification = "Game saved successfully!"
 		return g, tea.Batch(tea.Tick(2*time.Second, func(time.Time) tea.Msg { return clearNotificationMsg{} }))
+
+	// This message is received when tracking a mission (called from journal.go)
+	case model.TrackMissionMsg:
+		g.TrackedMission = &msg.Mission
+		return g, nil
 
 	// This message is received when travelling (map.go)
 	// It will update the ship's location and fuel and trigger a save
@@ -312,7 +311,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if g.Travel.TravelComplete {
 			g.isTravelling = false
 			g.TrackedMission.Status = model.MissionStatusInProgress
-			// Then initialize dialogue right after travel completes
+			// Then show dialogue
 			d := components.NewDialogueComponentFromMission(g.TrackedMission.Dialogue)
 			g.Dialogue = &d
 		}
@@ -445,23 +444,19 @@ func (g GameModel) View() string {
 		if g.TrackedMission != nil {
 			// render current task (this might include mission title, objectives, etc.)
 			currentTask := components.NewCurrentTaskComponent()
-
-			// If mission is in progress and dialogue exists, show dialogue
-			if g.TrackedMission.Status == model.MissionStatusInProgress && g.Dialogue != nil {
-				bottomPanelContent = g.Dialogue.View()
-				bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
-			} else {
-				// Otherwise show default mission info
-				bottomPanelContent += currentTask.Render(g.TrackedMission)
-				if g.TrackedMission.Status == model.MissionStatusCompleted {
-					bottomPanelContent += "\nMission completed! Press [Space] to dismiss.\n"
-				}
-			}
+			bottomPanelContent += currentTask.Render(g.TrackedMission)
 
 			// Show travel view if travelling
 			if g.isTravelling {
 				bottomPanelContent = g.Travel.View()
 			}
+
+			// Show dialogue when mission is in progress
+			if g.TrackedMission.Status == model.MissionStatusInProgress && g.Dialogue != nil {
+				bottomPanelContent = g.Dialogue.View()
+				bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
+			}
+
 		} else {
 			bottomPanelContent = "This is the bottom panel."
 		}
