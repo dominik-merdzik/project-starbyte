@@ -1,6 +1,8 @@
 package data
 
-import "math"
+import (
+	"math"
+)
 
 // LocationService handles location-related operations
 type LocationService struct {

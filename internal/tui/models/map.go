@@ -97,10 +97,12 @@ func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.ActiveView == ViewPlanets && m.ActivePanel == PanelLeft {
 					m.SelectedSystem = m.GameMap.StarSystems[m.SystemCursor]
 					m.PlanetCursor = 0
+					m.SelectedPlanet = m.SelectedSystem.Planets[m.PlanetCursor]
 				}
 			} else if m.ActiveView == ViewPlanets && (m.ActivePanel == PanelCenter || m.ActivePanel == PanelRight) {
 				if m.PlanetCursor > 0 {
 					m.PlanetCursor--
+					m.SelectedPlanet = m.SelectedSystem.Planets[m.PlanetCursor]
 				}
 			} else if m.ActiveView == ViewTravelConfirm {
 				if m.ConfirmCursor > 0 {
@@ -115,10 +117,12 @@ func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.ActiveView == ViewPlanets && m.ActivePanel == PanelLeft {
 					m.SelectedSystem = m.GameMap.StarSystems[m.SystemCursor]
 					m.PlanetCursor = 0
+					m.SelectedPlanet = m.SelectedSystem.Planets[m.PlanetCursor]
 				}
 			} else if m.ActiveView == ViewPlanets && (m.ActivePanel == PanelCenter || m.ActivePanel == PanelRight) {
 				if m.PlanetCursor < len(m.SelectedSystem.Planets)-1 {
 					m.PlanetCursor++
+					m.SelectedPlanet = m.SelectedSystem.Planets[m.PlanetCursor]
 				}
 			} else if m.ActiveView == ViewTravelConfirm {
 				if m.ConfirmCursor < 1 {
