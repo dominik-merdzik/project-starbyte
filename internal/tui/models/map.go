@@ -154,7 +154,7 @@ func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				// Calculate fuel cost
-				fuelCost := m.locationService.GetFuelCost(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates)
+				fuelCost := m.locationService.GetFuelCost(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates, m.Ship.EngineHealth)
 
 				// Update ship location and fuel
 				m.Ship.Location = destination
@@ -319,6 +319,7 @@ func (m MapModel) renderPlanetDetails() string {
 	b.WriteString(labelStyle.Render("Coordinates: ") + valueStyle.Render(
 		fmt.Sprintf("(%d, %d, %d)", planet.Coordinates.X, planet.Coordinates.Y, planet.Coordinates.Z)) + "\n")
 	b.WriteString(titleStyle.Render(fmt.Sprintf("Travel Time: %d hours", distance)) + "\n")
+	b.WriteString(titleStyle.Render(fmt.Sprintf("Fuel cost: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates, m.Ship.EngineHealth))))
 
 	// Add a divider.
 	divider := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Repeat("─", 28))
@@ -356,7 +357,7 @@ func (m MapModel) renderTravelConfirm() string {
 
 	content.WriteString(fmt.Sprintf("Confirm travel to %s?\n", planet.Name))
 	content.WriteString(fmt.Sprintf("Travel time: %d hours\n", distance))
-	content.WriteString(fmt.Sprintf("Fuel cost: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates)))
+	content.WriteString(fmt.Sprintf("Fuel cost: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates, m.Ship.EngineHealth)))
 
 	// Travel options.
 	options := []string{"Confirm", "Cancel"}

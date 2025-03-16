@@ -39,12 +39,21 @@ func (ls *LocationService) CalculateDistance(from, to Coordinates) int {
 }
 
 // GetFuelCost calculates fuel needed to travel between locations
-// TODO: Implement a more sophisticated fuel cost calculation
-// Not sure how to input CalculateDistance into this function
-func (ls *LocationService) GetFuelCost(from, to Coordinates) int {
-	//distance := ls.CalculateDistance(from, to)
-	//return distance / 10
-	return 10 // Hardcoded for now
+// fuelCost = distance * (2 - (engineHealth/100))
+// Makes engine health matter regarding fuel efficiency
+func (ls *LocationService) GetFuelCost(from, to Coordinates, engineHealth int) int {
+	distance := ls.CalculateDistance(from, to)
+
+	baseFuelCost := distance
+
+	// Engine health modifier, lower engineHealth = higher fuelCost
+	engineModifier := 2 - (float64(engineHealth) / 100)
+	if engineHealth == 0 {
+		engineModifier = 3 // Broken engines very expensive
+	}
+
+	fuelCost := float64(baseFuelCost) * engineModifier
+	return int(fuelCost)
 }
 
 // NewLocationFromPlanet creates a fully populated Location from a Planet and StarSystem
