@@ -327,7 +327,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.isTravelling = false
 
 			// Subtract fuel (HARDCODED COST FOR NOW)
-			g.Ship.EngineFuel -= g.locationService.GetFuelCost(g.Ship.Location.Coordinates, g.Travel.DestLocation.Coordinates, g.Ship.EngineHealth)
+			g.Ship.EngineFuel -= g.locationService.GetFuelCost(g.Ship.Location.Coordinates, g.Travel.DestLocation.Coordinates, g.Ship.Location.StarSystemName, g.Travel.DestLocation.StarSystemName, g.Ship.EngineHealth)
 
 			// Always update ship location when travel completes
 			g.Ship.Location = g.Travel.DestLocation

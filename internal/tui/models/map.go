@@ -154,7 +154,7 @@ func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				// Calculate fuel cost
-				fuelCost := m.locationService.GetFuelCost(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates, m.Ship.EngineHealth)
+				fuelCost := m.locationService.GetFuelCost(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name, m.Ship.EngineHealth)
 
 				// Update ship location and fuel
 				m.Ship.Location = destination
@@ -309,7 +309,7 @@ func (m MapModel) renderPlanetDetails() string {
 
 	// Safely get the planet using PlanetCursor.
 	planet := m.SelectedSystem.Planets[m.PlanetCursor]
-	distance := m.locationService.CalculateDistance(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates)
+	distance := m.locationService.CalculateDistance(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name)
 
 	var b strings.Builder
 
@@ -319,7 +319,7 @@ func (m MapModel) renderPlanetDetails() string {
 	b.WriteString(labelStyle.Render("Coordinates: ") + valueStyle.Render(
 		fmt.Sprintf("(%d, %d, %d)", planet.Coordinates.X, planet.Coordinates.Y, planet.Coordinates.Z)) + "\n")
 	b.WriteString(titleStyle.Render(fmt.Sprintf("Travel Time: %d hours", distance)) + "\n")
-	b.WriteString(titleStyle.Render(fmt.Sprintf("Fuel cost: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates, m.Ship.EngineHealth))))
+	b.WriteString(titleStyle.Render(fmt.Sprintf("Fuel cost: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name, m.Ship.EngineHealth))))
 
 	// Add a divider.
 	divider := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Repeat("─", 28))
@@ -353,11 +353,11 @@ func (m MapModel) renderTravelConfirm() string {
 
 	var content strings.Builder
 	planet := m.SelectedPlanet
-	distance := m.locationService.CalculateDistance(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates)
+	distance := m.locationService.CalculateDistance(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name)
 
 	content.WriteString(fmt.Sprintf("Confirm travel to %s?\n", planet.Name))
 	content.WriteString(fmt.Sprintf("Travel time: %d hours\n", distance))
-	content.WriteString(fmt.Sprintf("Fuel cost: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates, m.Ship.EngineHealth)))
+	content.WriteString(fmt.Sprintf("Fuel cost: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name, m.Ship.EngineHealth)))
 
 	// Travel options.
 	options := []string{"Confirm", "Cancel"}

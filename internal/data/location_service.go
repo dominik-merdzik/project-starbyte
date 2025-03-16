@@ -31,18 +31,35 @@ func (ls *LocationService) FindByPlanetName(planetName string) *Location {
 }
 
 // CalculateDistance determines the distance between two locations
-// (X + X, Y + Y, Z + Z)
-func (ls *LocationService) CalculateDistance(from, to Coordinates) int {
-	return int(math.Abs(float64(from.X-to.X))) +
-		int(math.Abs(float64(from.Y-to.Y))) +
-		int(math.Abs(float64(from.Z-to.Z)))
+// Using euclidean distance to better simulate space travel times
+func (ls *LocationService) CalculateDistance(from, to Coordinates, fromStarSys, toStarSys string) int {
+	distance := math.Sqrt(
+		math.Pow(float64(to.X-from.X), 2) +
+			math.Pow(float64(to.Y-from.Y), 2) +
+			math.Pow(float64(to.Z-from.Z), 2),
+	)
+
+	// Compare star systems
+	sameSystem := false
+	if fromStarSys == toStarSys {
+		sameSystem = true
+	}
+
+	// Add travel multiplyer if destination is in different star system
+	starSystemMultiplyer := 1.0
+	if !sameSystem {
+		starSystemMultiplyer = 3.0
+	}
+
+	travelTime := math.Round(distance * starSystemMultiplyer)
+	return int(travelTime)
 }
 
 // GetFuelCost calculates fuel needed to travel between locations
 // fuelCost = distance * (2 - (engineHealth/100))
 // Makes engine health matter regarding fuel efficiency
-func (ls *LocationService) GetFuelCost(from, to Coordinates, engineHealth int) int {
-	distance := ls.CalculateDistance(from, to)
+func (ls *LocationService) GetFuelCost(from, to Coordinates, fromStarSys, toStarSys string, engineHealth int) int {
+	distance := ls.CalculateDistance(from, to, fromStarSys, toStarSys)
 
 	baseFuelCost := distance
 
