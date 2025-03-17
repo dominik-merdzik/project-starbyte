@@ -273,11 +273,11 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.syncSaveData()
 			})
 		case " ":
-			// Press SPACE to dismiss mission complete screen
-			if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusCompleted {
-				g.TrackedMission = nil
-				g.Dialogue = nil
-			}
+			// // Press SPACE to dismiss mission complete screen
+			// if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusCompleted {
+			// 	g.TrackedMission = nil
+			// 	g.Dialogue = nil
+			// }
 		}
 	case utilities.SaveRetryMsg:
 		// if saving failed, schedule a retry after 2 seconds
@@ -364,6 +364,12 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, travelCmd)
 			}
 		}
+	}
+
+	// When a mission is completed
+	if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusCompleted {
+		g.Credits += g.TrackedMission.Income // Reward player with credits
+		g.TrackedMission = nil               // Clear the tracked mission
 	}
 
 	return g, tea.Batch(cmds...)
@@ -490,21 +496,27 @@ func (g GameModel) View() string {
 	case "Collection": // NEW: Display Collection view.
 		bottomPanelContent = g.Collection.View()
 	default:
-		if g.TrackedMission != nil {
-			// render current task (this might include mission title, objectives, etc.)
-			currentTask := components.NewCurrentTaskComponent()
-			bottomPanelContent += currentTask.Render(g.TrackedMission)
-		}
-
 		// Show travel view if travelling, regardless of mission
 		if g.isTravelling {
 			bottomPanelContent = g.Travel.View()
-		} else if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusInProgress && g.Dialogue != nil {
-			// If we're in a mission and dialogue is active, show dialogue
-			bottomPanelContent = g.Dialogue.View()
-			bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
 		} else {
-			bottomPanelContent = "This is the bottom panel"
+			// If there is an active mission, show mission details
+			if g.TrackedMission != nil {
+				// Show current task
+				currentTask := components.NewCurrentTaskComponent()
+				bottomPanelContent += currentTask.Render(g.TrackedMission)
+
+				// If mission in progress, show dialogue
+				switch g.TrackedMission.Status {
+				case model.MissionStatusInProgress:
+					// Show dialogue
+					bottomPanelContent = g.Dialogue.View()
+					bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
+				case model.MissionStatusCompleted:
+					// Show mission complete screen
+					bottomPanelContent = fmt.Sprintf("Mission Complete!\n\nYou were rewarded %d credits.\n\nPress [Space] to continue.", g.TrackedMission.Income)
+				}
+			}
 		}
 	}
 	bottomPanel := lipgloss.NewStyle().
