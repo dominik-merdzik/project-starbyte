@@ -69,9 +69,7 @@ func convertDataMission(dm data.Mission) data.Mission {
 
 // currentList returns the missions to be displayed based on search mode,
 // filtering out any missions with status "complete" or "completed"
-// TODO: Fix a bug where if a main mission is complete, you cannot select any other mission. IDK why yet.
 func (j JournalModel) currentList() []data.Mission {
-	return j.Missions // TEMP WORKAROUND. Return unfiltered missions for now.
 	var baseList []data.Mission
 	if j.SearchQuery != "" {
 		if len(j.FilteredMissions) > 0 {
@@ -81,15 +79,6 @@ func (j JournalModel) currentList() []data.Mission {
 		}
 	} else {
 		baseList = j.Missions
-	}
-
-	// filtering out missions whose status is "complete" or "completed"
-	var filtered []data.Mission
-	for _, m := range baseList {
-		if m.Status == data.MissionStatusCompleted {
-			continue
-		}
-		filtered = append(filtered, m)
 	}
 
 	return baseList
@@ -229,7 +218,7 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				j.Page = 0
 				j.Cursor = 0
 				return j, nil
-			case "esc":
+			case "/":
 				j.SearchMode = false
 				j.SearchQuery = ""
 				j.FilteredMissions = nil
@@ -495,7 +484,8 @@ func (j JournalModel) View() string {
 │
 │
 │
-|
+│
+│
 │
 │
 │

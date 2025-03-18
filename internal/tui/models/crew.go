@@ -141,6 +141,8 @@ func (c CrewModel) View() string {
 │
 │
 │
+│
+│
 `
 	dividerStyle := lipgloss.NewStyle().
 		Width(1).
