@@ -2,32 +2,58 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
-
 	"github.com/dominik-merdzik/project-starbyte/internal/tui/views"
+
+	configs "github.com/dominik-merdzik/project-starbyte/configs"
+	music "github.com/dominik-merdzik/project-starbyte/internal/music"
 )
 
 type menuModel struct {
-	choices []string
-	cursor  int
-	output  string
+	choices    []string
+	cursor     int
+	output     string
+	configPath string
 }
 
 func main() {
-	var choices []string
 
-	// check if the save file exists and adjust the menu
+	// Define the relative path to your configuration file
+	configPath := "config/config.toml"
+
+	// Initialize the config (ensures directory exists, creates default if missing, then loads)
+	cfg, err := configs.InitConfig(configPath)
+	if err != nil {
+		log.Fatalf("Error initializing config: %v", err)
+	}
+
+	// Get the absolute path of the config file
+	absConfigPath, err := filepath.Abs(configPath)
+	if err != nil {
+		log.Printf("Error obtaining absolute config path: %v", err)
+		absConfigPath = configPath // fallback to relative path
+	}
+
+	// initialize the background music using the loaded config
+	music.PlayBackgroundMusicFromEmbed(cfg.Music)
+
+	// Setup menu choices.
+	var choices []string
 	if data.SaveExists() {
 		choices = []string{"Enter Simulation", "Edit Config", "Help", "Exit"}
 	} else {
 		choices = []string{"Start New Simulation", "Edit Config", "Help", "Exit"}
 	}
 
+	// menuModel storing the absolute config path
 	model := menuModel{
-		choices: choices,
+		choices:    choices,
+		configPath: absConfigPath,
 	}
 
 	p := tea.NewProgram(model)
@@ -62,7 +88,7 @@ func (m menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "Enter Simulation":
 				return views.NewGameModel(), tea.EnterAltScreen
 			case "Edit Config":
-				m.output = "Configuration editing is currently not implemented."
+				m.output = "You can find and edit your config file at:\n" + m.configPath
 			case "Help":
 				m.output = "Help Menu:\n - Enter Simulation: Start the game\n - Edit Config: Modify settings\n - Help: Show this menu\n - Exit: Quit the program"
 			case "Exit":
