@@ -22,11 +22,12 @@ type GameModel struct {
 	Dialogue    *components.DialogueComponent
 
 	// additional models
-	Ship       model.ShipModel
-	Crew       model.CrewModel
-	Journal    model.JournalModel
-	Map        model.MapModel
-	Collection model.CollectionModel // NEW: Collection model
+	Ship         model.ShipModel
+	Crew         model.CrewModel
+	Journal      model.JournalModel
+	Map          model.MapModel
+	Collection   model.CollectionModel   // NEW: Collection model
+	SpaceStation model.SpaceStationModel // NEW: SpaceStation model
 
 	currentHealth int
 	maxHealth     int
@@ -62,7 +63,8 @@ const (
 	ViewCrew
 	ViewMap
 	ViewShip
-	ViewCollection // NEW: Added Collection view
+	ViewCollection   // NEW: Added Collection view
+	ViewSpaceStation // NEW: Added SpaceStation view
 )
 
 type clearNotificationMsg struct{}
@@ -115,6 +117,12 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.Collection = col
 		}
 		cmds = append(cmds, CollectionCmd)
+	case ViewSpaceStation: // NEW: Update SpaceStation view
+		newSpaceStation, SpaceStationCmd := g.SpaceStation.Update(msg)
+		if ss, ok := newSpaceStation.(model.SpaceStationModel); ok {
+			g.SpaceStation = ss
+		}
+		cmds = append(cmds, SpaceStationCmd)
 	}
 
 	// ---------------------------
@@ -250,6 +258,8 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.activeView = ViewShip
 			case "Collection": // NEW: Activate Collection view
 				g.activeView = ViewCollection
+			case "SpaceStation": // NEW: Activate SpaceStation view
+				g.activeView = ViewSpaceStation
 			}
 		case "s":
 
@@ -501,6 +511,8 @@ func (g GameModel) View() string {
 		bottomPanelContent = g.Map.View()
 	case "Collection": // NEW: Display Collection view.
 		bottomPanelContent = g.Collection.View()
+	case "SpaceStation": // NEW: Display SpaceStation view
+		bottomPanelContent = g.SpaceStation.View()
 	default:
 		// Show travel view if travelling, regardless of mission
 		if g.isTravelling {
@@ -591,18 +603,20 @@ func NewGameModel() tea.Model {
 	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship)
 	mapModel.GameSave = fullSave                                     // Need this to avoid null pointer
 	collectionModel := model.NewCollectionModel(fullSave.Collection) // NEW: Initialize Collection model
+	spaceStationModel := model.NewSpaceStationModel()
 
 	return GameModel{
 		ProgressBar:      components.NewProgressBar(),
 		currentHealth:    currentHealth,
 		maxHealth:        maxHealth,
 		Yuta:             components.NewYuta(),
-		menuItems:        []string{"Ship", "Crew", "Journal", "Map", "Collection", "Exit"},
+		menuItems:        []string{"Ship", "Crew", "Journal", "Map", "Collection", "SpaceStation", "Exit"},
 		menuCursor:       0,
 		Ship:             shipModel,
 		Crew:             crewModel,
 		Journal:          journalModel,
-		Collection:       collectionModel, // NEW: Set Collection model
+		Collection:       collectionModel,   // NEW: Set Collection model
+		SpaceStation:     spaceStationModel, // NEW: Set SpaceStation model
 		Map:              mapModel,
 		Travel:           components.NewTravelComponent(),
 		activeView:       ViewNone,
