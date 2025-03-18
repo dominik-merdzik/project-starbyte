@@ -14,52 +14,35 @@ import (
 
 // TrackMissionMsg is used to signal that a mission is being tracked
 type TrackMissionMsg struct {
-	Mission Mission
+	Mission data.Mission
 }
 
 // Used to signal the start of a mission
 type StartMissionMsg struct {
-	Mission Mission
-}
-
-// MissionStatus enums, so we don't have to do string comparisons to check mission status
-type MissionStatus int
-
-const (
-	MissionStatusNotStarted MissionStatus = iota
-	MissionStatusInProgress
-	MissionStatusCompleted
-	MissionStatusFailed
-	MissionStatusAbandoned
-)
-
-// String returns the string representation of a MissionStatus
-// Basically a ToString() method
-func (ms MissionStatus) String() string {
-	return [...]string{"Not Started", "In Progress", "Completed", "Failed", "Abandoned"}[ms]
+	Mission data.Mission
 }
 
 // Mission represents a mission in the journal
-type Mission struct {
-	Title        string
-	Description  string
-	Status       MissionStatus
-	Location     data.Location
-	Income       int
-	Requirements string
-	Received     string
-	Category     string
-	Dialogue     []string
+// type Mission struct {
+// 	Title        string
+// 	Description  string
+// 	Status       MissionStatus
+// 	Location     data.Location
+// 	Income       int
+// 	Requirements string
+// 	Received     string
+// 	Category     string
+// 	Dialogue     []string
 
-	GameSave *data.FullGameSave
-}
+// 	GameSave *data.FullGameSave
+// }
 
 // convertDataMission converts a data.Mission into a model.Mission
-func convertDataMission(dm data.Mission) Mission {
-	return Mission{
+func convertDataMission(dm data.Mission) data.Mission {
+	return data.Mission{
 		Title:        dm.Title,
 		Description:  dm.Description,
-		Status:       statusFromString(dm.Status),
+		Status:       dm.Status,
 		Location:     dm.Location,
 		Income:       dm.Income,
 		Requirements: dm.Requirements,
@@ -69,71 +52,56 @@ func convertDataMission(dm data.Mission) Mission {
 	}
 }
 
-// convertMainMission converts a data.Mission (used for main missions) into a model.Mission
-func convertMainMission(mm data.Mission) Mission {
-	return Mission{
-		Title:        fmt.Sprintf("Step %d: %s", mm.Step, mm.Title),
-		Description:  mm.Description,
-		Status:       statusFromString(mm.Status),
-		Location:     mm.Location,
-		Income:       mm.Income,
-		Requirements: mm.Requirements,
-		Received:     mm.Received,
-		Category:     mm.Category,
-		Dialogue:     mm.Dialogue,
-	}
-}
-
-// statusFromString converts a string to a MissionStatus enum
-func statusFromString(s string) MissionStatus {
-	// Convert to lowercase for case-insensitive comparison
-	switch strings.ToLower(s) {
-	case "in progress":
-		return MissionStatusInProgress
-	case "completed", "complete":
-		return MissionStatusCompleted
-	case "failed":
-		return MissionStatusFailed
-	case "abandoned":
-		return MissionStatusAbandoned
-	default:
-		return MissionStatusNotStarted
-	}
-}
+// // convertMainMission converts a data.Mission (used for main missions) into a model.Mission
+// func convertMainMission(mm data.Mission) Mission {
+// 	return Mission{
+// 		Title:        fmt.Sprintf("Step %d: %s", mm.Step, mm.Title),
+// 		Description:  mm.Description,
+// 		Status:       statusFromString(mm.Status),
+// 		Location:     mm.Location,
+// 		Income:       mm.Income,
+// 		Requirements: mm.Requirements,
+// 		Received:     mm.Received,
+// 		Category:     mm.Category,
+// 		Dialogue:     mm.Dialogue,
+// 	}
+// }
 
 // currentList returns the missions to be displayed based on search mode,
 // filtering out any missions with status "complete" or "completed"
-func (j JournalModel) currentList() []Mission {
-	var baseList []Mission
+// TODO: Fix a bug where if a main mission is complete, you cannot select any other mission. IDK why yet.
+func (j JournalModel) currentList() []data.Mission {
+	return j.Missions // TEMP WORKAROUND. Return unfiltered missions for now.
+	var baseList []data.Mission
 	if j.SearchQuery != "" {
 		if len(j.FilteredMissions) > 0 {
 			baseList = j.FilteredMissions
 		} else {
-			baseList = []Mission{}
+			baseList = []data.Mission{}
 		}
 	} else {
 		baseList = j.Missions
 	}
 
 	// filtering out missions whose status is "complete" or "completed"
-	var filtered []Mission
+	var filtered []data.Mission
 	for _, m := range baseList {
-		if m.Status == MissionStatusCompleted {
+		if m.Status == data.MissionStatusCompleted {
 			continue
 		}
 		filtered = append(filtered, m)
 	}
 
-	return filtered
+	return baseList
 }
 
 // JournalModel represents the mission journal
 type JournalModel struct {
-	Missions         []Mission
+	Missions         []data.Mission
 	Cursor           int
 	SearchMode       bool
 	SearchQuery      string
-	FilteredMissions []Mission
+	FilteredMissions []data.Mission
 	Page             int
 	PageSize         int
 
@@ -153,7 +121,7 @@ func NewJournalModel() JournalModel {
 		log.Printf("No save file found; initializing with empty mission list")
 		// return an empty JournalModel or initialize with default missions
 		return JournalModel{
-			Missions:      []Mission{},
+			Missions:      []data.Mission{},
 			Cursor:        0,
 			Page:          0,
 			PageSize:      5,
@@ -165,25 +133,11 @@ func NewJournalModel() JournalModel {
 
 	missionsFile := fullSave.Missions
 
-	var missions []Mission
+	var missions []data.Mission
 
-	// add main missions
-	for _, mm := range missionsFile.Main {
-		missions = append(missions, convertMainMission(mm))
-	}
-
-	// Add received missions
-	for _, group := range missionsFile.Received {
-		for _, npc := range group.NPCs {
-			for _, m := range npc.Missions {
-				rec := convertDataMission(m)
-				// if location is empty, fill it with the group's location
-				if rec.Location == (data.Location{}) {
-					rec.Location = group.Location
-				}
-				missions = append(missions, rec)
-			}
-		}
+	// Add all missions
+	for _, m := range missionsFile {
+		missions = append(missions, convertDataMission(m))
 	}
 
 	return JournalModel{
@@ -236,7 +190,7 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "Start Mission":
 					mission := j.getSelectedMission()
 					j.DetailView = false
-					if mission.Status == MissionStatusNotStarted {
+					if mission.Status == data.MissionStatusNotStarted {
 						// First return a command to exit the journal view entirely
 						return j, tea.Batch(
 							func() tea.Msg {
@@ -251,7 +205,7 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				case "Abandon":
 					mission := j.getSelectedMission()
-					mission.Status = MissionStatusAbandoned
+					mission.Status = data.MissionStatusAbandoned
 					j.updateMission(mission)
 					j.DetailView = false
 				}
@@ -335,6 +289,12 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				j.Cursor = 0
 			}
 		case "enter":
+			// If this mission is already completed, do nothing
+			selectedMission := j.getSelectedMission()
+			if selectedMission.Status == data.MissionStatusCompleted {
+				break
+			}
+			// Else enter detail view for this mission
 			if pageItemsCount > 0 {
 				j.DetailView = true
 				j.DetailCursor = 0
@@ -351,7 +311,7 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // getSelectedMission returns the selected mission from the current page.
-func (j JournalModel) getSelectedMission() Mission {
+func (j JournalModel) getSelectedMission() data.Mission {
 	currentList := j.currentList()
 	totalItems := len(currentList)
 	startIndex := j.Page * j.PageSize
@@ -367,7 +327,7 @@ func (j JournalModel) getSelectedMission() Mission {
 }
 
 // updateMission updates the mission in j.Missions by matching the title.
-func (j *JournalModel) updateMission(updated Mission) {
+func (j *JournalModel) updateMission(updated data.Mission) {
 	for i, m := range j.Missions {
 		if m.Title == updated.Title {
 			j.Missions[i] = updated
@@ -437,12 +397,12 @@ func (j JournalModel) View() string {
 	}
 
 	// normal list view
-	var currentList []Mission
+	var currentList []data.Mission
 	if j.SearchQuery != "" {
 		if len(j.FilteredMissions) > 0 {
 			currentList = j.FilteredMissions
 		} else {
-			currentList = []Mission{}
+			currentList = []data.Mission{}
 		}
 	} else {
 		currentList = j.Missions
@@ -482,7 +442,7 @@ func (j JournalModel) View() string {
 	}
 	for i, mission := range missionsOnPage {
 		titleText := mission.Title
-		if mission.Status == MissionStatusCompleted {
+		if mission.Status == data.MissionStatusCompleted {
 			titleText = titleText + " " + "✓"
 		}
 		if i == j.Cursor {

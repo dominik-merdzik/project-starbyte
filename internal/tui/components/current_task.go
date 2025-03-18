@@ -5,7 +5,6 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
-	model "github.com/dominik-merdzik/project-starbyte/internal/tui/models"
 )
 
 // CurrentTaskComponent is responsible for rendering the currently tracked mission
@@ -19,7 +18,7 @@ func NewCurrentTaskComponent() CurrentTaskComponent {
 }
 
 // Render returns a string with the current task data rendered in a styled box
-func (c CurrentTaskComponent) Render(task *model.Mission) string {
+func (c CurrentTaskComponent) Render(task *data.Mission) string {
 	if task == nil {
 		return "No current task."
 	}

@@ -8,7 +8,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
-	model "github.com/dominik-merdzik/project-starbyte/internal/tui/models"
 )
 
 // TravelTickMsg is sent when the travel timer ticks
@@ -16,7 +15,7 @@ type TravelTickMsg struct{}
 
 // TravelComponent handles the UI and logic for traveling to mission locations
 type TravelComponent struct {
-	Mission        *model.Mission
+	Mission        *data.Mission
 	IsTravelling   bool
 	StartTime      time.Time
 	Duration       time.Duration

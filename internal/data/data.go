@@ -26,7 +26,7 @@ type FullGameSave struct {
 	Player       Player       `json:"player"`
 	Ship         Ship         `json:"ship"`
 	Crew         []CrewMember `json:"crew"`
-	Missions     Missions     `json:"missions"`
+	Missions     []Mission    `json:"missions"`
 	GameMap      GameMap      `json:"gameMap"`
 	Collection   Collection   `json:"collection"`
 }
@@ -224,35 +224,34 @@ type CrewRequirement struct {
 
 // Mission represents a single mission in the game
 type Mission struct {
-	Step         int      `json:"Step,omitempty"`
-	MissionId    string   `json:"missionId"`
-	Title        string   `json:"Title"`
-	Description  string   `json:"Description"`
-	Status       string   `json:"Status"`
-	Location     Location `json:"Location"`
-	Income       int      `json:"Income"`
-	Requirements string   `json:"Requirements"`
-	Received     string   `json:"Received"`
-	Category     string   `json:"Category"`
-	Dialogue     []string `json:"dialogue"`
+	Step         int           `json:"Step,omitempty"`
+	Id           int           `json:"Id"`
+	Title        string        `json:"Title"`
+	Description  string        `json:"Description"`
+	Status       MissionStatus `json:"Status"`
+	Location     Location      `json:"Location"`
+	Income       int           `json:"Income"`
+	Requirements string        `json:"Requirements"`
+	Received     string        `json:"Received"`
+	Category     string        `json:"Category"`
+	Dialogue     []string      `json:"dialogue"`
 }
 
-// NPC represents a non-player character who can give missions
-type NPC struct {
-	Name     string    `json:"Name"`
-	Missions []Mission `json:"Missions"`
-}
+// MissionStatus enums, so we don't have to do string comparisons to check mission status
+type MissionStatus int
 
-// ReceivedMissionGroup represents a group of missions received from an NPC at a specific location
-type ReceivedMissionGroup struct {
-	Location Location `json:"Location"`
-	NPCs     []NPC    `json:"NPCs"`
-}
+const (
+	MissionStatusNotStarted MissionStatus = iota
+	MissionStatusInProgress
+	MissionStatusCompleted
+	MissionStatusFailed
+	MissionStatusAbandoned
+)
 
-// Missions represents the main and received missions in the game
-type Missions struct {
-	Main     []Mission              `json:"main"`
-	Received []ReceivedMissionGroup `json:"received"`
+// String returns the string representation of a MissionStatus
+// Basically a ToString() method
+func (ms MissionStatus) String() string {
+	return [...]string{"Not Started", "In Progress", "Completed", "Failed", "Abandoned"}[ms]
 }
 
 // ---------------------
@@ -347,50 +346,39 @@ func DefaultCollection() Collection {
 func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error {
 	now := time.Now()
 
-	// Define default missions.
-	defaultMissions := Missions{
-		Main: []Mission{
-			{
-				Step:         0,
-				Title:        "Rescue Mission",
-				Description:  "Rescue the stranded astronaut on a rogue asteroid",
-				Status:       "Not Started",
-				Location:     Location{StarSystemName: "Sol", PlanetName: "Earth", Coordinates: Coordinates{X: 0, Y: 0, Z: 0}},
-				Income:       1000,
-				Requirements: "None",
-				Received:     "Game",
-				Category:     "Main",
-				Dialogue: []string{
-					"Commander, we have received a distress signal from a stranded astronaut on a rogue asteroid.",
-					"Your mission is to rescue the astronaut and bring them back to safety.",
-					"Time is of the essence, Commander. We need you to act quickly.",
-				},
+	// Define missions
+	// Hardcoded IDs for now
+	defaultMissions := []Mission{
+		{
+			Step:         0,
+			Id:           0,
+			Title:        "Rescue Mission",
+			Description:  "Rescue the stranded astronaut on a rogue asteroid",
+			Status:       MissionStatusNotStarted,
+			Location:     Location{StarSystemName: "Sol", PlanetName: "Earth", Coordinates: Coordinates{X: 0, Y: 0, Z: 0}},
+			Income:       1000,
+			Requirements: "None",
+			Received:     "Game",
+			Category:     "Main",
+			Dialogue: []string{
+				"Commander, we have received a distress signal from a stranded astronaut on a rogue asteroid.",
+				"Your mission is to rescue the astronaut and bring them back to safety.",
+				"Time is of the essence, Commander. We need you to act quickly.",
 			},
 		},
-		Received: []ReceivedMissionGroup{
-			{
-				Location: Location{StarSystemName: "Sol", PlanetName: "Mars", Coordinates: Coordinates{X: 5, Y: 3, Z: 1}},
-				NPCs: []NPC{
-					{
-						Name: "Commander Vega",
-						Missions: []Mission{
-							{
-								Title:        "Solar Flare Response",
-								Description:  "Monitor and respond to unpredictable solar flare activities.",
-								Status:       "In Progress",
-								Income:       4000,
-								Requirements: "Shielded Satellite",
-								Received:     "Commander Vega",
-								Category:     "Received",
-								Dialogue: []string{
-									"Commander, a massive solar flare is imminent.",
-									"Prepare your shields and adjust your course to minimize damage.",
-									"Your swift action is needed to protect our assets.",
-								},
-							},
-						},
-					},
-				},
+		{
+			Id:           1,
+			Title:        "Solar Flare Response",
+			Description:  "Monitor and respond to unpredictable solar flare activities.",
+			Status:       MissionStatusNotStarted,
+			Income:       4000,
+			Requirements: "Shielded Satellite",
+			Received:     "Commander Vega",
+			Category:     "Received",
+			Dialogue: []string{
+				"Commander, a massive solar flare is imminent.",
+				"Prepare your shields and adjust your course to minimize damage.",
+				"Your swift action is needed to protect our assets.",
 			},
 		},
 	}
@@ -645,51 +633,35 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 func DefaultFullGameSave() *FullGameSave {
 	now := time.Now()
 
-	defaultMissions := Missions{
-		Main: []Mission{
-			{
-				Step:         0,
-				MissionId:    generateRandomID("MISSION_"),
-				Title:        "Rescue Mission",
-				Description:  "Rescue the stranded astronaut on a rogue asteroid",
-				Status:       "Not Started",
-				Location:     Location{StarSystemName: "Sol", PlanetName: "Earth", Coordinates: Coordinates{X: 0, Y: 0, Z: 0}},
-				Income:       1000,
-				Requirements: "None",
-				Received:     "Game",
-				Category:     "Main",
-				Dialogue: []string{
-					"Commander, we have received a distress signal from a stranded astronaut on a rogue asteroid.",
-					"Your mission is to rescue the astronaut and bring them back to safety.",
-					"Time is of the essence, Commander. We need you to act quickly.",
-				},
+	defaultMissions := []Mission{
+		{
+			Step:         0,
+			Title:        "Rescue Mission",
+			Description:  "Rescue the stranded astronaut on a rogue asteroid",
+			Status:       MissionStatusNotStarted,
+			Location:     Location{StarSystemName: "Sol", PlanetName: "Earth", Coordinates: Coordinates{X: 0, Y: 0, Z: 0}},
+			Income:       1000,
+			Requirements: "None",
+			Received:     "Game",
+			Category:     "Main",
+			Dialogue: []string{
+				"Commander, we have received a distress signal from a stranded astronaut on a rogue asteroid.",
+				"Your mission is to rescue the astronaut and bring them back to safety.",
+				"Time is of the essence, Commander. We need you to act quickly.",
 			},
 		},
-		Received: []ReceivedMissionGroup{
-			{
-				Location: Location{StarSystemName: "Sol", PlanetName: "Mars", Coordinates: Coordinates{X: 5, Y: 3, Z: 1}},
-				NPCs: []NPC{
-					{
-						Name: "Commander Vega",
-						Missions: []Mission{
-							{
-								MissionId:    generateRandomID("MISSION_"),
-								Title:        "Solar Flare Response",
-								Description:  "Monitor and respond to unpredictable solar flare activities.",
-								Status:       "In Progress",
-								Income:       4000,
-								Requirements: "Shielded Satellite",
-								Received:     "Commander Vega",
-								Category:     "Received",
-								Dialogue: []string{
-									"Commander, a massive solar flare is imminent.",
-									"Prepare your shields and adjust your course to minimize damage.",
-									"Your swift action is needed to protect our assets.",
-								},
-							},
-						},
-					},
-				},
+		{
+			Title:        "Solar Flare Response",
+			Description:  "Monitor and respond to unpredictable solar flare activities.",
+			Status:       MissionStatusNotStarted,
+			Income:       4000,
+			Requirements: "Shielded Satellite",
+			Received:     "Commander Vega",
+			Category:     "Received",
+			Dialogue: []string{
+				"Commander, a massive solar flare is imminent.",
+				"Prepare your shields and adjust your course to minimize damage.",
+				"Your swift action is needed to protect our assets.",
 			},
 		},
 	}
@@ -967,39 +939,3 @@ func SaveGame(save *FullGameSave) error {
 	// Rename temporary file to actual save file.
 	return os.Rename(tmpFilePath, SaveFilePath)
 }
-
-// ------------------------------
-// Game Map Helper Functions
-// MOVED TO location_service.go - Andrew
-// ------------------------------
-
-// // FindPlanet searches for a planet by name across all star systems.
-// func FindPlanet(gameMap GameMap, planetName string) *Planet {
-// 	for _, system := range gameMap.StarSystems {
-// 		for _, planet := range system.Planets {
-// 			if planet.Name == planetName {
-// 				return &planet // Return full planet struct
-// 			}
-// 		}
-// 	}
-// 	return nil // Return nil if not found
-// }
-
-// // GetDistance calculates the distance from the ship to a certain planet by name.
-// func GetDistance(gameMap GameMap, ship Ship, planetName string) int {
-// 	// Get ship's coordinates.
-// 	shipCoords := ship.Location.Coordinates
-
-// 	// Find the planet using helper function.
-// 	planet := FindPlanet(gameMap, planetName)
-// 	if planet == nil {
-// 		return -1
-// 	}
-
-// 	// (X + X, Y + Y, Z + Z) * 10
-// 	distance := (int(math.Abs(float64(shipCoords.X+planet.Coordinates.X))) +
-// 		int(math.Abs(float64(shipCoords.Y+planet.Coordinates.Y))) +
-// 		int(math.Abs(float64(shipCoords.Z+planet.Coordinates.Z)))) * 10
-
-// 	return distance
-// }
