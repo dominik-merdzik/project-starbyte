@@ -37,7 +37,7 @@ type GameModel struct {
 	selectedItem string
 	activeView   ActiveView
 
-	TrackedMission *model.Mission
+	TrackedMission *data.Mission
 
 	isTravelling bool
 
@@ -161,7 +161,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return g, g.Travel.StartTravel(g.TrackedMission.Location)
 		} else {
 			// If we're already there, just set the mission as in progress
-			g.TrackedMission.Status = model.MissionStatusInProgress
+			g.TrackedMission.Status = data.MissionStatusInProgress
 		}
 
 	// (1/3) Timer for travel component
@@ -195,7 +195,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// DIALOGUE -- Advance through it with Enter
-		if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusInProgress {
+		if g.TrackedMission != nil && g.TrackedMission.Status == data.MissionStatusInProgress {
 			if msg.String() == "enter" {
 				if g.Dialogue == nil {
 					// initialize dialogue with the first line already shown
@@ -206,7 +206,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				// if we've advanced past all dialogue lines, mark mission as completed
 				if g.Dialogue.CurrentLine >= len(g.TrackedMission.Dialogue) {
-					g.TrackedMission.Status = model.MissionStatusCompleted
+					g.TrackedMission.Status = data.MissionStatusCompleted
 					g.Dialogue = nil // Clear dialogue when complete
 				}
 				return g, nil
@@ -273,11 +273,11 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				g.syncSaveData()
 			})
 		case " ":
-			// Press SPACE to dismiss mission complete screen
-			if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusCompleted {
-				g.TrackedMission = nil
-				g.Dialogue = nil
-			}
+			// // Press SPACE to dismiss mission complete screen
+			// if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusCompleted {
+			// 	g.TrackedMission = nil
+			// 	g.Dialogue = nil
+			// }
 		}
 	case utilities.SaveRetryMsg:
 		// if saving failed, schedule a retry after 2 seconds
@@ -338,7 +338,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Check if this was mission-related travel
 			if g.TrackedMission != nil && g.Travel.Mission != nil {
 				// Update mission status
-				g.TrackedMission.Status = model.MissionStatusInProgress
+				g.TrackedMission.Status = data.MissionStatusInProgress
 
 				// Then show dialogue
 				d := components.NewDialogueComponentFromMission(g.TrackedMission.Dialogue)
@@ -364,6 +364,18 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, travelCmd)
 			}
 		}
+	}
+
+	// When a mission is completed
+	if g.TrackedMission != nil && g.TrackedMission.Status == data.MissionStatusCompleted {
+		// Search for the mission in journal and update status
+		for i, mission := range g.Journal.Missions {
+			if mission.Title == g.TrackedMission.Title {
+				g.Journal.Missions[i].Status = data.MissionStatusCompleted
+			}
+		}
+		g.Credits += g.TrackedMission.Income // Reward player with credits
+		g.TrackedMission = nil               // Clear the tracked mission
 	}
 
 	return g, tea.Batch(cmds...)
@@ -490,21 +502,27 @@ func (g GameModel) View() string {
 	case "Collection": // NEW: Display Collection view.
 		bottomPanelContent = g.Collection.View()
 	default:
-		if g.TrackedMission != nil {
-			// render current task (this might include mission title, objectives, etc.)
-			currentTask := components.NewCurrentTaskComponent()
-			bottomPanelContent += currentTask.Render(g.TrackedMission)
-		}
-
 		// Show travel view if travelling, regardless of mission
 		if g.isTravelling {
 			bottomPanelContent = g.Travel.View()
-		} else if g.TrackedMission != nil && g.TrackedMission.Status == model.MissionStatusInProgress && g.Dialogue != nil {
-			// If we're in a mission and dialogue is active, show dialogue
-			bottomPanelContent = g.Dialogue.View()
-			bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
 		} else {
-			bottomPanelContent = "This is the bottom panel"
+			// If there is an active mission, show mission details
+			if g.TrackedMission != nil {
+				// Show current task
+				currentTask := components.NewCurrentTaskComponent()
+				bottomPanelContent += currentTask.Render(g.TrackedMission)
+
+				// If mission in progress, show dialogue
+				switch g.TrackedMission.Status {
+				case data.MissionStatusInProgress:
+					// Show dialogue
+					bottomPanelContent = g.Dialogue.View()
+					bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
+				case data.MissionStatusCompleted:
+					// Show mission complete screen
+					bottomPanelContent = fmt.Sprintf("Mission Complete!\n\nYou were rewarded %d credits.\n\nPress [Space] to continue.", g.TrackedMission.Income)
+				}
+			}
 		}
 	}
 	bottomPanel := lipgloss.NewStyle().
@@ -598,19 +616,6 @@ func NewGameModel() tea.Model {
 	}
 }
 
-// startMission updates the ship model based on mission fuel requirements
-// This function is useless rn
-// TODO: figure out what to do with this
-func StartMission(mission model.Mission, ship model.ShipModel) model.ShipModel {
-
-	// if ship.EngineFuel < mission.FuelNeeded {
-	// 	return ship
-	// }
-	// ship.EngineFuel -= mission.FuelNeeded
-	mission.Status = model.MissionStatusInProgress
-	return ship
-}
-
 // syncSaveData updates the gameSave data with the latest state from the GameModel
 // syncSaveData updates gameSave with the latest in-memory state
 func (g *GameModel) syncSaveData() {
@@ -630,6 +635,8 @@ func (g *GameModel) syncSaveData() {
 	g.gameSave.GameMetadata.LastSaveTime = time.Now().Format(time.RFC3339)
 
 	g.gameSave.Ship.Location = g.Ship.Location // Sync location
+
+	g.gameSave.Missions = g.Journal.Missions // Sync missions
 }
 
 // helper: add elapsed duration to TotalPlayTime, normalizing seconds/minutes/hours
