@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -385,7 +386,10 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		g.Credits += g.TrackedMission.Income // Reward player with credits
-		g.TrackedMission = nil               // Clear the tracked mission
+		// Reward player with research notes
+		// Random chance to get a high tier research note
+		g.addRandomResearchNote()
+		g.TrackedMission = nil // Clear the tracked mission
 	}
 
 	return g, tea.Batch(cmds...)
@@ -644,13 +648,13 @@ func (g *GameModel) syncSaveData() {
 	g.gameSave.Ship.MaxHullIntegrity = g.Ship.MaxHullHealth
 	g.gameSave.Ship.MaxFuel = g.Ship.MaxFuel
 	g.gameSave.Ship.Food = g.Ship.Food
+	g.gameSave.Ship.Location = g.Ship.Location
 
 	g.gameSave.Player.Credits = g.Credits
 	g.gameSave.GameMetadata.LastSaveTime = time.Now().Format(time.RFC3339)
 
-	g.gameSave.Ship.Location = g.Ship.Location // Sync location
-
-	g.gameSave.Missions = g.Journal.Missions // Sync missions
+	g.gameSave.Missions = g.Journal.Missions        // Sync missions
+	g.gameSave.Collection = g.Collection.Collection // Sync collection
 }
 
 // helper: add elapsed duration to TotalPlayTime, normalizing seconds/minutes/hours
@@ -661,4 +665,46 @@ func addDurationToPlayTime(tt *data.TotalPlayTime, d time.Duration) {
 	tt.Seconds = tt.Seconds % 60
 	tt.Hours += tt.Minutes / 60
 	tt.Minutes = tt.Minutes % 60
+}
+
+// Gives a random tier research note to the player
+func (g *GameModel) addRandomResearchNote() {
+	// Generate a random number between 0-100 to determine tier
+	roll := rand.Intn(101)
+
+	// GACHA!
+	var tier int
+	switch {
+	case roll < 5: // 5% chance for highest tier
+		tier = 5
+	case roll < 15: // 10% chance for tier 4
+		tier = 4
+	case roll < 35: // 20% chance for tier 3
+		tier = 3
+	case roll < 65: // 30% chance for tier 2
+		tier = 2
+	default: // 35% chance for tier 1
+		tier = 1
+	}
+
+	// Find the corresponding research note in the collection
+	for i, note := range g.Collection.Collection.ResearchNotes {
+		if note.Tier == tier {
+			// Increment the quantity of the research note
+			g.Collection.Collection.ResearchNotes[i].Quantity++
+
+			// Update used capacity
+			g.Collection.Collection.UsedCapacity++
+
+			// Create a notification about the research note
+			tierName := g.Collection.Collection.ResearchNotes[i].Name
+			g.notification = fmt.Sprintf("Received %s research note!", tierName)
+
+			// Sync the updated collection to the save data
+			g.gameSave.Collection = g.Collection.Collection
+
+			// Return early since we found and updated the note
+			return
+		}
+	}
 }
