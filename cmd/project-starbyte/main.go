@@ -25,10 +25,6 @@ type menuModel struct {
 
 func main() {
 
-	// Attempt to resize the terminal window to 1260x900 pixels.
-	// Using an approximate conversion to columns and rows:
-	// Assume 8 pixels per column and 16 pixels per row:
-
 	// Define the relative path to your configuration file
 	configPath := "config/config.toml"
 
@@ -69,7 +65,7 @@ func main() {
 }
 
 func (m menuModel) Init() tea.Cmd {
-	resizeTerminalWindow(1280, 900)
+	//resizeTerminalWindow(1280, 900)
 	return nil
 }
 

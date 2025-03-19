@@ -2,6 +2,7 @@ package data
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -70,7 +71,6 @@ type Reputation struct {
 // Ship structures
 // ---------------------
 
-// Ship represents the player's ship in the game
 type Ship struct {
 	ShipId            string   `json:"shipId"`
 	ShipName          string   `json:"shipName"`
@@ -90,28 +90,24 @@ type Ship struct {
 	Upgrades          Upgrades `json:"upgrades"`
 }
 
-// Coordinates represents the 3D coordinates of a location in the game
 type Coordinates struct {
 	X int `json:"x"`
 	Y int `json:"y"`
 	Z int `json:"z"`
 }
 
-// Cargo represents the ship's cargo hold with capacity, used capacity, and items
 type Cargo struct {
 	Capacity     int         `json:"capacity"`
 	UsedCapacity int         `json:"usedCapacity"`
 	Items        []CargoItem `json:"items"`
 }
 
-// CargoItem represents an item in the ship's cargo hold
 type CargoItem struct {
 	ItemId   string `json:"itemId"`
 	Name     string `json:"name"`
 	Quantity int    `json:"quantity"`
 }
 
-// Module represents a ship module with a name, level, and status
 type Module struct {
 	ModuleId string `json:"moduleId"`
 	Name     string `json:"name"`
@@ -119,14 +115,12 @@ type Module struct {
 	Status   string `json:"status"`
 }
 
-// Upgrades represents the current upgrade levels for the ship
 type Upgrades struct {
 	Engine         UpgradeLevel `json:"engine"`
 	WeaponSystems  UpgradeLevel `json:"weaponSystems"`
 	CargoExpansion UpgradeLevel `json:"cargoExpansion"`
 }
 
-// UpgradeLevel represents the current and maximum level of an upgrade
 type UpgradeLevel struct {
 	CurrentLevel int `json:"currentLevel"`
 	MaxLevel     int `json:"maxLevel"`
@@ -136,7 +130,6 @@ type UpgradeLevel struct {
 // Crew structures
 // ---------------------
 
-// CrewRole defines the valid roles for a crew member.
 type CrewRole string
 
 const (
@@ -152,8 +145,7 @@ const (
 	CrewRoleResearchSpecialist    CrewRole = "Research Specialist"
 )
 
-// CrewMember represents a single crew member in the game.
-// Note: MasterWorkLevel acts as a prestige level after reaching level 10.
+// Updated CrewMember: Removed Skills and added Buffs and Debuffs.
 type CrewMember struct {
 	CrewId          string   `json:"crewId"`
 	Name            string   `json:"name"`
@@ -163,40 +155,30 @@ type CrewMember struct {
 	Morale          int      `json:"morale"`
 	Health          int      `json:"health"`
 	MasterWorkLevel int      `json:"masterWorkLevel"`
-	Skills          Skills   `json:"skills"`
+	Buffs           []string `json:"buffs"`
+	Debuffs         []string `json:"debuffs"`
 	AssignedTaskId  *string  `json:"assignedTaskId"`
-}
-
-// Skills represents the skills of a crew
-type Skills struct {
-	Piloting    int `json:"piloting"`
-	Engineering int `json:"engineering"`
-	Combat      int `json:"combat"`
 }
 
 // ---------------------
 // Map structures
 // ---------------------
 
-// Location is for storing the location of the Ship or a Mission
 type Location struct {
 	StarSystemName string      `json:"starSystemName"`
 	PlanetName     string      `json:"planetName"`
 	Coordinates    Coordinates `json:"coordinates"`
 }
 
-// GameMap represents the game map with star systems and planets
 type GameMap struct {
 	StarSystems []StarSystem `json:"starSystems"`
 }
 
-// StarSystem represents a star system with planets
 type StarSystem struct {
 	Name    string   `json:"name"`
 	Planets []Planet `json:"planets"`
 }
 
-// Planet represents a single planet in the game
 type Planet struct {
 	Name         string            `json:"name"`
 	Type         string            `json:"type"`
@@ -205,13 +187,11 @@ type Planet struct {
 	Requirements []CrewRequirement `json:"requirements"`
 }
 
-// Resource represents a resource available on a planet
 type Resource struct {
 	Name     string `json:"name"`
 	Quantity int    `json:"quantity"`
 }
 
-// CrewRequirement represents the requirements for crew members on a planet
 type CrewRequirement struct {
 	Role   string `json:"role"`
 	Degree int    `json:"degree"`
@@ -222,7 +202,6 @@ type CrewRequirement struct {
 // Mission structures
 // ---------------------
 
-// Mission represents a single mission in the game
 type Mission struct {
 	Step         int           `json:"Step,omitempty"`
 	Id           int           `json:"Id"`
@@ -237,7 +216,6 @@ type Mission struct {
 	Dialogue     []string      `json:"dialogue"`
 }
 
-// MissionStatus enums, so we don't have to do string comparisons to check mission status
 type MissionStatus int
 
 const (
@@ -248,8 +226,6 @@ const (
 	MissionStatusAbandoned
 )
 
-// String returns the string representation of a MissionStatus
-// Basically a ToString() method
 func (ms MissionStatus) String() string {
 	return [...]string{"Not Started", "In Progress", "Completed", "Failed", "Abandoned"}[ms]
 }
@@ -258,7 +234,6 @@ func (ms MissionStatus) String() string {
 // Collection structures
 // ---------------------
 
-// Collection represents a container for items and research notes
 type Collection struct {
 	MaxCapacity   int                `json:"maxCapacity"`
 	UsedCapacity  int                `json:"usedCapacity"`
@@ -266,7 +241,6 @@ type Collection struct {
 	ResearchNotes []ResearchNoteTier `json:"researchNotes"`
 }
 
-// CollectionItem defines the properties for each item in the collection
 type CollectionItem struct {
 	ItemId      string `json:"itemId"`
 	Name        string `json:"name"`
@@ -274,7 +248,6 @@ type CollectionItem struct {
 	Quantity    int    `json:"quantity"`
 }
 
-// ResearchNoteTier defines the structure for each tier of research notes
 type ResearchNoteTier struct {
 	Name     string `json:"name"`
 	Blurb    string `json:"blurb"`
@@ -284,18 +257,60 @@ type ResearchNoteTier struct {
 }
 
 // -------------------
-// Helper Functions
+// Buffs & Debuffs Pools and Modifier Logic
 // -------------------
 
-// returns a random ID string with the given prefix
+// BuffPool contains the possible buffs a crew member can receive
+var BuffPool = []string{
+	"Sharp Shooter",
+	"Quick Reflexes",
+	"Enhanced Strength",
+	"Iron Will",
+	"Expert Navigator",
+}
+
+// DebuffPool contains the possible debuffs a crew member can receive
+var DebuffPool = []string{
+	"Sluggish",
+	"Tired",
+	"Unfocused",
+	"Injured",
+	"Distracted",
+}
+
+// AwardModifier awards a buff or debuff every time the crew member crosses a 10-level threshold
+// For each threshold passed, there is a 60% chance for a buff and a 40% chance for a debuff
+// It returns a receipt message summarizing the awarded modifiers
+func AwardModifier(crew *CrewMember, oldDegree, newDegree int) string {
+	receipt := ""
+	oldThreshold := oldDegree / 10
+	newThreshold := newDegree / 10
+	for i := oldThreshold + 1; i <= newThreshold; i++ {
+		roll := rand.Intn(100)
+		if roll < 60 {
+			buff := BuffPool[rand.Intn(len(BuffPool))]
+			crew.Buffs = append(crew.Buffs, buff)
+			receipt += fmt.Sprintf("Received buff: '%s'\n", buff)
+		} else {
+			debuff := DebuffPool[rand.Intn(len(DebuffPool))]
+			crew.Debuffs = append(crew.Debuffs, debuff)
+			receipt += fmt.Sprintf("Received debuff: '%s'\n", debuff)
+		}
+	}
+	return receipt
+}
+
+// ---------------------
+// Helper Functions
+// ---------------------
+
 func generateRandomID(prefix string) string {
 	return prefix + strconv.Itoa(rand.Intn(1000000))
 }
 
-// DefaultCollection returns a new Collection with preset research note tiers.
 func DefaultCollection() Collection {
 	return Collection{
-		MaxCapacity:  100, // Example capacity; adjust as needed.
+		MaxCapacity:  100,
 		UsedCapacity: 0,
 		Items:        []CollectionItem{},
 		ResearchNotes: []ResearchNoteTier{
@@ -342,12 +357,9 @@ func DefaultCollection() Collection {
 // Full Game Save File Operations
 // ------------------------------
 
-// CreateNewFullGameSave creates a new full game save file using the provided parameters.
 func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error {
 	now := time.Now()
 
-	// Define missions
-	// Hardcoded IDs for now
 	defaultMissions := []Mission{
 		{
 			Step:         0,
@@ -484,7 +496,6 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 		},
 	}
 
-	// Build the full game save structure with default values for a new game.
 	fullSave := FullGameSave{
 		GameTitle: "Project Starbyte",
 		GameMetadata: GameMetadata{
@@ -591,7 +602,8 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 				Morale:          100,
 				Health:          100,
 				MasterWorkLevel: 0,
-				Skills:          Skills{Piloting: 5, Engineering: 1, Combat: 2},
+				Buffs:           []string{},
+				Debuffs:         []string{},
 				AssignedTaskId:  nil,
 			},
 			{
@@ -603,7 +615,8 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 				Morale:          95,
 				Health:          100,
 				MasterWorkLevel: 0,
-				Skills:          Skills{Piloting: 1, Engineering: 5, Combat: 1},
+				Buffs:           []string{},
+				Debuffs:         []string{},
 				AssignedTaskId:  nil,
 			},
 		},
@@ -612,7 +625,6 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 		Collection: DefaultCollection(),
 	}
 
-	// Wrap the save data in an array (slice) as per your JSON structure.
 	saveData := []FullGameSave{fullSave}
 
 	dataBytes, err := json.MarshalIndent(saveData, "", "  ")
@@ -620,7 +632,6 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 		return err
 	}
 
-	// Ensure the directory exists.
 	dir := filepath.Dir(SaveFilePath)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
@@ -629,7 +640,6 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 	return ioutil.WriteFile(SaveFilePath, dataBytes, 0644)
 }
 
-// DefaultFullGameSave returns a default FullGameSave structure with initial "new game" values (Used for creating new game)
 func DefaultFullGameSave() *FullGameSave {
 	now := time.Now()
 
@@ -872,7 +882,8 @@ func DefaultFullGameSave() *FullGameSave {
 				Morale:          100,
 				Health:          100,
 				MasterWorkLevel: 0,
-				Skills:          Skills{Piloting: 5, Engineering: 1, Combat: 2},
+				Buffs:           []string{},
+				Debuffs:         []string{},
 				AssignedTaskId:  nil,
 			},
 			{
@@ -884,7 +895,8 @@ func DefaultFullGameSave() *FullGameSave {
 				Morale:          95,
 				Health:          100,
 				MasterWorkLevel: 0,
-				Skills:          Skills{Piloting: 1, Engineering: 5, Combat: 1},
+				Buffs:           []string{},
+				Debuffs:         []string{},
 				AssignedTaskId:  nil,
 			},
 		},
@@ -898,13 +910,11 @@ func DefaultFullGameSave() *FullGameSave {
 // Save File Operations
 // ---------------------
 
-// SaveExists checks whether a save file already exists.
 func SaveExists() bool {
 	_, err := os.Stat(SaveFilePath)
 	return err == nil
 }
 
-// LoadFullGameSave reads the JSON save file and returns the full game data.
 func LoadFullGameSave() (*FullGameSave, error) {
 	dataBytes, err := ioutil.ReadFile(SaveFilePath)
 	if err != nil {
@@ -920,9 +930,7 @@ func LoadFullGameSave() (*FullGameSave, error) {
 	return &saves[0], nil
 }
 
-// SaveGame writes the current full game save to disk.
 func SaveGame(save *FullGameSave) error {
-	// Wrap the save data in a slice as per your JSON structure.
 	saveData := []FullGameSave{*save}
 
 	dataBytes, err := json.MarshalIndent(saveData, "", "  ")
@@ -930,12 +938,10 @@ func SaveGame(save *FullGameSave) error {
 		return err
 	}
 
-	// Write to a temporary file first.
 	tmpFilePath := SaveFilePath + ".tmp"
 	if err := ioutil.WriteFile(tmpFilePath, dataBytes, 0644); err != nil {
 		return err
 	}
 
-	// Rename temporary file to actual save file.
 	return os.Rename(tmpFilePath, SaveFilePath)
 }

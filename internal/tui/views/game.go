@@ -329,6 +329,10 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return g, utilities.PushSave(g.gameSave, func() {
 			g.syncSaveData() // Sync the save data
 		})
+	case model.CrewUpdateMsg:
+		return g, utilities.PushSave(g.gameSave, func() {
+			g.syncSaveData() // Sync save data after crew upgrade
+		})
 	}
 
 	// (3/3) More updates for the travel component
@@ -602,7 +606,7 @@ func NewGameModel() tea.Model {
 
 	shipModel := model.NewShipModel(fullSave.Ship)
 	shipModel.GameSave = fullSave
-	crewModel := model.NewCrewModel(fullSave.Crew)
+	crewModel := model.NewCrewModel(fullSave.Crew, fullSave)
 	journalModel := model.NewJournalModel()
 	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship)
 	mapModel.GameSave = fullSave                                     // Need this to avoid null pointer
