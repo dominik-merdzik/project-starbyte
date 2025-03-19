@@ -5,16 +5,19 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dominik-merdzik/project-starbyte/internal/data"
 )
 
 type SpaceStationModel struct {
+	Ship       data.Ship
 	Tabs       []string
 	TabContent []string
 	ActiveTab  int
 }
 
-func NewSpaceStationModel() SpaceStationModel {
+func NewSpaceStationModel(ship data.Ship) SpaceStationModel {
 	return SpaceStationModel{
+		Ship:       ship,
 		Tabs:       []string{"Hire Crew", "Missions", "Upgrade Ship", "Refuel"},
 		TabContent: []string{"Hire new crew members.", "Browse available missions.", "Upgrade your ship.", "Refuel before leaving."},
 		ActiveTab:  0,
@@ -23,6 +26,12 @@ func NewSpaceStationModel() SpaceStationModel {
 
 func (m SpaceStationModel) Init() tea.Cmd {
 	return nil
+}
+
+// This signals game.go to update the ships fuel
+// Used when travelling to a planet
+type RefuelUpdateMsg struct {
+	Fuel int
 }
 
 func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -37,6 +46,21 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "q":
 			return m, tea.Quit
+		case "enter":
+			if m.Tabs[m.ActiveTab] == "Refuel" {
+				//refuel(), // Call the refuel function
+				m.Ship.Fuel = m.Ship.MaxFuel
+				return m, tea.Batch(
+					func() tea.Msg {
+						return RefuelUpdateMsg{
+							Fuel: m.Ship.Fuel,
+						}
+					},
+					func() tea.Msg {
+						return tea.KeyMsg{Type: tea.KeyEsc}
+					},
+				)
+			}
 		}
 	}
 
