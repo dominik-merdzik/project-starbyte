@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -22,6 +24,10 @@ type menuModel struct {
 }
 
 func main() {
+
+	// Attempt to resize the terminal window to 1260x900 pixels.
+	// Using an approximate conversion to columns and rows:
+	// Assume 8 pixels per column and 16 pixels per row:
 
 	// Define the relative path to your configuration file
 	configPath := "config/config.toml"
@@ -63,7 +69,7 @@ func main() {
 }
 
 func (m menuModel) Init() tea.Cmd {
-	// no initial commands
+	resizeTerminalWindow(1280, 900)
 	return nil
 }
 
@@ -150,4 +156,30 @@ func (m menuModel) View() string {
 
 	// combine the title and columns
 	return titleView + columns
+}
+
+// TODO: TESTING
+// Winodws - only works using .EXE and if ran with admin privileges
+// Linux - not tested
+// macOS - not tested
+// attempts to resize the terminal window based on the OS
+func resizeTerminalWindow(pixelWidth, pixelHeight int) {
+	cols := pixelWidth / 8
+	rows := pixelHeight / 16
+
+	switch runtime.GOOS {
+	case "windows":
+		// For Windows, we use the built-in "mode" command
+		// This sets the console window's columns and lines
+		cmd := exec.Command("cmd", "/C", "mode", "con:", fmt.Sprintf("cols=%d", cols), fmt.Sprintf("lines=%d", rows))
+		if err := cmd.Run(); err != nil {
+			fmt.Println("Error resizing terminal window on Windows:", err)
+		}
+	case "darwin", "linux":
+		// For macOS (darwin) and Linux, many terminal emulators support ANSI escape sequences
+		// The sequence "\033[8;rows;colst" requests a window resize
+		fmt.Printf("\033[8;%d;%dt", rows, cols)
+	default:
+		fmt.Println("Unsupported platform for terminal resizing.")
+	}
 }
