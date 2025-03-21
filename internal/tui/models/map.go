@@ -35,10 +35,11 @@ type MapModel struct {
 }
 
 // NewMapModel initializes the star system list
-func NewMapModel(gameMap data.GameMap, ship data.Ship) MapModel {
+func NewMapModel(gameMap data.GameMap, ship data.Ship, gameSave *data.FullGameSave) MapModel {
 	return MapModel{
 		GameMap:         gameMap,
 		Ship:            ship, // A copy of the global ship
+		GameSave:        gameSave,
 		SystemCursor:    0,
 		PlanetCursor:    0,
 		ActiveView:      ViewStarSystems,
@@ -154,12 +155,12 @@ func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						Coordinates:    m.SelectedPlanet.Coordinates,
 					}
 
-					// Calculate fuel cost
-					fuelCost := m.locationService.GetFuelCost(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name, m.Ship.EngineHealth)
+					// Calculate fuel after traveling
+					newFuel := m.locationService.GetFuelCost(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name, m.Ship.EngineHealth, m.GameSave.Ship.Fuel)
 
 					// Update ship location and fuel
 					m.Ship.Location = destination
-					m.Ship.Fuel -= fuelCost
+					m.Ship.Fuel = newFuel
 
 					// Return a message to signal an update to the parent state in game.go
 					return m, tea.Batch(
@@ -324,7 +325,7 @@ func (m MapModel) renderPlanetDetails() string {
 	b.WriteString(labelStyle.Render("Coordinates: ") + valueStyle.Render(
 		fmt.Sprintf("(%d, %d, %d)", planet.Coordinates.X, planet.Coordinates.Y, planet.Coordinates.Z)) + "\n")
 	b.WriteString(titleStyle.Render(fmt.Sprintf("Travel Time: %d hours", distance)) + "\n")
-	b.WriteString(titleStyle.Render(fmt.Sprintf("Fuel cost: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name, m.Ship.EngineHealth))))
+	b.WriteString(titleStyle.Render(fmt.Sprintf("Fuel on arrival: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name, m.Ship.EngineHealth, m.GameSave.Ship.Fuel))))
 
 	// Add a divider.
 	divider := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Repeat("─", 28))
@@ -362,7 +363,7 @@ func (m MapModel) renderTravelConfirm() string {
 
 	content.WriteString(fmt.Sprintf("Confirm travel to %s?\n", planet.Name))
 	content.WriteString(fmt.Sprintf("Travel time: %d hours\n", distance))
-	content.WriteString(fmt.Sprintf("Fuel cost: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name, m.Ship.EngineHealth)))
+	content.WriteString(fmt.Sprintf("Fuel on arrival: %d units\n\n", m.locationService.GetFuelCost(m.Ship.Location.Coordinates, planet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name, m.Ship.EngineHealth, m.GameSave.Ship.Fuel)))
 
 	// Travel options.
 	options := []string{"Confirm", "Cancel"}

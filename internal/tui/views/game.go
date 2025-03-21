@@ -335,11 +335,11 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		})
 	case model.RefuelUpdateMsg:
 		g.Ship.EngineFuel = msg.Fuel
-		return g, tea.Batch(
-			utilities.PushSave(g.gameSave, func() {
-				g.syncSaveData() // Sync the save data
-			}),
-		)
+		g.gameSave.Ship.Fuel = msg.Fuel
+		g.syncSaveData() // Sync save data
+		return g, utilities.PushSave(g.gameSave, func() {
+			g.syncSaveData() // Sync the save data
+		})
 	}
 
 	// (3/3) More updates for the travel component
@@ -348,8 +348,9 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if g.Travel.TravelComplete {
 			g.isTravelling = false
 
-			// Subtract fuel (HARDCODED COST FOR NOW)
-			g.Ship.EngineFuel -= g.locationService.GetFuelCost(g.Ship.Location.Coordinates, g.Travel.DestLocation.Coordinates, g.Ship.Location.StarSystemName, g.Travel.DestLocation.StarSystemName, g.Ship.EngineHealth)
+			// Get fuel after traveling
+			var newFuel = g.locationService.GetFuelCost(g.Ship.Location.Coordinates, g.Travel.DestLocation.Coordinates, g.Ship.Location.StarSystemName, g.Travel.DestLocation.StarSystemName, g.Ship.EngineHealth, g.gameSave.Ship.Fuel)
+			g.Ship.EngineFuel = newFuel
 
 			// Always update ship location when travel completes
 			g.Ship.Location = g.Travel.DestLocation
@@ -615,8 +616,8 @@ func NewGameModel() tea.Model {
 	shipModel.GameSave = fullSave
 	crewModel := model.NewCrewModel(fullSave.Crew, fullSave)
 	journalModel := model.NewJournalModel()
-	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship)
-	mapModel.GameSave = fullSave                                     // Need this to avoid null pointer
+	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship, fullSave)
+	//mapModel.GameSave = fullSave  NOT NEEDED ANYMORE               // Need this to avoid null pointer
 	collectionModel := model.NewCollectionModel(fullSave.Collection) // NEW: Initialize Collection model
 	spaceStationModel := model.NewSpaceStationModel(fullSave.Ship)
 
