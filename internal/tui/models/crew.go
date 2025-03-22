@@ -132,8 +132,8 @@ func (c CrewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "research":
 				// build list of available research notes (quantity > 0)
 				availableNotes := []data.ResearchNoteTier{}
-				if c.CrewMembers[c.Cursor].GameSave != nil {
-					for _, note := range c.CrewMembers[c.Cursor].GameSave.Collection.ResearchNotes {
+				if c.GameSave != nil {
+					for _, note := range c.GameSave.Collection.ResearchNotes {
 						if note.Quantity > 0 {
 							availableNotes = append(availableNotes, note)
 						}
@@ -170,43 +170,43 @@ func (c CrewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				case "enter":
 					// apply the selected number of research notes
-					initialDegree := c.CrewMembers[c.Cursor].Degree
+					initialDegree := c.GameSave.Crew[c.Cursor].Degree
 					useCount := c.ResearchUseCount
 					available := availableNotes[c.ResearchPopupCursor].Quantity
 					if useCount > available {
 						useCount = available
 					}
-					c.CrewMembers[c.Cursor].Degree += useCount
+					c.GameSave.Crew[c.Cursor].Degree += useCount
 					// update the game save
-					if c.CrewMembers[c.Cursor].GameSave != nil {
+					if c.GameSave != nil {
 						// update research note quantity
-						for i, note := range c.CrewMembers[c.Cursor].GameSave.Collection.ResearchNotes {
+						for i, note := range c.GameSave.Collection.ResearchNotes {
 							if note.Tier == availableNotes[c.ResearchPopupCursor].Tier {
-								c.CrewMembers[c.Cursor].GameSave.Collection.ResearchNotes[i].Quantity -= useCount
+								c.GameSave.Collection.ResearchNotes[i].Quantity -= useCount
 								break
 							}
 						}
 						// update the crew member in the game save
 						var dataCrew *data.CrewMember
-						for i, savedCrew := range c.CrewMembers[c.Cursor].GameSave.Crew {
-							if savedCrew.CrewId == c.CrewMembers[c.Cursor].CrewId {
-								dataCrew = &c.CrewMembers[c.Cursor].GameSave.Crew[i]
+						for i, savedCrew := range c.GameSave.Crew {
+							if savedCrew.CrewId == c.GameSave.Crew[c.Cursor].CrewId {
+								dataCrew = &c.GameSave.Crew[i]
 								// mirror the new degree
-								c.CrewMembers[c.Cursor].GameSave.Crew[i].Degree = c.CrewMembers[c.Cursor].Degree
+								c.GameSave.Crew[i].Degree = c.GameSave.Crew[c.Cursor].Degree
 								break
 							}
 						}
 						// award modifiers if thresholds were crossed
 						modifierReceipt := ""
 						if dataCrew != nil {
-							modifierReceipt = data.AwardModifier(dataCrew, initialDegree, c.CrewMembers[c.Cursor].Degree)
+							modifierReceipt = data.AwardModifier(dataCrew, initialDegree, c.GameSave.Crew[c.Cursor].Degree)
 							// sync the internal model's Buffs/Debuffs with the saved crew
-							c.CrewMembers[c.Cursor].Buffs = dataCrew.Buffs
-							c.CrewMembers[c.Cursor].Debuffs = dataCrew.Debuffs
+							c.GameSave.Crew[c.Cursor].Buffs = dataCrew.Buffs
+							c.GameSave.Crew[c.Cursor].Debuffs = dataCrew.Debuffs
 						}
-						c.ReceiptMessage = fmt.Sprintf("Degree %d → %d\n%s", initialDegree, c.CrewMembers[c.Cursor].Degree, modifierReceipt)
+						c.ReceiptMessage = fmt.Sprintf("Degree %d → %d\n%s", initialDegree, c.GameSave.Crew[c.Cursor].Degree, modifierReceipt)
 					} else {
-						c.ReceiptMessage = fmt.Sprintf("Degree %d → %d", initialDegree, c.CrewMembers[c.Cursor].Degree)
+						c.ReceiptMessage = fmt.Sprintf("Degree %d → %d", initialDegree, c.GameSave.Crew[c.Cursor].Degree)
 					}
 					c.PopupState = "receipt"
 				case "b":
@@ -271,8 +271,8 @@ func (c CrewModel) renderCrewModal() string {
 		modalContent.WriteString(lipgloss.NewStyle().Bold(true).Render("Select Research Note") + "\n")
 		modalContent.WriteString("(Adjust quantity with ←/→ keys)\n\n")
 		availableNotes := []data.ResearchNoteTier{}
-		if c.CrewMembers[c.Cursor].GameSave != nil {
-			for _, note := range c.CrewMembers[c.Cursor].GameSave.Collection.ResearchNotes {
+		if c.GameSave != nil {
+			for _, note := range c.GameSave.Collection.ResearchNotes {
 				if note.Quantity > 0 {
 					availableNotes = append(availableNotes, note)
 				}

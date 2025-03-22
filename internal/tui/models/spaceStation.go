@@ -49,7 +49,7 @@ func NewSpaceStationModel(ship data.Ship, credits int) SpaceStationModel {
 	}
 
 	if model.Tabs[model.ActiveTab] == "Hire Crew" {
-		model.GeneratedRecruits = generateRandomRecruits(3)
+		model.GeneratedRecruits = generateRandomRecruits(rand.Intn(5) + 1) // Generates random amount of recruits between 1-5
 		model.RecruitCursor = 0
 	}
 
@@ -374,12 +374,7 @@ func (m SpaceStationModel) View() string {
 		}
 
 		// Warning message
-		if m.ErrorMessage != "" {
-			content += "\n\n" + lipgloss.NewStyle().
-				Foreground(lipgloss.Color("9")).
-				Bold(true).
-				Render(m.ErrorMessage)
-		}
+		content += "\n\n" + warningStyle.Render(m.ErrorMessage)
 
 	}
 	// Hire Crew section
@@ -431,6 +426,9 @@ func (m SpaceStationModel) View() string {
 					}
 					return "[Enter] Hire    [Esc] Cancel"
 				}(),
+			}
+			if m.ErrorMessage != "" {
+				lines = append(lines, "", warningStyle.Render(m.ErrorMessage))
 			}
 
 			content = strings.Join(lines, "\n")
@@ -526,7 +524,10 @@ func (m *SpaceStationModel) SetUpgradeLevel(index int, newLevel int) {
 func generateRandomRecruits(n int) []data.CrewMember {
 	// Random list of names (can make bigger)
 	names := []string{
-		"Alice", "Bob", "Junko", "Nash", "Kira", "Talon", "Maeve", "Yuri", "Cass", "Vega",
+		"Alice", "Bob", "Junko", "Nash", "Kira", "Maeve", "Cass", "Yuri", "Andrew", "Dominik", "Khanh", "Theoren",
+		"Vega", "Talon", "Orion", "Lyra", "Zarek", "Nova", "Soren", "Kael", "Vyn", "Thalos", "Riven",
+		"Sylari", "Xan", "Astra", "Zyra", "Nyx", "Thrae", "Ilyon", "Serix", "Kalix", "Liora", "Drayen", "Qira",
+		"Byte", "Echo", "Glim", "Frax", "Zip", "Lumen", "Jett", "Neon", "Plex", "Rune",
 	}
 
 	roles := []string{"Pilot", "Engineer", "Scientist"}
