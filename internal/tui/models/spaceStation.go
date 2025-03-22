@@ -33,10 +33,13 @@ type SpaceStationModel struct {
 	confirmHire       bool
 
 	// Fields for missions
-	MissionTemplates  []data.MissionTemplate
-	StarSystems       []data.StarSystem
-	GeneratedMissions []data.Mission
-	MissionCursor     int
+	MissionTemplates        []data.MissionTemplate
+	StarSystems             []data.StarSystem
+	GeneratedMissions       []data.Mission
+	MissionCursor           int
+	showingMissionDetail    bool
+	confirmingMissionAccept bool
+	receiptMessage          string
 
 	// General fields
 	Credits      int
@@ -91,6 +94,12 @@ type UpgradeUpdateMsg struct {
 type HireCrewMsg struct {
 	Crew    data.CrewMember
 	Credits int
+}
+
+// This signals game.go to update the missions
+// Used when accepting a new mission in space station
+type AcceptMissionMsg struct {
+	Mission data.Mission
 }
 
 func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -207,8 +216,31 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
-			if m.Tabs[m.ActiveTab] == "Missions" {
+			if m.Tabs[m.ActiveTab] == "Missions" && len(m.GeneratedMissions) > 0 {
+				if !m.showingMissionDetail {
+					m.showingMissionDetail = true
+				} else if !m.confirmingMissionAccept {
+					m.confirmingMissionAccept = true
+				} else {
+					selected := m.GeneratedMissions[m.MissionCursor]
 
+					// Remove accepted mission from list
+					m.GeneratedMissions = append(m.GeneratedMissions[:m.MissionCursor], m.GeneratedMissions[m.MissionCursor+1:]...)
+					if m.MissionCursor > 0 {
+						m.MissionCursor--
+					}
+
+					// Reset UI state
+					m.confirmingMissionAccept = false
+					m.showingMissionDetail = false
+
+					// Return the message
+					return m, func() tea.Msg {
+						return AcceptMissionMsg{
+							Mission: selected,
+						}
+					}
+				}
 			}
 		case "esc":
 			if m.refuelConfirm {
@@ -221,6 +253,9 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.confirmHire = false
 			} else if m.showingCrewDetail {
 				m.showingCrewDetail = false
+			}
+			if m.showingMissionDetail {
+				m.showingMissionDetail = false
 			}
 			return m, nil
 
@@ -474,6 +509,45 @@ func (m SpaceStationModel) View() string {
 		content = lipgloss.NewStyle().
 			Padding(1, 2).
 			Render(strings.Join(lines, "\n"))
+
+		// List of detailed mission information
+		if m.showingMissionDetail && len(m.GeneratedMissions) > 0 {
+			mission := m.GeneratedMissions[m.MissionCursor]
+
+			var detailLines []string
+
+			detailLines = append(detailLines,
+				fmt.Sprintf("%s %d", labelStyle.Render("ID:"), mission.Id),
+				fmt.Sprintf("%s %s %s", labelStyle.Render("Location:"), mission.Location.StarSystemName, mission.Location.PlanetName),
+				fmt.Sprintf("%s %d", labelStyle.Render("Coordinates:"), mission.Location.Coordinates),
+				fmt.Sprintf("%s %d¢", labelStyle.Render("Income:"), mission.Income),
+				"",
+				fmt.Sprintf("%s %s", labelStyle.Render("From:"), mission.Received),
+				fmt.Sprintf("%s %s", labelStyle.Render("Category:"), mission.Category),
+				"",
+				fmt.Sprintf("%s %s", labelStyle.Render("Description:"), mission.Description),
+				"",
+				fmt.Sprintf("%s %s", labelStyle.Render("Requirements:"), mission.Requirements),
+				"",
+				fmt.Sprint(labelStyle.Render("Dialogue:")),
+			)
+
+			for _, line := range mission.Dialogue {
+				detailLines = append(detailLines, fmt.Sprintf("\"%s\"", line))
+			}
+
+			if m.confirmingMissionAccept {
+				detailLines = append(detailLines, "[Enter] Confirm Mission    [Esc] Cancel")
+			} else {
+				detailLines = append(detailLines, "[Enter] Accept Mission    [Esc] Close")
+			}
+
+			if m.receiptMessage != "" {
+				detailLines = append(detailLines, "", m.receiptMessage)
+			}
+
+			content = strings.Join(detailLines, "\n")
+		}
 	}
 
 	doc.WriteString(windowStyle.Width((lipgloss.Width(row) - windowStyle.GetHorizontalFrameSize())).Render(content))

@@ -341,6 +341,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Credits
 		g.Credits = msg.Credits
 		g.gameSave.Player.Credits = msg.Credits
+
 		g.syncSaveData() // Sync save data
 		return g, utilities.PushSave(g.gameSave, func() {
 			g.syncSaveData() // Sync the save data
@@ -357,6 +358,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		g.Credits = msg.Credits
 		g.gameSave.Player.Credits = msg.Credits
+
 		g.syncSaveData()
 		return g, utilities.PushSave(g.gameSave, func() {
 			g.syncSaveData()
@@ -365,6 +367,15 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		g.gameSave.Crew = append(g.gameSave.Crew, msg.Crew)
 		g.Credits = msg.Credits
 		g.gameSave.Player.Credits = msg.Credits
+
+		g.syncSaveData()
+		return g, utilities.PushSave(g.gameSave, func() {
+			g.syncSaveData()
+		})
+	case model.AcceptMissionMsg:
+		g.Journal.Missions = append(g.Journal.Missions, msg.Mission)
+		g.gameSave.Missions = append(g.gameSave.Missions, msg.Mission)
+
 		g.syncSaveData()
 		return g, utilities.PushSave(g.gameSave, func() {
 			g.syncSaveData()
