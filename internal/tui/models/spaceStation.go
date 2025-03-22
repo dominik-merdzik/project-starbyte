@@ -30,6 +30,7 @@ type SpaceStationModel struct {
 	GeneratedRecruits []data.CrewMember // Array of procedurally generated options
 	RecruitCursor     int               // Tracks selected crew member
 	showingCrewDetail bool              // True when crew member popup open
+	confirmHire       bool
 
 	// General fields
 	Credits      int
@@ -75,6 +76,13 @@ type UpgradeUpdateMsg struct {
 	UpgradeCursor int
 	NewLevel      int
 	Credits       int
+}
+
+// This signals game.go to update the crew members
+// Used when hiring new crew member in space station
+type HireCrewMsg struct {
+	Crew    data.CrewMember
+	Credits int
 }
 
 func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -159,8 +167,36 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.Tabs[m.ActiveTab] == "Hire Crew" {
 				if !m.showingCrewDetail {
 					m.showingCrewDetail = true
+				} else if !m.confirmHire {
+					m.confirmHire = true
 				} else {
-					// Confirm hire
+					// Confirm the hire
+					recruit := m.GeneratedRecruits[m.RecruitCursor]
+					cost := getHireCost(recruit.Degree, string(recruit.Role))
+
+					// Not enough credits
+					if m.Credits < cost {
+						m.confirmHire = false
+						m.ErrorMessage = "Not enough credits!"
+						return m, nil
+					}
+
+					m.Credits -= cost
+
+					// Remove from recruit list
+					m.GeneratedRecruits = append(m.GeneratedRecruits[:m.RecruitCursor], m.GeneratedRecruits[m.RecruitCursor+1:]...)
+					if m.RecruitCursor > 0 {
+						m.RecruitCursor--
+					}
+					m.confirmHire = false
+					m.showingCrewDetail = false
+
+					return m, func() tea.Msg {
+						return HireCrewMsg{
+							Crew:    recruit,
+							Credits: m.Credits,
+						}
+					}
 				}
 			}
 		case "esc":
@@ -170,7 +206,9 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.refuelMode = false
 				m.desiredFuel = 0
 			}
-			if m.Tabs[m.ActiveTab] == "Hire Crew" && m.showingCrewDetail {
+			if m.confirmHire {
+				m.confirmHire = false
+			} else if m.showingCrewDetail {
 				m.showingCrewDetail = false
 			}
 			return m, nil
@@ -385,8 +423,14 @@ func (m SpaceStationModel) View() string {
 				"",
 				fmt.Sprintf("%s %s", labelStyle.Render("Buffs:"), r.Buffs),
 				fmt.Sprintf("%s %s", labelStyle.Render("Debuffs:"), r.Debuffs),
+				fmt.Sprintf("%s %d", labelStyle.Render("Hire Cost:"), getHireCost(r.Degree, string(r.Role))),
 				"",
-				"[Esc] Close",
+				func() string {
+					if m.confirmHire {
+						return "[Enter] Confirm Hire    [Esc] Cancel"
+					}
+					return "[Enter] Hire    [Esc] Cancel"
+				}(),
 			}
 
 			content = strings.Join(lines, "\n")
@@ -521,4 +565,21 @@ func generateRandomRecruits(n int) []data.CrewMember {
 	}
 
 	return recruits
+}
+
+// Calculates hire cost of crew member and returns cost
+func getHireCost(degree int, role string) int {
+	var roleMult int
+	switch {
+	case role == "Pilot":
+		roleMult = 3
+	case role == "Engineer":
+		roleMult = 2
+	case role == "Scientist":
+		roleMult = 4
+	default:
+		roleMult = 1
+	}
+
+	return (100 * roleMult) * degree
 }

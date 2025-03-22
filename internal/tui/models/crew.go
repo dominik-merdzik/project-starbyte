@@ -34,13 +34,14 @@ type CrewUpdateMsg struct{}
 type CrewModel struct {
 	CrewMembers         []CrewMember
 	Cursor              int
-	PopupActive         bool     // whether a modal is open
-	PopupState          string   // "main", "research", or "receipt"
-	PopupOptions        []string // options in the main modal
-	PopupCursor         int      // cursor for main modal selection
-	ResearchPopupCursor int      // cursor for research notes selection
-	ResearchUseCount    int      // how many research notes to use
-	ReceiptMessage      string   // message to show after applying research
+	PopupActive         bool               // whether a modal is open
+	PopupState          string             // "main", "research", or "receipt"
+	PopupOptions        []string           // options in the main modal
+	PopupCursor         int                // cursor for main modal selection
+	ResearchPopupCursor int                // cursor for research notes selection
+	ResearchUseCount    int                // how many research notes to use
+	ReceiptMessage      string             // message to show after applying research
+	GameSave            *data.FullGameSave // Updating crew list after hiring new member
 }
 
 func (c CrewModel) Init() tea.Cmd {
@@ -76,6 +77,7 @@ func NewCrewModel(savedCrew []data.CrewMember, save *data.FullGameSave) CrewMode
 		ResearchPopupCursor: 0,
 		ResearchUseCount:    0,
 		ReceiptMessage:      "",
+		GameSave:            save,
 	}
 }
 
@@ -103,7 +105,7 @@ func (c CrewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						c.PopupCursor--
 					}
 				case "down", "j":
-					if c.PopupCursor < len(c.PopupOptions)-1 {
+					if c.PopupCursor < len(c.GameSave.Crew)-1 {
 						c.PopupCursor++
 					}
 				case "enter":
@@ -220,7 +222,7 @@ func (c CrewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					c.Cursor--
 				}
 			case "down", "j":
-				if c.Cursor < len(c.CrewMembers)-1 {
+				if c.Cursor < len(c.GameSave.Crew)-1 {
 					c.Cursor++
 				}
 			case "enter":
@@ -301,7 +303,7 @@ func (c CrewModel) View() string {
 
 	// left panel: render each crew member in their own container
 	var crewContainers []string
-	for i, crew := range c.CrewMembers {
+	for i, crew := range c.GameSave.Crew {
 		var containerStyle lipgloss.Style
 		if i == c.Cursor {
 			containerStyle = lipgloss.NewStyle().
@@ -334,10 +336,10 @@ func (c CrewModel) View() string {
 	labelStyle := lipgloss.NewStyle().Bold(true)
 
 	var crewDetails strings.Builder
-	if len(c.CrewMembers) > 0 {
-		crew := c.CrewMembers[c.Cursor]
+	if len(c.GameSave.Crew) > 0 {
+		crew := c.GameSave.Crew[c.Cursor]
 		crewDetails.WriteString(titleStyle.Render(crew.Name) + "\n")
-		crewDetails.WriteString(labelStyle.Render("Role: ") + crew.Role + "\n")
+		crewDetails.WriteString(labelStyle.Render("Role: ") + string(crew.Role) + "\n")
 		crewDetails.WriteString(labelStyle.Render("Degree: ") + fmt.Sprintf("%d", crew.Degree) + "\n")
 		crewDetails.WriteString(labelStyle.Render("Experience: ") + fmt.Sprintf("%d", crew.Experience) + "\n")
 		crewDetails.WriteString(labelStyle.Render("Master Work Level: ") + fmt.Sprintf("%d", crew.MasterWorkLevel) + "\n")

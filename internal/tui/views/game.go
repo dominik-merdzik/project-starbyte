@@ -360,6 +360,14 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return g, utilities.PushSave(g.gameSave, func() {
 			g.syncSaveData()
 		})
+	case model.HireCrewMsg:
+		g.gameSave.Crew = append(g.gameSave.Crew, msg.Crew)
+		g.Credits = msg.Credits
+		g.gameSave.Player.Credits = msg.Credits
+		g.syncSaveData()
+		return g, utilities.PushSave(g.gameSave, func() {
+			g.syncSaveData()
+		})
 
 	}
 
