@@ -334,8 +334,12 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.syncSaveData() // Sync save data after crew upgrade
 		})
 	case model.RefuelUpdateMsg:
+		// Fuel
 		g.Ship.EngineFuel = msg.Fuel
 		g.gameSave.Ship.Fuel = msg.Fuel
+		// Credits
+		g.Credits = msg.Credits
+		g.gameSave.Player.Credits = msg.Credits
 		g.syncSaveData() // Sync save data
 		return g, utilities.PushSave(g.gameSave, func() {
 			g.syncSaveData() // Sync the save data
@@ -619,7 +623,7 @@ func NewGameModel() tea.Model {
 	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship, fullSave)
 	//mapModel.GameSave = fullSave  NOT NEEDED ANYMORE               // Need this to avoid null pointer
 	collectionModel := model.NewCollectionModel(fullSave.Collection) // NEW: Initialize Collection model
-	spaceStationModel := model.NewSpaceStationModel(fullSave.Ship)
+	spaceStationModel := model.NewSpaceStationModel(fullSave.Ship, fullSave.Player.Credits)
 
 	return GameModel{
 		ProgressBar:      components.NewProgressBar(),
