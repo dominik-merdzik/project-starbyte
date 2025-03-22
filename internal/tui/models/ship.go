@@ -211,9 +211,9 @@ func (s ShipModel) View() string {
 	// upgrades
 	extraDetails.WriteString(fmt.Sprintf("%s: Engine %d/%d, Weapon %d/%d, Cargo %d/%d\n",
 		labelStyle.Render("Upgrades"),
-		s.Upgrades.Engine.CurrentLevel, s.Upgrades.Engine.MaxLevel,
-		s.Upgrades.WeaponSystems.CurrentLevel, s.Upgrades.WeaponSystems.MaxLevel,
-		s.Upgrades.CargoExpansion.CurrentLevel, s.Upgrades.CargoExpansion.MaxLevel))
+		s.GameSave.Ship.Upgrades.Engine.CurrentLevel, s.Upgrades.Engine.MaxLevel,
+		s.GameSave.Ship.Upgrades.WeaponSystems.CurrentLevel, s.Upgrades.WeaponSystems.MaxLevel,
+		s.GameSave.Ship.Upgrades.CargoExpansion.CurrentLevel, s.Upgrades.CargoExpansion.MaxLevel))
 
 	extraPanelStyle := lipgloss.NewStyle().
 		Width(60).

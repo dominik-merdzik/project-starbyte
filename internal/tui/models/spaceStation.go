@@ -19,9 +19,16 @@ type SpaceStationModel struct {
 	refuelMode    bool
 	refuelConfirm bool
 	desiredFuel   int
+	fuelPrice     int
 
-	Credits   int
-	fuelPrice int
+	// Fields for upgrade
+	upgradeCursor  int // Tracks which upgrade is selected
+	upgradeConfirm bool
+
+	// General fields
+	Credits      int
+	ErrorMessage string // Stores feedback
+
 }
 
 func NewSpaceStationModel(ship data.Ship, credits int) SpaceStationModel {
@@ -29,11 +36,14 @@ func NewSpaceStationModel(ship data.Ship, credits int) SpaceStationModel {
 		Ship:       ship,
 		Credits:    credits,
 		Tabs:       []string{"Hire Crew", "Missions", "Upgrade Ship", "Refuel"},
-		TabContent: []string{"Hire new crew members.", "Browse available missions.", "Upgrade your ship.", "Refuel before leaving."},
+		TabContent: []string{"Hire new crew members.", "Browse available missions.", "Upgrade your ship.", "Refuel before leaving. [Enter]"},
 		ActiveTab:  0,
 		fuelPrice:  5,
 	}
 }
+
+// Global variable for base prices for ship upgrades
+var baseUpgradeCosts = []int{100, 200, 300} // Engine, Weapons, Cargo
 
 func (m SpaceStationModel) Init() tea.Cmd {
 	return nil
@@ -44,6 +54,14 @@ func (m SpaceStationModel) Init() tea.Cmd {
 type RefuelUpdateMsg struct {
 	Fuel    int
 	Credits int
+}
+
+// This signals game.go to update the ships upgrades
+// Used when upgrading in space station
+type UpgradeUpdateMsg struct {
+	UpgradeCursor int
+	NewLevel      int
+	Credits       int
 }
 
 func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -104,6 +122,29 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			}
+			if m.Tabs[m.ActiveTab] == "Upgrade Ship" {
+				if !m.upgradeConfirm {
+					m.upgradeConfirm = true // Confirm mode
+				} else {
+					// Apply the upgrade
+					success := m.ApplyUpgrade(m.upgradeCursor)
+					m.upgradeConfirm = false // Exit confirm mode
+					if success {
+						return m, tea.Batch(
+							func() tea.Msg {
+								return UpgradeUpdateMsg{
+									UpgradeCursor: m.upgradeCursor,
+									NewLevel:      m.GetUpgradeLevel(m.upgradeCursor),
+									Credits:       m.Credits,
+								}
+							},
+							func() tea.Msg {
+								return tea.KeyMsg{Type: tea.KeyEsc}
+							},
+						)
+					}
+				}
+			}
 		case "esc":
 			if m.refuelConfirm {
 				m.refuelConfirm = false
@@ -113,17 +154,27 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 
-		// Increase fuel
 		case "up", "k":
+			// Increase fuel
 			if m.refuelMode && !m.refuelConfirm {
 				m.desiredFuel = min(m.desiredFuel+1, m.Ship.MaxFuel-m.Ship.Fuel)
 			}
+			// Higher upgrade in list
+			if m.Tabs[m.ActiveTab] == "Upgrade Ship" {
+				m.upgradeCursor = max(m.upgradeCursor-1, 0)
+				m.ErrorMessage = ""
+			}
 			return m, nil
 
-		// Decrease fuel
 		case "down", "j":
+			// Decrease fuel
 			if m.refuelMode && !m.refuelConfirm {
 				m.desiredFuel = max(m.desiredFuel-1, 1)
+			}
+			// Lower upgrade in list
+			if m.Tabs[m.ActiveTab] == "Upgrade Ship" {
+				m.upgradeCursor = min(m.upgradeCursor+1, 2)
+				m.ErrorMessage = ""
 			}
 			return m, nil
 		}
@@ -209,6 +260,61 @@ func (m SpaceStationModel) View() string {
 	} else {
 		content = m.TabContent[m.ActiveTab]
 	}
+	// Upgrade section
+	if m.Tabs[m.ActiveTab] == "Upgrade Ship" {
+		var upgradeList []string
+		upgradeNames := []string{"Engine", "Weapon Systems", "Cargo Expansion"}
+
+		for i, name := range upgradeNames {
+			level := m.GetUpgradeLevel(i)
+			var line string
+
+			// Show maxed out message
+			if level >= 5 {
+				line = fmt.Sprintf("%s (Lv %d) - MAXED OUT", name, level)
+			} else {
+				cost := baseUpgradeCosts[i] * (level + 1)
+				line = fmt.Sprintf("%s (Lv %d) - Cost: %d¢", name, level, cost)
+			}
+
+			// Highlight selected
+			if i == m.upgradeCursor {
+				line = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("215")).Render("> " + line)
+			}
+
+			upgradeList = append(upgradeList, line)
+		}
+
+		content = strings.Join(upgradeList, "\n")
+
+		// Show confirmation message
+		if m.upgradeConfirm {
+			level := m.GetUpgradeLevel(m.upgradeCursor)
+			if level >= 5 {
+				content += "\n\n" + lipgloss.NewStyle().
+					Foreground(lipgloss.Color("8")).
+					Italic(true).
+					Render("This upgrade is already at maximum level.")
+			} else {
+				content += fmt.Sprintf(
+					"\n\nConfirm upgrading %s to Lv %d for %d¢?\n[Enter] Confirm  [Esc] Cancel",
+					upgradeNames[m.upgradeCursor],
+					level+1,
+					baseUpgradeCosts[m.upgradeCursor]*(level+1),
+				)
+			}
+		}
+
+		// Warning message
+		if m.ErrorMessage != "" {
+			content += "\n\n" + lipgloss.NewStyle().
+				Foreground(lipgloss.Color("9")).
+				Bold(true).
+				Render(m.ErrorMessage)
+		}
+
+	}
+
 	doc.WriteString(windowStyle.Width((lipgloss.Width(row) - windowStyle.GetHorizontalFrameSize())).Render(content))
 	return docStyle.Render(doc.String())
 }
@@ -235,4 +341,57 @@ func (m *SpaceStationModel) SpendCredits(amount int) bool {
 		return true
 	}
 	return false // Return false if player does not have enough
+}
+
+//***************************************
+//        Upgrade functions
+//***************************************
+
+// Applies upgrades to the ship
+func (m *SpaceStationModel) ApplyUpgrade(index int) bool {
+	currentLevel := m.GetUpgradeLevel(index)
+
+	if currentLevel >= 5 {
+		m.ErrorMessage = "Already maxed out!"
+		return false
+	}
+
+	// Calc cost
+	cost := baseUpgradeCosts[index] * (currentLevel + 1)
+
+	// Check if player has enough credits
+	if !m.SpendCredits(cost) {
+		m.ErrorMessage = "Not enough credits!"
+		return false
+	}
+
+	// Apply upgrade
+	m.SetUpgradeLevel(index, currentLevel+1)
+	return true
+}
+
+// Returns the upgrade level for each module
+func (m *SpaceStationModel) GetUpgradeLevel(index int) int {
+	switch index {
+	case 0:
+		return m.Ship.Upgrades.Engine.CurrentLevel
+	case 1:
+		return m.Ship.Upgrades.WeaponSystems.CurrentLevel
+	case 2:
+		return m.Ship.Upgrades.CargoExpansion.CurrentLevel
+	default:
+		return 0
+	}
+}
+
+// Sets the upgrade level for each module
+func (m *SpaceStationModel) SetUpgradeLevel(index int, newLevel int) {
+	switch index {
+	case 0:
+		m.Ship.Upgrades.Engine.CurrentLevel = newLevel
+	case 1:
+		m.Ship.Upgrades.WeaponSystems.CurrentLevel = newLevel
+	case 2:
+		m.Ship.Upgrades.CargoExpansion.CurrentLevel = newLevel
+	}
 }

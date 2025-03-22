@@ -344,6 +344,23 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return g, utilities.PushSave(g.gameSave, func() {
 			g.syncSaveData() // Sync the save data
 		})
+	case model.UpgradeUpdateMsg:
+		switch msg.UpgradeCursor {
+		case 0:
+			g.gameSave.Ship.Upgrades.Engine.CurrentLevel = msg.NewLevel
+		case 1:
+			g.gameSave.Ship.Upgrades.WeaponSystems.CurrentLevel = msg.NewLevel
+		case 2:
+			g.gameSave.Ship.Upgrades.CargoExpansion.CurrentLevel = msg.NewLevel
+		}
+
+		g.Credits = msg.Credits
+		g.gameSave.Player.Credits = msg.Credits
+		g.syncSaveData()
+		return g, utilities.PushSave(g.gameSave, func() {
+			g.syncSaveData()
+		})
+
 	}
 
 	// (3/3) More updates for the travel component
