@@ -32,20 +32,28 @@ type SpaceStationModel struct {
 	showingCrewDetail bool              // True when crew member popup open
 	confirmHire       bool
 
+	// Fields for missions
+	MissionTemplates  []data.MissionTemplate
+	StarSystems       []data.StarSystem
+	GeneratedMissions []data.Mission
+	MissionCursor     int
+
 	// General fields
 	Credits      int
 	ErrorMessage string // Stores feedback
-
 }
 
-func NewSpaceStationModel(ship data.Ship, credits int) SpaceStationModel {
+func NewSpaceStationModel(ship data.Ship, credits int, missionTemplates []data.MissionTemplate, starSystems []data.StarSystem) SpaceStationModel {
 	model := SpaceStationModel{
-		Ship:       ship,
-		Credits:    credits,
-		Tabs:       []string{"Hire Crew", "Missions", "Upgrade Ship", "Refuel"},
-		TabContent: []string{"Hire new crew members.", "Browse available missions.", "Upgrade your ship.", "Refuel before leaving. [Enter]"},
-		ActiveTab:  0,
-		fuelPrice:  5,
+		Ship:              ship,
+		Credits:           credits,
+		Tabs:              []string{"Hire Crew", "Missions", "Upgrade Ship", "Refuel"},
+		TabContent:        []string{"Hire new crew members.", "Browse available missions.", "Upgrade your ship.", "Refuel before leaving. [Enter]"},
+		ActiveTab:         0,
+		fuelPrice:         5,
+		MissionTemplates:  missionTemplates,
+		StarSystems:       starSystems,
+		GeneratedMissions: GenerateStationMissions(3, missionTemplates, starSystems), // Generate on load
 	}
 
 	if model.Tabs[model.ActiveTab] == "Hire Crew" {
@@ -199,6 +207,9 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
+			if m.Tabs[m.ActiveTab] == "Missions" {
+
+			}
 		case "esc":
 			if m.refuelConfirm {
 				m.refuelConfirm = false
@@ -227,6 +238,10 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.Tabs[m.ActiveTab] == "Hire Crew" && len(m.GeneratedRecruits) > 0 {
 				m.RecruitCursor = max(m.RecruitCursor-1, 0)
 			}
+			// Higher mission in list
+			if m.Tabs[m.ActiveTab] == "Missions" && m.MissionCursor > 0 {
+				m.MissionCursor--
+			}
 			return m, nil
 
 		case "down", "j":
@@ -242,6 +257,10 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Lower crew member in list
 			if m.Tabs[m.ActiveTab] == "Hire Crew" && len(m.GeneratedRecruits) > 0 {
 				m.RecruitCursor = min(m.RecruitCursor+1, len(m.GeneratedRecruits)-1)
+			}
+			// Lower mission in list
+			if m.Tabs[m.ActiveTab] == "Missions" && m.MissionCursor < len(m.GeneratedMissions)-1 {
+				m.MissionCursor++
 			}
 			return m, nil
 		}
@@ -379,29 +398,27 @@ func (m SpaceStationModel) View() string {
 	}
 	// Hire Crew section
 	if m.Tabs[m.ActiveTab] == "Hire Crew" {
-		if m.Tabs[m.ActiveTab] == "Hire Crew" {
-			var recruitLines []string
+		var recruitLines []string
 
-			// Display list of recruits with name, role and degree
-			for i, r := range m.GeneratedRecruits {
-				line := fmt.Sprintf("%-10s  %s ~ Degree %d", r.Name, r.Role, r.Degree)
+		// Display list of recruits with name, role and degree
+		for i, r := range m.GeneratedRecruits {
+			line := fmt.Sprintf("%-10s  %s ~ Degree %d", r.Name, r.Role, r.Degree)
 
-				if i == m.RecruitCursor {
-					line = lipgloss.NewStyle().
-						Bold(true).
-						Foreground(lipgloss.Color("33")).
-						Render("> " + line)
-				} else {
-					line = "  " + line
-				}
-
-				recruitLines = append(recruitLines, line)
+			if i == m.RecruitCursor {
+				line = lipgloss.NewStyle().
+					Bold(true).
+					Foreground(lipgloss.Color("33")).
+					Render("> " + line)
+			} else {
+				line = "  " + line
 			}
 
-			content = lipgloss.NewStyle().
-				Padding(1, 2).
-				Render(strings.Join(recruitLines, "\n"))
+			recruitLines = append(recruitLines, line)
 		}
+
+		content = lipgloss.NewStyle().
+			Padding(1, 2).
+			Render(strings.Join(recruitLines, "\n"))
 
 		// List of detailed crew member information
 		if m.showingCrewDetail && len(m.GeneratedRecruits) > 0 {
@@ -433,6 +450,30 @@ func (m SpaceStationModel) View() string {
 
 			content = strings.Join(lines, "\n")
 		}
+	}
+	// Mission section
+	if m.Tabs[m.ActiveTab] == "Missions" {
+		var lines []string
+
+		// Display list of missions and incomes
+		for i, mission := range m.GeneratedMissions {
+			line := fmt.Sprintf("%-25s %6d¢", mission.Title, mission.Income)
+
+			if i == m.MissionCursor {
+				line = lipgloss.NewStyle().
+					Bold(true).
+					Foreground(lipgloss.Color("213")).
+					Render("> " + line)
+			} else {
+				line = "  " + line
+			}
+
+			lines = append(lines, line)
+		}
+
+		content = lipgloss.NewStyle().
+			Padding(1, 2).
+			Render(strings.Join(lines, "\n"))
 	}
 
 	doc.WriteString(windowStyle.Width((lipgloss.Width(row) - windowStyle.GetHorizontalFrameSize())).Render(content))
@@ -583,4 +624,21 @@ func getHireCost(degree int, role string) int {
 	}
 
 	return (100 * roleMult) * degree
+}
+
+// ***************************************
+//
+//	Mission functions
+//
+// ***************************************
+func GenerateStationMissions(n int, templates []data.MissionTemplate, systems []data.StarSystem) []data.Mission {
+	planets := data.FlattenPlanetsWithSystems(systems)
+
+	var missions []data.Mission
+	for i := 0; i < n; i++ {
+		m := data.GenerateMissionFromTemplate(i, templates, planets)
+		missions = append(missions, m)
+	}
+
+	return missions
 }

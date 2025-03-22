@@ -1,0 +1,69 @@
+{
+  "missions": [
+    {
+      "Id": 0,
+      "Title": "Rescue Mission",
+      "Description": "Rescue a stranded astronaut on a rogue asteroid.",
+      "Requirements": "Pilot",
+      "Received": "Commander Vega",
+      "Category": "Main",
+      "Dialogue": [
+        "Commander, we\u2019ve received a distress signal from the outer asteroid belt.",
+        "There\u2019s a lone astronaut stranded out there.",
+        "Get them home safely."
+      ]
+    },
+    {
+      "Id": 1,
+      "Title": "Cargo Delivery",
+      "Description": "Deliver essential supplies to a starving outpost.",
+      "Requirements": "Engineer",
+      "Received": "Guildmaster Rallis",
+      "Category": "Side",
+      "Dialogue": [
+        "The Hadrin Outpost is on the brink of collapse.",
+        "We need someone dependable to get these supplies through.",
+        "You\u2019ll be compensated generously."
+      ]
+    },
+    {
+      "Id": 2,
+      "Title": "Anomaly Scan",
+      "Description": "Investigate an unusual energy reading near a derelict station.",
+      "Requirements": "Scientist",
+      "Received": "Archivist Thren",
+      "Category": "Research",
+      "Dialogue": [
+        "An anomaly has appeared in sector 9-B.",
+        "Its readings match pre-Fall tech.",
+        "Document everything and bring back samples."
+      ]
+    },
+    {
+      "Id": 3,
+      "Title": "Bounty Hunt",
+      "Description": "Track and eliminate the pirate Lorik Kane.",
+      "Requirements": "Weapon Specialist",
+      "Received": "Admiral Castor",
+      "Category": "Combat",
+      "Dialogue": [
+        "Lorik Kane has eluded us for years.",
+        "He\u2019s resurfaced near the border fringe.",
+        "Bring me his ship. Wrecked or intact."
+      ]
+    },
+    {
+      "Id": 4,
+      "Title": "Research Recovery",
+      "Description": "Recover stolen data from a compromised lab.",
+      "Requirements": "Any Crew",
+      "Received": "Dr. Nella Trask",
+      "Category": "Main",
+      "Dialogue": [
+        "A black ops team hit our deep-lab near Soras IV.",
+        "They took everything and left traps behind.",
+        "Recover the drives. And don\u2019t get caught."
+      ]
+    }
+  ]
+}

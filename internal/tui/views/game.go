@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -641,6 +642,12 @@ func NewGameModel() tea.Model {
 	currentHealth := fullSave.Ship.HullIntegrity
 	maxHealth := fullSave.Ship.MaxHullIntegrity
 
+	// Load mission templates file
+	missionTemplates, err := data.LoadMissionTemplates("temp/mission_templates.json")
+	if err != nil {
+		log.Fatal("Failed to load mission templates:", err)
+	}
+
 	shipModel := model.NewShipModel(fullSave.Ship)
 	shipModel.GameSave = fullSave
 	crewModel := model.NewCrewModel(fullSave.Crew, fullSave)
@@ -648,7 +655,7 @@ func NewGameModel() tea.Model {
 	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship, fullSave)
 	//mapModel.GameSave = fullSave  NOT NEEDED ANYMORE               // Need this to avoid null pointer
 	collectionModel := model.NewCollectionModel(fullSave.Collection) // NEW: Initialize Collection model
-	spaceStationModel := model.NewSpaceStationModel(fullSave.Ship, fullSave.Player.Credits)
+	spaceStationModel := model.NewSpaceStationModel(fullSave.Ship, fullSave.Player.Credits, missionTemplates, fullSave.GameMap.StarSystems)
 
 	return GameModel{
 		ProgressBar:      components.NewProgressBar(),
