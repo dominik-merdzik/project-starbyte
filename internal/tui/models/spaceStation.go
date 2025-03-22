@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -25,6 +26,11 @@ type SpaceStationModel struct {
 	upgradeCursor  int // Tracks which upgrade is selected
 	upgradeConfirm bool
 
+	// Fields for crew member
+	GeneratedRecruits []data.CrewMember // Array of procedurally generated options
+	RecruitCursor     int               // Tracks selected crew member
+	showingCrewDetail bool              // True when crew member popup open
+
 	// General fields
 	Credits      int
 	ErrorMessage string // Stores feedback
@@ -32,7 +38,7 @@ type SpaceStationModel struct {
 }
 
 func NewSpaceStationModel(ship data.Ship, credits int) SpaceStationModel {
-	return SpaceStationModel{
+	model := SpaceStationModel{
 		Ship:       ship,
 		Credits:    credits,
 		Tabs:       []string{"Hire Crew", "Missions", "Upgrade Ship", "Refuel"},
@@ -40,6 +46,13 @@ func NewSpaceStationModel(ship data.Ship, credits int) SpaceStationModel {
 		ActiveTab:  0,
 		fuelPrice:  5,
 	}
+
+	if model.Tabs[model.ActiveTab] == "Hire Crew" {
+		model.GeneratedRecruits = generateRandomRecruits(3)
+		model.RecruitCursor = 0
+	}
+
+	return model
 }
 
 // Global variable for base prices for ship upgrades
@@ -78,8 +91,6 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.ActiveTab = max(m.ActiveTab-1, 0)
 			}
 			return m, nil
-		case "q":
-			return m, tea.Quit
 		case "enter":
 			if m.Tabs[m.ActiveTab] == "Refuel" {
 				if !m.refuelMode {
@@ -145,12 +156,22 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
+			if m.Tabs[m.ActiveTab] == "Hire Crew" {
+				if !m.showingCrewDetail {
+					m.showingCrewDetail = true
+				} else {
+					// Confirm hire
+				}
+			}
 		case "esc":
 			if m.refuelConfirm {
 				m.refuelConfirm = false
 			} else if m.refuelMode {
 				m.refuelMode = false
 				m.desiredFuel = 0
+			}
+			if m.Tabs[m.ActiveTab] == "Hire Crew" && m.showingCrewDetail {
+				m.showingCrewDetail = false
 			}
 			return m, nil
 
@@ -164,6 +185,10 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.upgradeCursor = max(m.upgradeCursor-1, 0)
 				m.ErrorMessage = ""
 			}
+			// Higher crew member in list
+			if m.Tabs[m.ActiveTab] == "Hire Crew" && len(m.GeneratedRecruits) > 0 {
+				m.RecruitCursor = max(m.RecruitCursor-1, 0)
+			}
 			return m, nil
 
 		case "down", "j":
@@ -175,6 +200,10 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.Tabs[m.ActiveTab] == "Upgrade Ship" {
 				m.upgradeCursor = min(m.upgradeCursor+1, 2)
 				m.ErrorMessage = ""
+			}
+			// Lower crew member in list
+			if m.Tabs[m.ActiveTab] == "Hire Crew" && len(m.GeneratedRecruits) > 0 {
+				m.RecruitCursor = min(m.RecruitCursor+1, len(m.GeneratedRecruits)-1)
 			}
 			return m, nil
 		}
@@ -201,6 +230,7 @@ var (
 	windowStyle       = lipgloss.NewStyle().BorderForeground(highlightColor).Padding(2, 0).Align(lipgloss.Center).Border(lipgloss.NormalBorder()).UnsetBorderTop()
 	docStyle          = lipgloss.NewStyle().Padding(1, 2, 1, 2)
 	warningStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
+	labelStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("33")).Bold(true)
 )
 
 func (m SpaceStationModel) View() string {
@@ -314,6 +344,54 @@ func (m SpaceStationModel) View() string {
 		}
 
 	}
+	// Hire Crew section
+	if m.Tabs[m.ActiveTab] == "Hire Crew" {
+		if m.Tabs[m.ActiveTab] == "Hire Crew" {
+			var recruitLines []string
+
+			// Display list of recruits with name, role and degree
+			for i, r := range m.GeneratedRecruits {
+				line := fmt.Sprintf("%-10s  %s ~ Degree %d", r.Name, r.Role, r.Degree)
+
+				if i == m.RecruitCursor {
+					line = lipgloss.NewStyle().
+						Bold(true).
+						Foreground(lipgloss.Color("33")).
+						Render("> " + line)
+				} else {
+					line = "  " + line
+				}
+
+				recruitLines = append(recruitLines, line)
+			}
+
+			content = lipgloss.NewStyle().
+				Padding(1, 2).
+				Render(strings.Join(recruitLines, "\n"))
+		}
+
+		// List of detailed crew member information
+		if m.showingCrewDetail && len(m.GeneratedRecruits) > 0 {
+			r := m.GeneratedRecruits[m.RecruitCursor]
+
+			lines := []string{
+				fmt.Sprintf("%s %s", labelStyle.Render("Name:"), r.Name),
+				fmt.Sprintf("%s %s", labelStyle.Render("Role:"), r.Role),
+				fmt.Sprintf("%s %d", labelStyle.Render("Degree:"), r.Degree),
+				fmt.Sprintf("%s %d", labelStyle.Render("Experience:"), r.Experience),
+				fmt.Sprintf("%s %d", labelStyle.Render("Master Work Level:"), r.MasterWorkLevel),
+				fmt.Sprintf("%s %d", labelStyle.Render("Morale:"), r.Morale),
+				fmt.Sprintf("%s %d", labelStyle.Render("Health:"), r.Health),
+				"",
+				fmt.Sprintf("%s %s", labelStyle.Render("Buffs:"), r.Buffs),
+				fmt.Sprintf("%s %s", labelStyle.Render("Debuffs:"), r.Debuffs),
+				"",
+				"[Esc] Close",
+			}
+
+			content = strings.Join(lines, "\n")
+		}
+	}
 
 	doc.WriteString(windowStyle.Width((lipgloss.Width(row) - windowStyle.GetHorizontalFrameSize())).Render(content))
 	return docStyle.Render(doc.String())
@@ -394,4 +472,53 @@ func (m *SpaceStationModel) SetUpgradeLevel(index int, newLevel int) {
 	case 2:
 		m.Ship.Upgrades.CargoExpansion.CurrentLevel = newLevel
 	}
+}
+
+//***************************************
+//        Crew functions
+//***************************************
+
+// Generates random recruits
+func generateRandomRecruits(n int) []data.CrewMember {
+	// Random list of names (can make bigger)
+	names := []string{
+		"Alice", "Bob", "Junko", "Nash", "Kira", "Talon", "Maeve", "Yuri", "Cass", "Vega",
+	}
+
+	roles := []string{"Pilot", "Engineer", "Scientist"}
+
+	// Generate n number of recruits
+	recruits := make([]data.CrewMember, 0, n)
+	for i := 0; i < n; i++ {
+		name := names[rand.Intn(len(names))]
+		role := roles[rand.Intn(len(roles))]
+
+		degree := 1 // 60% chance of degree 1
+		roll := rand.Intn(100)
+		if roll > 90 { // 10% chance of degree 3
+			degree = 3
+		} else if roll > 60 { // 30% chance of degree 2
+			degree = 2
+		}
+
+		id := fmt.Sprintf("CREW_%06d", rand.Intn(999999))
+
+		recruit := data.CrewMember{
+			CrewId:          id,
+			Name:            name,
+			Role:            data.CrewRole(role),
+			Degree:          degree,
+			Experience:      0,
+			Morale:          100,
+			Health:          100,
+			MasterWorkLevel: 0,
+			Buffs:           []string{},
+			Debuffs:         []string{},
+			AssignedTaskId:  nil,
+		}
+
+		recruits = append(recruits, recruit)
+	}
+
+	return recruits
 }
