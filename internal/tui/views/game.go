@@ -55,6 +55,8 @@ type GameModel struct {
 	lastManualSaveTime time.Time
 	notification       string
 	autoSaveInitiated  bool
+
+	MissionTemplates []data.MissionTemplate
 }
 
 type ActiveView int
@@ -459,16 +461,47 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// When a mission is completed
 	if g.TrackedMission != nil && g.TrackedMission.Status == data.MissionStatusCompleted {
-		// Search for the mission in journal and update status
+		// Update mission status in the journal
 		for i, mission := range g.Journal.Missions {
 			if mission.Title == g.TrackedMission.Title {
 				g.Journal.Missions[i].Status = data.MissionStatusCompleted
 			}
 		}
-		g.Credits += g.TrackedMission.Income // Reward player with credits
-		// Reward player with research notes
-		// Random chance to get a high tier research note
+		// Reward player with credits
+		g.Credits += g.TrackedMission.Income
+		// Reward with research note (if any)
 		g.addRandomResearchNote()
+
+		// --- NEW: Assign next mission if available ---
+		nextStep := g.TrackedMission.Step + 1
+		var nextMission *data.Mission = nil
+		// Optionally, you can also check for the same mission "line" by comparing categories or a custom ID.
+		for _, tmpl := range g.MissionTemplates {
+			if tmpl.Category == g.TrackedMission.Category && tmpl.Step == nextStep {
+				nextMission = &data.Mission{
+					Title:       tmpl.Title,
+					Description: tmpl.Description,
+					Category:    tmpl.Category,
+					Step:        tmpl.Step,
+					Location:    tmpl.Location,
+					Dialogue:    tmpl.Dialogue,
+					Income:      tmpl.Income,
+					Status:      data.MissionStatusNotStarted,
+				}
+				break
+			}
+		}
+		if nextMission != nil {
+			// Create a copy of the mission and initialize its status.
+			newMission := *nextMission
+			newMission.Status = data.MissionStatusNotStarted
+			// Append the new mission to the journal and game save
+			g.Journal.Missions = append(g.Journal.Missions, newMission)
+			g.gameSave.Missions = append(g.gameSave.Missions, newMission)
+			// Optionally, notify the player
+			g.notification = fmt.Sprintf("New mission available: %s", newMission.Title)
+		}
+
 		g.TrackedMission = nil // Clear the tracked mission
 	}
 
@@ -503,7 +536,7 @@ func (g GameModel) View() string {
 	hasStation := planet.Type == "Space Station"
 
 	for i, item := range g.menuItems {
-		cursor := "_"
+		cursor := "-"
 		style := menuItemStyle.Foreground(lipgloss.Color("217")) // Normal color
 		if i == g.menuCursor {
 			cursor = ">"
@@ -685,7 +718,6 @@ func NewGameModel() tea.Model {
 	fullSave, err := data.LoadFullGameSave()
 	if err != nil || fullSave == nil {
 		fmt.Println("Error loading save file or save file not found; using default values")
-		// Optionally, set fullSave = data.DefaultFullGameSave() here
 	}
 	currentHealth := fullSave.Ship.HullIntegrity
 	maxHealth := fullSave.Ship.MaxHullIntegrity
@@ -697,12 +729,10 @@ func NewGameModel() tea.Model {
 	}
 
 	shipModel := model.NewShipModel(fullSave.Ship)
-	shipModel.GameSave = fullSave
 	crewModel := model.NewCrewModel(fullSave.Crew, fullSave)
 	journalModel := model.NewJournalModel()
 	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship, fullSave)
-	//mapModel.GameSave = fullSave  NOT NEEDED ANYMORE               // Need this to avoid null pointer
-	collectionModel := model.NewCollectionModel(fullSave.Collection) // NEW: Initialize Collection model
+	collectionModel := model.NewCollectionModel(fullSave.Collection)
 	spaceStationModel := model.NewSpaceStationModel(fullSave.Ship, fullSave.Player.Credits, missionTemplates, fullSave.GameMap.StarSystems)
 
 	return GameModel{
@@ -715,8 +745,8 @@ func NewGameModel() tea.Model {
 		Ship:             shipModel,
 		Crew:             crewModel,
 		Journal:          journalModel,
-		Collection:       collectionModel,   // NEW: Set Collection model
-		SpaceStation:     spaceStationModel, // NEW: Set SpaceStation model
+		Collection:       collectionModel,
+		SpaceStation:     spaceStationModel,
 		Map:              mapModel,
 		Travel:           components.NewTravelComponent(),
 		activeView:       ViewNone,
@@ -727,6 +757,7 @@ func NewGameModel() tea.Model {
 		gameSave:         fullSave,
 		lastAutoSaveTime: time.Now(),
 		locationService:  data.NewLocationService(fullSave.GameMap),
+		MissionTemplates: missionTemplates, // Set mission templates here
 	}
 }
 

@@ -242,7 +242,7 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
-		case "esc":
+		case "b":
 			if m.refuelConfirm {
 				m.refuelConfirm = false
 			} else if m.refuelMode {
@@ -256,6 +256,9 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if m.showingMissionDetail {
 				m.showingMissionDetail = false
+			}
+			if m.upgradeConfirm {
+				m.upgradeConfirm = false
 			}
 			return m, nil
 
@@ -361,7 +364,7 @@ func (m SpaceStationModel) View() string {
 		if m.refuelConfirm {
 			totalCost := m.desiredFuel * m.fuelPrice
 			content = fmt.Sprintf(
-				"Confirm refueling %d units?\nCost: %d¢  |  You have: %d¢\n[Enter] Confirm  [Esc] Cancel",
+				"Confirm refueling %d units?\nCost: %d¢  |  You have: %d¢\n[Enter] Confirm  [b] Cancel",
 				m.desiredFuel,
 				totalCost,
 				m.Credits,
@@ -373,7 +376,7 @@ func (m SpaceStationModel) View() string {
 			}
 		} else {
 			content = fmt.Sprintf(
-				"How much fuel do you want to buy?\n[ %d ] units (Cost: %d¢)\nYou have: %d¢\n[↑/↓] Adjust  [Enter] Confirm  [Esc] Cancel",
+				"How much fuel do you want to buy?\n[ %d ] units (Cost: %d¢)\nYou have: %d¢\n[↑/↓] Adjust  [Enter] Confirm  [b] Cancel",
 				m.desiredFuel,
 				m.desiredFuel*m.fuelPrice,
 				m.Credits,
@@ -419,7 +422,7 @@ func (m SpaceStationModel) View() string {
 					Render("This upgrade is already at maximum level.")
 			} else {
 				content += fmt.Sprintf(
-					"\n\nConfirm upgrading %s to Lv %d for %d¢?\n[Enter] Confirm  [Esc] Cancel",
+					"\n\nConfirm upgrading %s to Lv %d for %d¢?\n[Enter] Confirm  [b] Cancel",
 					upgradeNames[m.upgradeCursor],
 					level+1,
 					baseUpgradeCosts[m.upgradeCursor]*(level+1),
@@ -474,9 +477,9 @@ func (m SpaceStationModel) View() string {
 				"",
 				func() string {
 					if m.confirmHire {
-						return "[Enter] Confirm Hire    [Esc] Cancel"
+						return "[Enter] Confirm Hire    [b] Cancel"
 					}
-					return "[Enter] Hire    [Esc] Cancel"
+					return "[Enter] Hire    [b] Cancel"
 				}(),
 			}
 			if m.ErrorMessage != "" {
@@ -537,9 +540,9 @@ func (m SpaceStationModel) View() string {
 			}
 
 			if m.confirmingMissionAccept {
-				detailLines = append(detailLines, "[Enter] Confirm Mission    [Esc] Cancel")
+				detailLines = append(detailLines, "[Enter] Confirm Mission    [b] Cancel")
 			} else {
-				detailLines = append(detailLines, "[Enter] Accept Mission    [Esc] Close")
+				detailLines = append(detailLines, "[Enter] Accept Mission    [b] Close")
 			}
 
 			if m.receiptMessage != "" {

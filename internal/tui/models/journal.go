@@ -22,26 +22,12 @@ type StartMissionMsg struct {
 	Mission data.Mission
 }
 
-// Mission represents a mission in the journal
-// type Mission struct {
-// 	Title        string
-// 	Description  string
-// 	Status       MissionStatus
-// 	Location     data.Location
-// 	Income       int
-// 	Requirements string
-// 	Received     string
-// 	Category     string
-// 	Dialogue     []string
-
-// 	GameSave *data.FullGameSave
-// }
-
 // convertDataMission converts a data.Mission into a model.Mission
 func convertDataMission(dm data.Mission) data.Mission {
 	return data.Mission{
 		Title:        dm.Title,
 		Description:  dm.Description,
+		Step:         dm.Step,
 		Status:       dm.Status,
 		Location:     dm.Location,
 		Income:       dm.Income,
@@ -51,21 +37,6 @@ func convertDataMission(dm data.Mission) data.Mission {
 		Dialogue:     dm.Dialogue,
 	}
 }
-
-// // convertMainMission converts a data.Mission (used for main missions) into a model.Mission
-// func convertMainMission(mm data.Mission) Mission {
-// 	return Mission{
-// 		Title:        fmt.Sprintf("Step %d: %s", mm.Step, mm.Title),
-// 		Description:  mm.Description,
-// 		Status:       statusFromString(mm.Status),
-// 		Location:     mm.Location,
-// 		Income:       mm.Income,
-// 		Requirements: mm.Requirements,
-// 		Received:     mm.Received,
-// 		Category:     mm.Category,
-// 		Dialogue:     mm.Dialogue,
-// 	}
-// }
 
 // currentList returns the missions to be displayed based on search mode,
 // filtering out any missions with status "complete" or "completed"
@@ -98,6 +69,7 @@ type JournalModel struct {
 	DetailView    bool
 	DetailCursor  int
 	DetailOptions []string
+	GameSave      *data.FullGameSave
 }
 
 // loads the full game save, extracts the missions, and converts them for display

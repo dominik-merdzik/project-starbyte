@@ -383,6 +383,7 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 			Title:        "Solar Flare Response",
 			Description:  "Monitor and respond to unpredictable solar flare activities.",
 			Status:       MissionStatusNotStarted,
+			Location:     Location{StarSystemName: "Sol", PlanetName: "Mars", Coordinates: Coordinates{X: 5, Y: 3, Z: 1}},
 			Income:       4000,
 			Requirements: "Shielded Satellite",
 			Received:     "Commander Vega",
@@ -401,9 +402,17 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 				Name: "Sol",
 				Planets: []Planet{
 					{
+						Name:        "ISS",
+						Type:        "Space Station",
+						Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 1, Count: 1},
+						},
+					},
+					{
 						Name:        "Earth",
 						Type:        "Terrestrial",
-						Coordinates: Coordinates{X: 0, Y: 0, Z: 0},
+						Coordinates: Coordinates{X: 2, Y: 4, Z: 5},
 						Requirements: []CrewRequirement{
 							{Role: "Pilot", Degree: 1, Count: 1},
 							{Role: "Engineer", Degree: 1, Count: 1},
@@ -412,17 +421,25 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 					{
 						Name:        "Mars",
 						Type:        "Terrestrial",
-						Coordinates: Coordinates{X: 5, Y: 3, Z: 1},
+						Coordinates: Coordinates{X: -3, Y: -4, Z: -3},
 						Requirements: []CrewRequirement{
 							{Role: "Engineer", Degree: 1, Count: 1},
 						},
 					},
 					{
-						Name:        "ISS",
-						Type:        "Space Station",
-						Coordinates: Coordinates{X: 1, Y: 1, Z: 3},
+						Name:        "Jupiter",
+						Type:        "Gas Giant",
+						Coordinates: Coordinates{X: 9, Y: -20, Z: 5},
 						Requirements: []CrewRequirement{
-							{Role: "Pilot", Degree: 1, Count: 1},
+							{Role: "Engineer", Degree: 1, Count: 1},
+						},
+					},
+					{
+						Name:        "Saturn",
+						Type:        "Gas Giant",
+						Coordinates: Coordinates{X: 20, Y: 30, Z: 10},
+						Requirements: []CrewRequirement{
+							{Role: "Engineer", Degree: 1, Count: 1},
 						},
 					},
 				},
@@ -552,7 +569,7 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 			Food:              100,
 			Location: Location{
 				StarSystemName: "Sol",
-				PlanetName:     "Earth",
+				PlanetName:     "ISS",
 				Coordinates:    Coordinates{X: 0, Y: 0, Z: 0},
 			},
 			Cargo: Cargo{

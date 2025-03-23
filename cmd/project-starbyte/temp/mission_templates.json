@@ -1,9 +1,17 @@
 {
   "missions": [
     {
+      "Step": 0,
       "Id": 0,
       "Title": "Rescue Mission",
       "Description": "Rescue a stranded astronaut on a rogue asteroid.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "Asteroid X",
+        "Coordinates": { "X": 0, "Y": 0, "Z": 0 }
+      },
+      "Income": 1000,
       "Requirements": "Pilot",
       "Received": "Commander Vega",
       "Category": "Main",
@@ -14,9 +22,80 @@
       ]
     },
     {
+      "Step": 1,
+      "Id": 4,
+      "Title": "Research Recovery",
+      "Description": "Recover stolen data from a compromised lab.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "Mars",
+        "Coordinates": { "X": -3, "Y": -4, "Z": -3 }
+      },
+      "Income": 1500,
+      "Requirements": "Any Crew",
+      "Received": "Dr. Nella Trask",
+      "Category": "Main",
+      "Dialogue": [
+        "A black ops team hit our deep-lab near Soras IV.",
+        "They took everything and left traps behind.",
+        "Recover the drives. And don\u2019t get caught."
+      ]
+    },
+    {
+      "Step": 2,
+      "Id": 5,
+      "Title": "Alien Artifact",
+      "Description": "Investigate an alien artifact found on a remote moon.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "Jupiter",
+        "Coordinates": { "X": 9, "Y": -20, "Z": 5 }
+      },
+      "Income": 2000,
+      "Requirements": "Scientist",
+      "Received": "Dr. Thalen",
+      "Category": "Main",
+      "Dialogue": [
+        "We've discovered an unusual artifact on Luna Prime.",
+        "Its origins are unknown, but its energy signature is off the charts.",
+        "Proceed with extreme caution."
+      ]
+    },
+    {
+      "Step": 3,
+      "Id": 6,
+      "Title": "Diplomatic Envoy",
+      "Description": "Negotiate a peace treaty with a hostile alien faction.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "Saturn",
+        "Coordinates": { "X": 20, "Y": 30, "Z": 10 }
+      },
+      "Income": 2500,
+      "Requirements": "Diplomat",
+      "Received": "Ambassador Kora",
+      "Category": "Main",
+      "Dialogue": [
+        "Our intelligence indicates that the Xel'Naga are preparing for war.",
+        "We need to establish a dialogue before it escalates.",
+        "Your negotiation skills are our best hope."
+      ]
+    },
+    {
+      "Step": 0,
       "Id": 1,
       "Title": "Cargo Delivery",
       "Description": "Deliver essential supplies to a starving outpost.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sirius",
+        "PlanetName": "Hadrin Outpost",
+        "Coordinates": { "X": 30, "Y": -20, "Z": 5 }
+      },
+      "Income": 800,
       "Requirements": "Engineer",
       "Received": "Guildmaster Rallis",
       "Category": "Side",
@@ -27,9 +106,17 @@
       ]
     },
     {
+      "Step": 0,
       "Id": 2,
       "Title": "Anomaly Scan",
       "Description": "Investigate an unusual energy reading near a derelict station.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Tau Ceti",
+        "PlanetName": "Derelict Station",
+        "Coordinates": { "X": -100, "Y": 40, "Z": 0 }
+      },
+      "Income": 1200,
       "Requirements": "Scientist",
       "Received": "Archivist Thren",
       "Category": "Research",
@@ -40,9 +127,17 @@
       ]
     },
     {
+      "Step": 0,
       "Id": 3,
       "Title": "Bounty Hunt",
       "Description": "Track and eliminate the pirate Lorik Kane.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Orion",
+        "PlanetName": "Outer Rim",
+        "Coordinates": { "X": 75, "Y": -60, "Z": 15 }
+      },
+      "Income": 1800,
       "Requirements": "Weapon Specialist",
       "Received": "Admiral Castor",
       "Category": "Combat",
@@ -50,19 +145,6 @@
         "Lorik Kane has eluded us for years.",
         "He\u2019s resurfaced near the border fringe.",
         "Bring me his ship. Wrecked or intact."
-      ]
-    },
-    {
-      "Id": 4,
-      "Title": "Research Recovery",
-      "Description": "Recover stolen data from a compromised lab.",
-      "Requirements": "Any Crew",
-      "Received": "Dr. Nella Trask",
-      "Category": "Main",
-      "Dialogue": [
-        "A black ops team hit our deep-lab near Soras IV.",
-        "They took everything and left traps behind.",
-        "Recover the drives. And don\u2019t get caught."
       ]
     }
   ]

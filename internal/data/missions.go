@@ -7,12 +7,17 @@ import (
 )
 
 type MissionTemplate struct {
-	Title        string   `json:"Title"`
-	Description  string   `json:"Description"`
-	Requirements string   `json:"Requirements"`
-	Received     string   `json:"Received"`
-	Category     string   `json:"Category"`
-	Dialogue     []string `json:"Dialogue"`
+	Step         int           `json:"Step,omitempty"`
+	Id           int           `json:"Id"`
+	Title        string        `json:"Title"`
+	Description  string        `json:"Description"`
+	Status       MissionStatus `json:"Status"`
+	Location     Location      `json:"Location"`
+	Income       int           `json:"Income"`
+	Requirements string        `json:"Requirements"`
+	Received     string        `json:"Received"`
+	Category     string        `json:"Category"`
+	Dialogue     []string      `json:"dialogue"`
 }
 
 type PlanetWithSystem struct {
