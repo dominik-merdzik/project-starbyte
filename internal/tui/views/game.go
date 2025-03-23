@@ -240,12 +240,33 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			g.dirty = true
 		case "up", "k":
-			if g.menuCursor > 0 {
-				g.menuCursor--
+			// Skip over space station if not at one
+			planet := g.gameSave.Ship.Location.GetFullPlanet(g.gameSave.GameMap)
+			hasStation := planet.Type == "Space Station"
+
+			for {
+
+				if g.menuCursor > 0 {
+					g.menuCursor--
+				}
+				if g.menuItems[g.menuCursor] == "SpaceStation" && !hasStation {
+					continue
+				}
+				break
 			}
 		case "down", "j":
-			if g.menuCursor < len(g.menuItems)-1 {
-				g.menuCursor++
+			// Skip over space station if not at one
+			planet := g.gameSave.Ship.Location.GetFullPlanet(g.gameSave.GameMap)
+			hasStation := planet.Type == "Space Station"
+
+			for {
+				if g.menuCursor < len(g.menuItems)-1 {
+					g.menuCursor++
+				}
+				if g.menuItems[g.menuCursor] == "SpaceStation" && !hasStation {
+					continue
+				}
+				break
 			}
 		case "enter":
 			g.selectedItem = g.menuItems[g.menuCursor]
@@ -261,7 +282,13 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "Collection": // NEW: Activate Collection view
 				g.activeView = ViewCollection
 			case "SpaceStation": // NEW: Activate SpaceStation view
-				g.activeView = ViewSpaceStation
+				// Check if current planet is a space station
+				planet := g.gameSave.Ship.Location.GetFullPlanet(g.gameSave.GameMap)
+				if planet.Type == "Space Station" {
+					g.activeView = ViewSpaceStation
+				} else {
+					//Idk what to put here
+				}
 			}
 		case "s":
 
@@ -470,18 +497,28 @@ func (g GameModel) View() string {
 		Foreground(lipgloss.Color("63")).
 		PaddingLeft(2).
 		Bold(true)
+
 	var menuView strings.Builder
+	planet := g.gameSave.Ship.Location.GetFullPlanet(g.gameSave.GameMap)
+	hasStation := planet.Type == "Space Station"
+
 	for i, item := range g.menuItems {
 		cursor := "_"
-		menuItemStyle = menuItemStyle.Foreground(lipgloss.Color("217"))
+		style := menuItemStyle.Foreground(lipgloss.Color("217")) // Normal color
 		if i == g.menuCursor {
-			menuItemStyle = menuItemStyle.Foreground(lipgloss.Color("215"))
 			cursor = ">"
+			style = style.Foreground(lipgloss.Color("215")) // Highlight color
 		}
-		styledItem := menuItemStyle.Render(strings.ToUpper(item))
+		if item == "SpaceStation" && !hasStation {
+			style = style.Foreground(lipgloss.Color("240")) // Gray it out
+		}
+
+		styledItem := style.Render(strings.ToUpper(item))
 		styledCursor := cursorStyle.Render(cursor)
+
 		menuView.WriteString(fmt.Sprintf("%s %s\n", styledCursor, styledItem))
 	}
+
 	// left panel top (title and menu)
 	leftPanelTop := lipgloss.NewStyle().
 		Width(40).

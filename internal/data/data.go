@@ -417,6 +417,14 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 							{Role: "Engineer", Degree: 1, Count: 1},
 						},
 					},
+					{
+						Name:        "ISS",
+						Type:        "Space Station",
+						Coordinates: Coordinates{X: 1, Y: 1, Z: 3},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 1, Count: 1},
+						},
+					},
 				},
 			},
 			{
@@ -695,6 +703,14 @@ func DefaultFullGameSave() *FullGameSave {
 						Coordinates: Coordinates{X: 5, Y: 3, Z: 1},
 						Requirements: []CrewRequirement{
 							{Role: "Engineer", Degree: 1, Count: 1},
+						},
+					},
+					{
+						Name:        "ISS",
+						Type:        "Space Station",
+						Coordinates: Coordinates{X: 1, Y: 1, Z: 3},
+						Requirements: []CrewRequirement{
+							{Role: "Pilot", Degree: 1, Count: 1},
 						},
 					},
 				},
