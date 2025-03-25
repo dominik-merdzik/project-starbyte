@@ -275,6 +275,12 @@ func (j JournalModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (j JournalModel) getSelectedMission() data.Mission {
 	currentList := j.currentList()
 	totalItems := len(currentList)
+
+	// Guard against empty list
+	if totalItems == 0 {
+		return data.Mission{} // Return empty mission instead of causing a panic
+	}
+
 	startIndex := j.Page * j.PageSize
 	if startIndex > totalItems {
 		startIndex = totalItems
@@ -284,6 +290,12 @@ func (j JournalModel) getSelectedMission() data.Mission {
 		endIndex = totalItems
 	}
 	missionsOnPage := currentList[startIndex:endIndex]
+
+	// // Guard against empty page or cursor out of bounds
+	// if len(missionsOnPage) == 0 || j.Cursor >= len(missionsOnPage) {
+	// 	return data.Mission{} // Return empty mission instead of causing a panic
+	// }
+
 	return missionsOnPage[j.Cursor]
 }
 
