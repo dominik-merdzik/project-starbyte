@@ -378,10 +378,13 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case model.UpgradeUpdateMsg:
 		switch msg.UpgradeCursor {
 		case 0:
-			g.gameSave.Ship.Upgrades.Engine.CurrentLevel = msg.NewLevel
+			g.Ship.Upgrades.Engine.CurrentLevel = msg.NewLevel          // Update current ship
+			g.gameSave.Ship.Upgrades.Engine.CurrentLevel = msg.NewLevel // Then update game save
 		case 1:
+			g.Ship.Upgrades.WeaponSystems.CurrentLevel = msg.NewLevel
 			g.gameSave.Ship.Upgrades.WeaponSystems.CurrentLevel = msg.NewLevel
 		case 2:
+			g.Ship.Upgrades.CargoExpansion.CurrentLevel = msg.NewLevel
 			g.gameSave.Ship.Upgrades.CargoExpansion.CurrentLevel = msg.NewLevel
 		}
 
