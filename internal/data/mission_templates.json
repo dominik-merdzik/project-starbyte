@@ -1,0 +1,244 @@
+{
+  "missions": [
+    {
+      "Step": 0,
+      "Id": 0,
+      "Title": "Rescue Mission",
+      "Description": "Rescue a stranded astronaut on a rogue asteroid.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "Asteroid X",
+        "Coordinates": { "X": 0, "Y": 0, "Z": 1 }
+      },
+      "Income": 1000,
+      "Requirements": "Pilot",
+      "Received": "Commander Vega (ISS)",
+      "Category": "Main",
+      "Dialogue": [
+        "Commander, we've received a distress signal from the outer asteroid belt. Faint, but repeating.",
+        "There's a lone astronaut stranded out there on what looks like a rogue asteroid, designation AX-7.",
+        "Reports suggest the asteroid's trajectory is... unnatural. It doesn't match any known orbital mechanics.",
+        "The astronaut might have seen something out there... something important.",
+        "Get them home safely. Bring them back to the ISS [0,0,0] for debriefing. This could be bigger than just a rescue."
+      ]
+    },
+    {
+      "Step": 1,
+      "Id": 4,
+      "Title": "Research Recovery",
+      "Description": "Recover stolen sensitive research data from a compromised lab on Mars.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "Mars",
+        "Coordinates": { "X": -3, "Y": -4, "Z": -3 }
+      },
+      "Income": 1500,
+      "Requirements": "Any Crew",
+      "Received": "Dr. Nella Trask (Mars)",
+      "Category": "Main",
+      "Dialogue": [
+        "Commander, thank god you're here. A black ops team hit our deep-lab near the Olympus Mons caldera.",
+        "They took everything related to Project Chimera... sensitive energy research. And they left automated defenses behind.",
+        "That data... it contains preliminary findings on unusual energy signatures we've been tracking, possibly related to non-human tech.",
+        "We suspect the thieves weren't just common pirates. They knew exactly what they were looking for.",
+        "Recover the main data drives. They should be marked. And don't get caught. Bring the data directly to Dr. Thalen on Jupiter upon recovery. It might give us a lead."
+      ]
+    },
+    {
+      "Step": 2,
+      "Id": 5,
+      "Title": "Alien Artifact",
+      "Description": "Investigate a newly discovered alien artifact near Jupiter.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "Jupiter Orbit (Io)",
+        "Coordinates": { "X": 9, "Y": -20, "Z": 5 }
+      },
+      "Income": 2000,
+      "Requirements": "Scientist",
+      "Received": "Dr. Thalen (Jupiter)",
+      "Category": "Main",
+      "Dialogue": [
+        "Commander, Trask contacted me about the recovered data. Excellent work.",
+        "It confirms our fears. The energy signatures match something we've just discovered in orbit around Io.",
+        "We've designated it 'Artifact Prime'. Its origins are unknown, but its energy signature is immense, potentially dangerous.",
+        "The energy readings are similar, yet far stronger, than those mentioned in the recovered research data. Could this be what the thieves were ultimately after?",
+        "Proceed with extreme caution. Scan it, document everything, but do *not* interact directly unless absolutely necessary. This discovery could attract unwanted attention."
+      ]
+    },
+    {
+      "Step": 3,
+      "Id": 6,
+      "Title": "Diplomatic Envoy",
+      "Description": "Attempt to negotiate with a potentially hostile Xel'Naga delegation near Saturn.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "Saturn Orbit (Neutral Space)",
+        "Coordinates": { "X": 20, "Y": 30, "Z": 10 }
+      },
+      "Income": 2500,
+      "Requirements": "Diplomat",
+      "Received": "Ambassador Kora (Earth Gov)",
+      "Category": "Main",
+      "Dialogue": [
+        "Commander, your discovery near Jupiter has sent ripples through the diplomatic channels.",
+        "Our intelligence indicates that a Xel'Naga delegation has entered the system and is holding near Saturn. They are *not* happy.",
+        "We believe their sudden arrival might be linked to the artifact you secured. They may see it as a threat, or perhaps a prize... or maybe something else entirely.",
+        "We need to establish a dialogue before tensions escalate into open conflict. Hostilities seem imminent.",
+        "Your negotiation skills, and perhaps your reputation from dealing with the artifact, are our best hope. Go to the designated coordinates [20, 30, 10].",
+        "Report back immediately after the talks. We need to know their intentions and if peace is truly possible... or if we need to prepare for the worst."
+      ]
+    },
+    {
+      "Step": 0,
+      "Id": 1,
+      "Title": "Cargo Delivery",
+      "Description": "Deliver essential supplies to a starving outpost.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sirius",
+        "PlanetName": "Hadrin Outpost",
+        "Coordinates": { "X": 30, "Y": -20, "Z": 5 }
+      },
+      "Income": 800,
+      "Requirements": "Engineer",
+      "Received": "Guildmaster Rallis",
+      "Category": "Side",
+      "Dialogue": [
+        "The Hadrin Outpost is on the brink of collapse. Their life support is failing.",
+        "We need someone dependable to get these engineering supplies through pirates and radiation belts.",
+        "You'll be compensated generously for the risk."
+      ]
+    },
+    {
+      "Step": 0,
+      "Id": 2,
+      "Title": "Anomaly Scan",
+      "Description": "Investigate an unusual energy reading near a derelict station.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Tau Ceti",
+        "PlanetName": "Derelict Station",
+        "Coordinates": { "X": -100, "Y": 40, "Z": 0 }
+      },
+      "Income": 1200,
+      "Requirements": "Scientist",
+      "Received": "Archivist Thren",
+      "Category": "Research",
+      "Dialogue": [
+        "An anomaly has appeared in sector 9-B, near that old listening post.",
+        "Its readings match pre-Fall tech signatures, but distorted. Highly unusual.",
+        "Document everything, scan thoroughly, and bring back any passive scan data samples."
+      ]
+    },
+    {
+      "Step": 0,
+      "Id": 3,
+      "Title": "Bounty Hunt",
+      "Description": "Track and eliminate the pirate Lorik Kane.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Orion",
+        "PlanetName": "Outer Rim",
+        "Coordinates": { "X": 75, "Y": -60, "Z": 15 }
+      },
+      "Income": 1800,
+      "Requirements": "Weapon Specialist",
+      "Received": "Admiral Castor",
+      "Category": "Combat",
+      "Dialogue": [
+        "Lorik Kane and his 'Crimson Reavers' have eluded us for years. Cost us lives and ships.",
+        "He's resurfaced near the border fringe, raiding civilian transports.",
+        "Bring me his ship's command core. Wrecked or intact, I don't care. Just stop him."
+      ]
+    },
+    {
+      "Step": 0,
+      "Id": 7,
+      "Title": "ISS Maintenance Check",
+      "Description": "Perform external sensor calibration checks on the International Space Station.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "ISS",
+        "Coordinates": { "X": 0, "Y": 0, "Z": 0 }
+      },
+      "Income": 500,
+      "Requirements": "Engineer",
+      "Received": "Chief Engineer Hamid (ISS)",
+      "Category": "Side",
+      "Dialogue": [
+        "Commander, need a quick favour if you're nearby.",
+        "Our external sensor arrays need recalibration after that last solar flare.",
+        "Just need you to run a diagnostic sequence from your ship at designated points around the station. Simple work, fair pay."
+      ]
+    },
+    {
+      "Step": 0,
+      "Id": 8,
+      "Title": "Urgent Delivery to Earth",
+      "Description": "Deliver critical medical isotopes from the ISS to Earth.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "Earth",
+        "Coordinates": { "X": 2, "Y": 4, "Z": 5 }
+      },
+      "Income": 700,
+      "Requirements": "Any Crew",
+      "Received": "Dr. Aris Thorne (ISS Medical)",
+      "Category": "Side",
+      "Dialogue": [
+        "We have a time-sensitive shipment of medical isotopes needed at Pacific General Hospital on Earth.",
+        "The regular shuttle is down for maintenance.",
+        "Can you handle this delivery? Speed is essential, the isotopes decay quickly."
+      ]
+    },
+    {
+      "Step": 0,
+      "Id": 9,
+      "Title": "Martian Dust Storm Survey",
+      "Description": "Scan the perimeter of a major Martian dust storm for atmospheric anomalies.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "Mars",
+        "Coordinates": { "X": -3, "Y": -4, "Z": -3 }
+      },
+      "Income": 1100,
+      "Requirements": "Scientist",
+      "Received": "Mars Atmospheric Center",
+      "Category": "Research",
+      "Dialogue": [
+        "One of the largest dust storms in recent cycles is brewing over the Tharsis region.",
+        "We're seeing some strange energy readings on the periphery that don't match typical storm patterns.",
+        "We need a ship equipped for science to run atmospheric scans around the storm edge. Don't fly directly into it, obviously."
+      ]
+    },
+    {
+      "Step": 0,
+      "Id": 10,
+      "Title": "Investigate Debris Field",
+      "Description": "Investigate a newly charted debris field near Jupiter for salvage or hazards.",
+      "Status": 0,
+      "Location": {
+        "StarSystemName": "Sol",
+        "PlanetName": "Jupiter Debris Field",
+        "Coordinates": { "X": 12, "Y": -25, "Z": 8 }
+      },
+      "Income": 950,
+      "Requirements": "Pilot",
+      "Received": "System Traffic Control (Jupiter)",
+      "Category": "Exploration",
+      "Dialogue": [
+        "Long-range scans picked up an uncharted debris field near Jupiter, possibly from an old freighter collision.",
+        "Could be valuable salvage, could be a navigational hazard.",
+        "We need someone to check it out, tag any major hazards, and report back on potential salvage value. Watch out for unstable wreckage."
+      ]
+    }
+  ]
+}

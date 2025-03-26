@@ -657,12 +657,22 @@ func (g GameModel) View() string {
 				// If mission in progress, show dialogue
 				switch g.TrackedMission.Status {
 				case data.MissionStatusInProgress:
-					// Show dialogue
-					bottomPanelContent = g.Dialogue.View()
-					bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
+					// Show dialogue ONLY if it's initialized
+					if g.Dialogue != nil { // <--- ADD THIS CHECK
+						bottomPanelContent = g.Dialogue.View()
+						bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
+					} else {
+						// Optional: Show a message indicating the mission is starting or dialogue is loading
+						bottomPanelContent = fmt.Sprintf("Mission '%s' starting...\n(Press Enter to begin dialogue if available)", g.TrackedMission.Title)
+						// Or just leave it blank if preferred:
+						// bottomPanelContent = "" // Or keep existing content from currentTask rendering
+					}
 				case data.MissionStatusCompleted:
 					// Show mission complete screen
-					bottomPanelContent = fmt.Sprintf("Mission Complete!\n\nYou were rewarded %d credits.\n\nPress [Space] to continue.", g.TrackedMission.Income)
+					// Ensure TrackedMission is not nil here too for safety, although the outer check covers it.
+					if g.TrackedMission != nil {
+						bottomPanelContent = fmt.Sprintf("Mission Complete!\n\nYou were rewarded %d credits.\n\nPress [Space] to continue.", g.TrackedMission.Income)
+					}
 				}
 			}
 		}
@@ -726,7 +736,7 @@ func NewGameModel() tea.Model {
 	maxHealth := fullSave.Ship.MaxHullIntegrity
 
 	// Load mission templates file
-	missionTemplates, err := data.LoadMissionTemplates("temp/mission_templates.json")
+	missionTemplates, err := data.LoadMissionTemplates()
 	if err != nil {
 		log.Fatal("Failed to load mission templates:", err)
 	}
@@ -760,7 +770,7 @@ func NewGameModel() tea.Model {
 		gameSave:         fullSave,
 		lastAutoSaveTime: time.Now(),
 		locationService:  data.NewLocationService(fullSave.GameMap),
-		MissionTemplates: missionTemplates, // Set mission templates here
+		MissionTemplates: missionTemplates,
 	}
 }
 

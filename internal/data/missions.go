@@ -1,10 +1,15 @@
 package data
 
 import (
+	"bytes"
 	"encoding/json"
 	"math/rand"
-	"os"
+
+	_ "embed"
 )
+
+//go:embed mission_templates.json
+var embeddedMissionTemplates []byte
 
 type MissionTemplate struct {
 	Step         int           `json:"Step,omitempty"`
@@ -25,19 +30,14 @@ type PlanetWithSystem struct {
 	Planet         Planet
 }
 
-// Loads missions out of mission_templates.json
-func LoadMissionTemplates(path string) ([]MissionTemplate, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
+// loads missions from the embedded mission_templates.json data
+func LoadMissionTemplates() ([]MissionTemplate, error) {
 	var data struct {
 		Missions []MissionTemplate `json:"missions"`
 	}
 
-	err = json.NewDecoder(file).Decode(&data)
+	// decode directly from the embedded byte slice using a bytes.Reader
+	err := json.NewDecoder(bytes.NewReader(embeddedMissionTemplates)).Decode(&data)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func LoadMissionTemplates(path string) ([]MissionTemplate, error) {
 	return data.Missions, nil
 }
 
-// Find parent star system for planet
+// find parent star system for planet
 func FlattenPlanetsWithSystems(systems []StarSystem) []PlanetWithSystem {
 	var result []PlanetWithSystem
 	for _, system := range systems {
@@ -59,7 +59,7 @@ func FlattenPlanetsWithSystems(systems []StarSystem) []PlanetWithSystem {
 	return result
 }
 
-// Generate a semi-generated mission
+// generate a semi-generated mission
 func GenerateMissionFromTemplate(id int, templates []MissionTemplate, planets []PlanetWithSystem) Mission {
 	t := templates[rand.Intn(len(templates))] // Random mission template
 	p := planets[rand.Intn(len(planets))]     // Pick random planet and parent solar system
@@ -68,6 +68,7 @@ func GenerateMissionFromTemplate(id int, templates []MissionTemplate, planets []
 	// Build and return the mission
 	return Mission{
 		Id:          id,
+		Step:        t.Step,
 		Title:       t.Title,
 		Description: t.Description,
 		Status:      0,

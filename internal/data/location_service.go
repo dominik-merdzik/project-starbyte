@@ -91,15 +91,25 @@ func (loc Location) IsEqual(other Location) bool {
 }
 
 // GetFullPlanet retrieves the complete Planet object for this location
-func (loc Location) GetFullPlanet(gameMap GameMap) *Planet {
-	for _, system := range gameMap.StarSystems {
+func (loc Location) GetFullPlanet(gameMap GameMap) Planet {
+	for i := range gameMap.StarSystems {
+		system := gameMap.StarSystems[i]
 		if system.Name == loc.StarSystemName {
-			for _, planet := range system.Planets {
+			for j := range system.Planets {
+				planet := system.Planets[j]
 				if planet.Name == loc.PlanetName {
-					return &planet
+					return planet
 				}
 			}
+			// planet not found within the correct system. Break the outer loop.
+			break
 		}
 	}
-	return nil
+	return Planet{ // Use the Planet struct name directly
+		Name:         loc.PlanetName,     // use name from the Location struct
+		Type:         "Mission Location", // indicate it's not a standard map location
+		Coordinates:  loc.Coordinates,    // use coordinates from the Location struct
+		Resources:    []Resource{},
+		Requirements: []CrewRequirement{},
+	}
 }

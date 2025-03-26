@@ -353,9 +353,9 @@ func DefaultCollection() Collection {
 	}
 }
 
-// ------------------------------
-// Full Game Save File Operations
-// ------------------------------
+// -------------------------------------------
+// creates a new game file with default values
+// -------------------------------------------
 
 func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error {
 	now := time.Now()
@@ -367,19 +367,21 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 			Title:        "Rescue Mission",
 			Description:  "Rescue the stranded astronaut on a rogue asteroid",
 			Status:       MissionStatusNotStarted,
-			Location:     Location{StarSystemName: "Sol", PlanetName: "Earth", Coordinates: Coordinates{X: 0, Y: 0, Z: 0}},
+			Location:     Location{StarSystemName: "Sol", PlanetName: "Asteroid X", Coordinates: Coordinates{X: 0, Y: 0, Z: 1}},
 			Income:       1000,
-			Requirements: "None",
-			Received:     "Game",
+			Requirements: "Pilot",
+			Received:     "Commander Vega (ISS)",
 			Category:     "Main",
 			Dialogue: []string{
-				"Commander, we have received a distress signal from a stranded astronaut on a rogue asteroid.",
-				"Your mission is to rescue the astronaut and bring them back to safety.",
-				"Time is of the essence, Commander. We need you to act quickly.",
+				"Commander, we've received a distress signal from the outer asteroid belt. Faint, but repeating.",
+				"There's a lone astronaut stranded out there on what looks like a rogue asteroid, designation AX-7.",
+				"Reports suggest the asteroid's trajectory is... unnatural. It doesn't match any known orbital mechanics.",
+				"The astronaut might have seen something out there... something important.",
+				"Get them home safely. Bring them back to the ISS [0,0,0] for debriefing. This could be bigger than just a rescue.",
 			},
 		},
 		{
-			Id:           1,
+			Id:           11,
 			Title:        "Solar Flare Response",
 			Description:  "Monitor and respond to unpredictable solar flare activities.",
 			Status:       MissionStatusNotStarted,
