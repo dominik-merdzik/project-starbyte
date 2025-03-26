@@ -772,7 +772,7 @@ func NewGameModel() tea.Model {
 	crewModel := model.NewCrewModel(fullSave.Crew, fullSave)
 	journalModel := model.NewJournalModel()
 	mapModel := model.NewMapModel(fullSave.GameMap, fullSave.Ship, fullSave)
-	collectionModel := model.NewCollectionModel(fullSave.Collection)
+	collectionModel := model.NewCollectionModel(fullSave)
 	spaceStationModel := model.NewSpaceStationModel(fullSave.Ship, fullSave.Player.Credits, missionTemplates, fullSave.GameMap.StarSystems)
 
 	return GameModel{
@@ -820,8 +820,7 @@ func (g *GameModel) syncSaveData() {
 	g.gameSave.Player.Credits = g.Credits
 	g.gameSave.GameMetadata.LastSaveTime = time.Now().Format(time.RFC3339)
 
-	g.gameSave.Missions = g.Journal.Missions        // Sync missions
-	g.gameSave.Collection = g.Collection.Collection // Sync collection
+	g.gameSave.Missions = g.Journal.Missions // Sync missions
 }
 
 // helper: add elapsed duration to TotalPlayTime, normalizing seconds/minutes/hours
@@ -854,24 +853,23 @@ func (g *GameModel) addRandomResearchNote() {
 		tier = 1
 	}
 
-	// Find the corresponding research note in the collection
-	for i, note := range g.Collection.Collection.ResearchNotes {
-		if note.Tier == tier {
-			// Increment the quantity of the research note
-			g.Collection.Collection.ResearchNotes[i].Quantity++
+	for i := range g.gameSave.Collection.ResearchNotes { // Iterate using index on GameSave collection
+		// Check if this is the correct tier
+		if g.gameSave.Collection.ResearchNotes[i].Tier == tier {
+			// Increment quantity directly in GameSave
+			g.gameSave.Collection.ResearchNotes[i].Quantity++
 
-			// Update used capacity
-			g.Collection.Collection.UsedCapacity++
+			g.gameSave.Collection.UsedCapacity++
+			if g.gameSave.Collection.UsedCapacity > g.gameSave.Collection.MaxCapacity {
+				log.Printf("Warning: UsedCapacity (%d) exceeds MaxCapacity (%d)",
+					g.gameSave.Collection.UsedCapacity, g.gameSave.Collection.MaxCapacity)
+			}
 
-			// Create a notification about the research note
-			tierName := g.Collection.Collection.ResearchNotes[i].Name
-			g.notification = fmt.Sprintf("Received %s research note!", tierName)
+			// Create notification
+			g.notification = fmt.Sprintf("Received %s research note!", g.gameSave.Collection.ResearchNotes[i].Name)
 
-			// Sync the updated collection to the save data
-			g.gameSave.Collection = g.Collection.Collection
-
-			// Return early since we found and updated the note
-			return
+			break // Note found and updated
 		}
 	}
+
 }
