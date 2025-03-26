@@ -980,3 +980,17 @@ func SaveGame(save *FullGameSave) error {
 
 	return os.Rename(tmpFilePath, SaveFilePath)
 }
+
+func CheckCrewRequirement(crewList []CrewMember, req CrewRequirement) bool {
+	qualifiedCount := 0
+	for _, crewMember := range crewList {
+		// Check if the crew member's role matches the requirement's role
+		// and if their degree meets or exceeds the required degree.
+		// Assumes req.Role is string and crewMember.Role is data.CrewRole type
+		if string(crewMember.Role) == req.Role && crewMember.Degree >= req.Degree {
+			qualifiedCount++
+		}
+	}
+	// Requirement is met if we found at least the required number of qualified crew.
+	return qualifiedCount >= req.Count
+}

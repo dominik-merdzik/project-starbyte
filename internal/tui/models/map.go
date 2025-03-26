@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -141,44 +142,64 @@ func (m MapModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case ViewPlanets:
 				// only allow selecting a planet if the center panel is active
 				if m.ActivePanel == PanelCenter {
-					m.SelectedPlanet = m.SelectedSystem.Planets[m.PlanetCursor]
-					m.ActiveView = ViewTravelConfirm
-					m.ConfirmCursor = 0
-				}
-			case ViewTravelConfirm:
-				// If user selects "Confirm" to travel
-				if m.ConfirmCursor == 0 {
-					// Create location
-					destination := data.Location{
+					// Check if already at the selected planet BEFORE switching view
+					currentLocation := m.Ship.Location
+					destinationPlanet := m.SelectedSystem.Planets[m.PlanetCursor]
+					destinationLocation := data.Location{
 						StarSystemName: m.SelectedSystem.Name,
-						PlanetName:     m.SelectedPlanet.Name,
-						Coordinates:    m.SelectedPlanet.Coordinates,
+						PlanetName:     destinationPlanet.Name,
+						Coordinates:    destinationPlanet.Coordinates,
 					}
+					isAlreadyHere := currentLocation.IsEqual(destinationLocation)
 
-					// Calculate fuel after traveling
-					newFuel := m.locationService.GetFuelCost(m.Ship.Location.Coordinates, m.SelectedPlanet.Coordinates, m.Ship.Location.StarSystemName, m.SelectedSystem.Name, m.Ship.EngineHealth, m.GameSave.Ship.Fuel)
+					if !isAlreadyHere { // Only enter confirm view if NOT already here
+						m.SelectedPlanet = destinationPlanet
+						m.ActiveView = ViewTravelConfirm
+						m.ConfirmCursor = 0 // Reset confirm cursor
+					} else {
+						// Optional: Add a brief notification or sound? For now, just do nothing.
+						return m, nil
+					}
+				}
 
-					// Update ship location and fuel
-					m.Ship.Location = destination
-					m.Ship.Fuel = newFuel
+			case ViewTravelConfirm:
+				// Check fuel again for safety, although UI should indicate it
+				currentLocation := m.Ship.Location
+				destinationPlanet := m.SelectedPlanet // Already selected
+				destinationLocation := data.Location{
+					StarSystemName: m.SelectedSystem.Name,
+					PlanetName:     destinationPlanet.Name,
+					Coordinates:    destinationPlanet.Coordinates,
+				}
+				estimatedFuelOnArrival := m.locationService.GetFuelCost(
+					currentLocation.Coordinates, destinationLocation.Coordinates,
+					currentLocation.StarSystemName, destinationLocation.StarSystemName,
+					m.Ship.EngineHealth, m.GameSave.Ship.Fuel,
+				)
+				isFuelInsufficient := estimatedFuelOnArrival < 0
+				// isAlreadyHere check is implicitly handled because we don't enter this view if already here
 
-					// Return a message to signal an update to the parent state in game.go
+				// If user selects "Confirm" (cursor 0) AND fuel is sufficient
+				if m.ConfirmCursor == 0 && !isFuelInsufficient {
+					// Prepare destination for the message
+					destination := destinationLocation // Use the already constructed destination
+
+					// Return a message to signal game.go to START travel
 					return m, tea.Batch(
 						func() tea.Msg {
 							return TravelUpdateMsg{
 								Location:   destination,
-								Fuel:       m.Ship.Fuel,
-								ShowTravel: true, // Add this flag to indicate travel animation should show
+								Fuel:       0, // This field is unused by game.go now
+								ShowTravel: true,
 							}
 						},
 						func() tea.Msg {
-							// Exit the modal view by sending an ESC key message (janky method)
-							return tea.KeyMsg{Type: tea.KeyEsc}
+							// Exit the map view entirely after confirming travel
+							return tea.KeyMsg{Type: tea.KeyEsc} // Send Esc to game.go
 						},
 					)
-				} else {
-					// Else go back
-					m.ActiveView = ViewPlanets
+				} else if m.ConfirmCursor == 1 { // Cancel selected
+					m.ActiveView = ViewPlanets // Go back to planet selection
 				}
 			}
 		case "esc":
@@ -293,9 +314,9 @@ func (m MapModel) renderPlanetDetails() string {
 	// Define text styles.
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
 	labelStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("246"))
-	bulletStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
-	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")) // Red for errors/warnings
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(" #C0C0C0"))
+	bulletStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("46"))
+	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
 
 	// If no system is selected or there are no planets, return a default message.
 	if m.SelectedSystem.Name == "" || len(m.SelectedSystem.Planets) == 0 {
@@ -316,33 +337,40 @@ func (m MapModel) renderPlanetDetails() string {
 
 	// Safely get the planet using PlanetCursor.
 	if m.PlanetCursor < 0 || m.PlanetCursor >= len(m.SelectedSystem.Planets) {
-		return panelStyle.Render("Error: Invalid planet index.") // safety check
+		return panelStyle.Render("Error: Invalid planet index.")
 	}
 	planet := m.SelectedSystem.Planets[m.PlanetCursor] // potential destination
 
-	// calculate actual travel duration
+	// check if already at the selected planet
 	currentLocation := m.Ship.Location
 	destinationLocation := data.Location{
 		StarSystemName: m.SelectedSystem.Name,
 		PlanetName:     planet.Name,
 		Coordinates:    planet.Coordinates,
 	}
-	// get engine details directly from the GameSave pointer for most up-to-date info
-	engineLevel := m.GameSave.Ship.Upgrades.Engine.CurrentLevel
-	maxEngineLevel := m.GameSave.Ship.Upgrades.Engine.MaxLevel // Ensure this exists in data.UpgradeLevel
-	travelDuration := m.locationService.CalculateTravelDuration(currentLocation, destinationLocation, engineLevel, maxEngineLevel)
+	isAlreadyHere := currentLocation.IsEqual(destinationLocation)
 
-	// calculate estimated fuel on arrival ---
-	estimatedFuelOnArrival := m.locationService.GetFuelCost(
-		currentLocation.Coordinates,
-		destinationLocation.Coordinates,
-		currentLocation.StarSystemName,
-		destinationLocation.StarSystemName,
-		m.Ship.EngineHealth,  // Use current EngineHealth from MapModel's Ship copy
-		m.GameSave.Ship.Fuel, // Use current fuel from the GameSave pointer
-	)
-	// check if travel is impossible due to fuel
-	isFuelInsufficient := estimatedFuelOnArrival < 0
+	var travelDuration time.Duration
+	var estimatedFuelOnArrival int
+	var isFuelInsufficient bool
+
+	if !isAlreadyHere { // Only calculate if not already here
+		engineLevel := m.GameSave.Ship.Upgrades.Engine.CurrentLevel
+		maxEngineLevel := m.GameSave.Ship.Upgrades.Engine.MaxLevel
+		travelDuration = m.locationService.CalculateTravelDuration(currentLocation, destinationLocation, engineLevel, maxEngineLevel)
+
+		estimatedFuelOnArrival = m.locationService.GetFuelCost(
+			currentLocation.Coordinates, destinationLocation.Coordinates,
+			currentLocation.StarSystemName, destinationLocation.StarSystemName,
+			m.Ship.EngineHealth, m.GameSave.Ship.Fuel,
+		)
+		isFuelInsufficient = estimatedFuelOnArrival < 0
+	} else {
+		// If already here, duration is 0 and fuel is current fuel
+		travelDuration = 0
+		estimatedFuelOnArrival = m.GameSave.Ship.Fuel
+		isFuelInsufficient = false
+	}
 
 	var b strings.Builder
 
@@ -350,21 +378,31 @@ func (m MapModel) renderPlanetDetails() string {
 	b.WriteString(labelStyle.Render("Planet: ") + valueStyle.Render(planet.Name) + "\n")
 	b.WriteString(labelStyle.Render("Type: ") + valueStyle.Render(planet.Type) + "\n")
 	b.WriteString(labelStyle.Render("Coordinates: ") + valueStyle.Render(
-		fmt.Sprintf("(%d, %d, %d)", planet.Coordinates.X, planet.Coordinates.Y, planet.Coordinates.Z)) + "\n\n") // Added newline
+		fmt.Sprintf("(%d, %d, %d)", planet.Coordinates.X, planet.Coordinates.Y, planet.Coordinates.Z)) + "\n\n")
 
 	// display travel duration in seconds
-	b.WriteString(titleStyle.Render(fmt.Sprintf("Est. Travel Time: %.1f sec", travelDuration.Seconds())) + "\n") // <-- Use calculated duration
+	if isAlreadyHere {
+		currentLocStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("46"))
+		b.WriteString(currentLocStyle.Render("Location: CURRENT") + "\n") // Use special style
+	} else {
+		b.WriteString(titleStyle.Render(fmt.Sprintf("Est. Travel Time: %.1f sec", travelDuration.Seconds())) + "\n")
+	}
 
-	// display ESTIMATED fuel on arrival, highlight if insufficient
+	// display estimated fuel on arrival, highlight if insufficient
 	fuelStr := fmt.Sprintf("%d units", estimatedFuelOnArrival)
-	fuelStyle := titleStyle
+	fuelStyle := titleStyle // Use title style as base
 	if isFuelInsufficient {
 		fuelStr = fmt.Sprintf("%d units (INSUFFICIENT!)", estimatedFuelOnArrival)
-		fuelStyle = titleStyle.Copy().Foreground(errorStyle.GetForeground())
+		fuelStyle = fuelStyle.Copy().Foreground(errorStyle.GetForeground())
+	} else if isAlreadyHere {
+		// if already here, maybe don't label it "Est. Fuel on Arrival"
+		fuelStr = fmt.Sprintf("%d units", estimatedFuelOnArrival)
+		b.WriteString(fuelStyle.Render("Current Fuel: " + fuelStr + "\n\n"))
+	} else {
+		b.WriteString(fuelStyle.Render("Est. Fuel on Arrival: " + fuelStr + "\n\n"))
 	}
-	b.WriteString(fuelStyle.Render("Est. Fuel on Arrival: " + fuelStr + "\n\n"))
 
-	divider := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Repeat("─", int(panelStyle.GetWidth())-2)) // Adjust width
+	divider := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(strings.Repeat("─", int(panelStyle.GetWidth())-2))
 	b.WriteString(divider + "\n")
 
 	// append the requirements section
@@ -373,15 +411,21 @@ func (m MapModel) renderPlanetDetails() string {
 		b.WriteString("  " + valueStyle.Render("None"))
 	} else {
 		for _, req := range planet.Requirements {
-			// Check if player meets requirement (example logic - needs access to crew data)
-			// met := checkCrewRequirement(m.GameSave.Crew, req) // You'd need a helper function
-			// reqStr := fmt.Sprintf("%s (Degree %d, Count %d)", req.Role, req.Degree, req.Count)
-			// reqStyle := bulletStyle
-			// if !met { reqStyle = errorStyle }
-			// b.WriteString(fmt.Sprintf("  • %s\n", reqStyle.Render(reqStr)))
+			// check if player meets requirement
+			met := data.CheckCrewRequirement(m.GameSave.Crew, req)
 
-			b.WriteString(fmt.Sprintf("  %s %s (Degree %d, Count %d)\n",
-				bulletStyle.Render("•"), valueStyle.Render(req.Role), req.Degree, req.Count))
+			// prepare the requirement string
+			reqStr := fmt.Sprintf("%s (Degree %d, Count %d)", req.Role, req.Degree, req.Count)
+
+			pointStyle := bulletStyle
+			if !met {
+				pointStyle = errorStyle // use error style if not met (e.g., red bullet)
+
+			}
+			b.WriteString(fmt.Sprintf("  %s %s\n",
+				pointStyle.Render("•"),
+				valueStyle.Render(reqStr),
+			))
 		}
 	}
 
@@ -397,12 +441,13 @@ func (m MapModel) renderTravelConfirm() string {
 		BorderForeground(lipgloss.Color("63")).
 		Align(lipgloss.Center)
 
+		// Define styles used
 	defaultStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("217"))
 	hoverStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))
 	arrowStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
 	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
-
-	var content strings.Builder
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("246"))
+	infoStyle := lipgloss.NewStyle().Italic(true)
 
 	// ensure SelectedPlanet is valid
 	if m.SelectedPlanet.Name == "" {
@@ -410,54 +455,61 @@ func (m MapModel) renderTravelConfirm() string {
 	}
 	planet := m.SelectedPlanet // this is the destination planet
 
-	// travel duration
+	// check if already at the selected planet
 	currentLocation := m.Ship.Location
 	destinationLocation := data.Location{
 		StarSystemName: m.SelectedSystem.Name,
 		PlanetName:     planet.Name,
 		Coordinates:    planet.Coordinates,
 	}
+	isAlreadyHere := currentLocation.IsEqual(destinationLocation)
+
+	// if already here, show info message instead of confirm
+	if isAlreadyHere {
+		return style.Render(infoStyle.Render(fmt.Sprintf("\nYou are already at %s.\n(Press Esc to return to map)",
+			valueStyle.Render(planet.Name))))
+	}
+
+	// calculate if not already here
 	engineLevel := m.GameSave.Ship.Upgrades.Engine.CurrentLevel
 	maxEngineLevel := m.GameSave.Ship.Upgrades.Engine.MaxLevel
 	travelDuration := m.locationService.CalculateTravelDuration(currentLocation, destinationLocation, engineLevel, maxEngineLevel)
-
-	// estimated fuel on arrival
 	estimatedFuelOnArrival := m.locationService.GetFuelCost(
-		currentLocation.Coordinates,
-		destinationLocation.Coordinates,
-		currentLocation.StarSystemName,
-		destinationLocation.StarSystemName,
-		m.Ship.EngineHealth,
-		m.GameSave.Ship.Fuel,
+		currentLocation.Coordinates, destinationLocation.Coordinates,
+		currentLocation.StarSystemName, destinationLocation.StarSystemName,
+		m.Ship.EngineHealth, m.GameSave.Ship.Fuel,
 	)
 	isFuelInsufficient := estimatedFuelOnArrival < 0
 
-	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("246"))
+	var content strings.Builder
 	content.WriteString(fmt.Sprintf("Confirm travel to %s?\n\n", valueStyle.Render(planet.Name)))
-
-	// Display ACTUAL travel duration in seconds
 	content.WriteString(fmt.Sprintf("Est. Travel Time: %.1f seconds\n", travelDuration.Seconds()))
 
-	// estimated fuel on arrival, highlight if insufficient
 	fuelStr := fmt.Sprintf("%d units", estimatedFuelOnArrival)
-	fuelStyle := defaultStyle // default style for value
+	fuelStyle := defaultStyle
 	if isFuelInsufficient {
 		fuelStr = fmt.Sprintf("%d units (INSUFFICIENT!)", estimatedFuelOnArrival)
-		fuelStyle = errorStyle // error style for value if insufficient
+		fuelStyle = errorStyle
 	}
 	content.WriteString(fmt.Sprintf("Est. Fuel on Arrival: %s\n\n", fuelStyle.Render(fuelStr)))
 
-	// Travel options highlight insufficient fuel and disable confirm
+	// travel options - disable Confirm if fuel insufficient
 	options := []string{"Confirm", "Cancel"}
 	for i, option := range options {
 		optionStyle := defaultStyle
 		prefix := "  "
-		if i == m.ConfirmCursor {
-			optionStyle = hoverStyle
-			prefix = arrowStyle.Render("> ")
-		}
+		isDisabled := (i == 0 && isFuelInsufficient)
 
-		if i == 0 && isFuelInsufficient {
+		// Allow cursor only on enabled options
+		if i == m.ConfirmCursor {
+			if !isDisabled {
+				optionStyle = hoverStyle
+				prefix = arrowStyle.Render("> ")
+			} else {
+				optionStyle = optionStyle.Copy().Faint(true).Strikethrough(true)
+				prefix = "  "
+			}
+		} else if isDisabled && i == 0 {
 			optionStyle = optionStyle.Copy().Faint(true).Strikethrough(true)
 		}
 
