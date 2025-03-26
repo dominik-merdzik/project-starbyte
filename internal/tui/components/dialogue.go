@@ -49,7 +49,7 @@ func (d DialogueComponent) View() string {
 		BorderStyle(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63"))
 
-	content := fmt.Sprintf("%s", d.Lines[d.CurrentLine])
+	content := d.Lines[d.CurrentLine]
 
 	// Add a progress indicator
 	progress := fmt.Sprintf("\n\n[%d/%d]", d.CurrentLine+1, len(d.Lines))

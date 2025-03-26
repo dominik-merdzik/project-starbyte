@@ -156,36 +156,57 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		g.notification = ""
 		return g, nil
 
-	// Mission started. Trigger mission travel sequence
+		// Mission started. Trigger mission travel sequence
 	case model.StartMissionMsg:
 		g.TrackedMission = &msg.Mission // Set the mission to track
+		destination := g.TrackedMission.Location
+		currentLocation := g.Ship.Location
 
-		// If we're not already at the mission location, start travelling there
-		if !g.isTravelling {
+		// Check if travel is needed
+		needsTravel := !currentLocation.IsEqual(destination)
+
+		if needsTravel && !g.isTravelling {
+			// --- Calculate Duration ---
+			engineLevel := g.gameSave.Ship.Upgrades.Engine.CurrentLevel
+			maxEngineLevel := g.gameSave.Ship.Upgrades.Engine.MaxLevel // Make sure this value is correct in your save/defaults
+			travelDuration := g.locationService.CalculateTravelDuration(currentLocation, destination, engineLevel, maxEngineLevel)
+			// --------------------------
+
+			//log.Printf("Starting mission travel to %s (%s). Duration: %s", destination.PlanetName, destination.StarSystemName, travelDuration) // Debug log
+
+			// Update model state for travel
 			g.isTravelling = true
-
-			// Set the mission on Travel component
 			g.Travel.Mission = g.TrackedMission
+			g.Travel.DestLocation = destination
 
-			// Store the destination location
-			g.Travel.DestLocation = g.TrackedMission.Location
+			// Start travel component, passing calculated duration
+			cmds = append(cmds, g.Travel.StartTravel(destination, travelDuration))
 
-			return g, g.Travel.StartTravel(g.TrackedMission.Location)
-		} else {
-			// If we're already there, just set the mission as in progress
+		} else if !needsTravel {
+			// If we're already there, set the mission as in progress and init dialogue
 			g.TrackedMission.Status = data.MissionStatusInProgress
+			if len(g.TrackedMission.Dialogue) > 0 {
+				d := components.NewDialogueComponentFromMission(g.TrackedMission.Dialogue)
+				g.Dialogue = &d
+			} else {
+				g.Dialogue = nil
+			}
+			// Optionally, clear isTravelling if it was somehow true but no travel needed
+			g.isTravelling = false
 		}
 
-	// (1/3) Timer for travel component
+		// (1/3) Timer for travel component
 	case components.TravelTickMsg:
-		if g.isTravelling {
+		// Only update if actively travelling AND not yet complete
+		if g.isTravelling && !g.Travel.TravelComplete {
 			newTravel, cmd := g.Travel.Update(msg)
 			g.Travel = newTravel
 			cmds = append(cmds, cmd)
 		}
 	// (2/3) Animation for progress bar in travel component
 	case progress.FrameMsg:
-		if g.isTravelling {
+		// Update progress bar animation only while the travel view might be shown
+		if g.isTravelling || (g.Travel.TravelComplete && time.Since(g.Travel.StartTime) <= g.Travel.Duration+2*time.Second) {
 			newTravel, cmd := g.Travel.Update(msg)
 			g.Travel = newTravel
 			cmds = append(cmds, cmd)
@@ -338,27 +359,27 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// This message is received when travelling (map.go)
 	// It will update the ship's location and fuel and trigger a save
 	case model.TravelUpdateMsg:
-		// Update parent Ship var
-		g.Ship.Location = msg.Location
-		g.Ship.EngineFuel = msg.Fuel
+		// Start travel animation if requested AND not already travelling
+		if msg.ShowTravel && !g.isTravelling {
+			destination := msg.Location        // Destination from map selection
+			currentLocation := g.Ship.Location // Ship's current location
 
-		// Start travel animation if requested
-		if msg.ShowTravel {
+			// --- Calculate Duration ---
+			engineLevel := g.gameSave.Ship.Upgrades.Engine.CurrentLevel
+			maxEngineLevel := g.gameSave.Ship.Upgrades.Engine.MaxLevel
+			travelDuration := g.locationService.CalculateTravelDuration(currentLocation, destination, engineLevel, maxEngineLevel)
+			// --------------------------
+
+			log.Printf("Starting map travel to %s (%s). Duration: %s", destination.PlanetName, destination.StarSystemName, travelDuration) // Debug log
+
+			// Update model state for travel
 			g.isTravelling = true
-			g.Travel.Mission = nil // Clear any mission - this is map travel
-			g.Travel.DestLocation = msg.Location
-			return g, tea.Batch(
-				utilities.PushSave(g.gameSave, func() {
-					g.syncSaveData() // Sync the save data
-				}),
-				g.Travel.StartTravel(msg.Location),
-			)
-		}
+			g.Travel.Mission = nil // Clear mission tracking for map travel
+			g.Travel.DestLocation = destination
 
-		// Then save
-		return g, utilities.PushSave(g.gameSave, func() {
-			g.syncSaveData() // Sync the save data
-		})
+			// Start travel component, passing calculated duration
+			cmds = append(cmds, g.Travel.StartTravel(destination, travelDuration))
+		}
 	case model.CrewUpdateMsg:
 		return g, utilities.PushSave(g.gameSave, func() {
 			g.syncSaveData() // Sync save data after crew upgrade
@@ -416,50 +437,56 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// (3/3) More updates for the travel component
-	if g.isTravelling {
-		// Check if travel is complete
-		if g.Travel.TravelComplete {
-			g.isTravelling = false
+	if g.isTravelling && g.Travel.TravelComplete {
 
-			// Get fuel after traveling
-			var newFuel = g.locationService.GetFuelCost(g.Ship.Location.Coordinates, g.Travel.DestLocation.Coordinates, g.Ship.Location.StarSystemName, g.Travel.DestLocation.StarSystemName, g.Ship.EngineHealth, g.gameSave.Ship.Fuel)
-			g.Ship.EngineFuel = newFuel
+		arrivalLocation := g.Travel.DestLocation                                                                       // Store where we arrived
+		log.Printf("Travel complete. Arrived at %s (%s).", arrivalLocation.PlanetName, arrivalLocation.StarSystemName) // Debug log
+		startLocation := g.Ship.Location                                                                               // Location before travel
 
-			// Always update ship location when travel completes
-			g.Ship.Location = g.Travel.DestLocation
+		// Calculate fuel remaining AFTER the trip
+		newFuel := g.locationService.GetFuelCost(
+			startLocation.Coordinates, arrivalLocation.Coordinates,
+			startLocation.StarSystemName, arrivalLocation.StarSystemName,
+			g.Ship.EngineHealth, g.gameSave.Ship.Fuel,
+		)
 
-			// Update the game save
-			g.syncSaveData()
+		// --- Update State Post-Arrival ---
+		g.Ship.EngineFuel = newFuel
+		g.Ship.Location = arrivalLocation
+		g.isTravelling = false
 
-			// Check if this was mission-related travel
-			if g.TrackedMission != nil && g.Travel.Mission != nil {
-				// Update mission status
-				g.TrackedMission.Status = data.MissionStatusInProgress
+		// --- Improvement: Reset TravelComplete flag ---
+		g.Travel.TravelComplete = false // Reset the flag now that arrival is handled
 
-				// Then show dialogue
+		// Sync state to the save structure
+		g.syncSaveData()
+		// Trigger an asynchronous save for the updated state
+		cmds = append(cmds, utilities.PushSave(g.gameSave, g.syncSaveData))
+
+		// Handle Mission Arrival / Map Arrival Notification
+		missionTravelCompleted := (g.TrackedMission != nil && g.Travel.Mission != nil && g.Travel.Mission.Title == g.TrackedMission.Title)
+
+		if missionTravelCompleted && g.Ship.Location.IsEqual(g.TrackedMission.Location) {
+			// Arrived at the specific tracked mission destination
+			// ... (mission status and dialogue logic) ...
+			g.TrackedMission.Status = data.MissionStatusInProgress
+			if len(g.TrackedMission.Dialogue) > 0 {
 				d := components.NewDialogueComponentFromMission(g.TrackedMission.Dialogue)
 				g.Dialogue = &d
 			} else {
-				// This was map-based travel
-				// Just update the ship location which was already done by TravelUpdateMsg
-
-				// Show a notification
-				g.notification = fmt.Sprintf("Arrived at %s", g.Travel.DestLocation.PlanetName)
-				cmds = append(cmds, tea.Tick(2*time.Second, func(time.Time) tea.Msg {
-					return clearNotificationMsg{}
-				}))
+				g.Dialogue = nil
 			}
 		} else {
-			// !!! This case updates the animated progress bar
-			switch msg.(type) {
-			case components.TravelTickMsg, progress.FrameMsg:
-				// Already handled these specific message types above
-			default:
-				newTravel, travelCmd := g.Travel.Update(msg)
-				g.Travel = newTravel
-				cmds = append(cmds, travelCmd)
-			}
+			// Arrived via map travel (or mission travel to non-final location)
+			// ... (notification logic) ...
+			g.notification = fmt.Sprintf("Arrived at %s", arrivalLocation.PlanetName)
+			cmds = append(cmds, tea.Tick(3*time.Second, func(time.Time) tea.Msg {
+				return clearNotificationMsg{}
+			}))
 		}
+
+		// Clear the mission associated with the travel component
+		g.Travel.Mission = nil
 	}
 
 	// When a mission is completed

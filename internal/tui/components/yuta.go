@@ -106,13 +106,3 @@ func (m YutaModel) View() string {
 
 	return out.String()
 }
-
-// RunYuta starts the Yuta animation program
-func RunYuta() {
-	m := NewYuta()
-
-	if err := tea.NewProgram(m).Start(); err != nil {
-		fmt.Println("Error running program:", err)
-		return
-	}
-}
