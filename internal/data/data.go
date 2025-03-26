@@ -246,6 +246,7 @@ type CollectionItem struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 	Quantity    int    `json:"quantity"`
+	Tier        int    `json:"tier,omitempty"`
 }
 
 type ResearchNoteTier struct {
@@ -312,39 +313,61 @@ func DefaultCollection() Collection {
 	return Collection{
 		MaxCapacity:  100,
 		UsedCapacity: 0,
-		Items:        []CollectionItem{},
+		Items: []CollectionItem{
+			{
+				ItemId:      generateRandomID("ITEM_"),
+				Name:        "Space Debris",
+				Description: "Miscellaneous space junk.",
+				Quantity:    1,
+				Tier:        1,
+			},
+			{
+				ItemId:      generateRandomID("ITEM_"),
+				Name:        "Exotic Matter Sample",
+				Description: "A sample of unknown exotic matter.",
+				Quantity:    1,
+				Tier:        2,
+			},
+			{
+				ItemId:      generateRandomID("ITEM_"),
+				Name:        "Strange Artifact",
+				Description: "An unidentifiable artifact of unknown origin.",
+				Quantity:    1,
+				Tier:        5,
+			},
+		},
 		ResearchNotes: []ResearchNoteTier{
 			{
 				Name:     "Rough Scribbles",
-				Blurb:    "These are your earliest musings—quick sketches and fragmented ideas jotted down in the heat of discovery. They’re messy but full of potential.",
+				Blurb:    "These are your earliest musings—quick sketches and fragmented ideas jotted down in the heat of discovery.",
 				Tier:     1,
 				XP:       100,
 				Quantity: 0,
 			},
 			{
 				Name:     "Field Observations",
-				Blurb:    "Compiled during your initial forays into uncharted territory, these notes capture raw, firsthand experiences that hint at a larger mystery.",
+				Blurb:    "Compiled during your initial forays into uncharted territory, these notes capture raw experiences that hint at a larger mystery.",
 				Tier:     2,
 				XP:       200,
 				Quantity: 0,
 			},
 			{
 				Name:     "Experimental Logs",
-				Blurb:    "With a bit more structure, these logs document repeated tests and emerging patterns. They offer a clearer look at the phenomena you’re unraveling.",
+				Blurb:    "With a bit more structure, these offer a clearer look at the phenomena you're unraveling.",
 				Tier:     3,
 				XP:       300,
 				Quantity: 0,
 			},
 			{
 				Name:     "Analytical Reports",
-				Blurb:    "Now your notes take on a more refined shape—detailed, methodical, and filled with insightful analysis that bridges observation with theory.",
+				Blurb:    "Now your notes take on a more refined methodical filled with insightful analysis that bridges observation with theory.",
 				Tier:     4,
 				XP:       400,
 				Quantity: 0,
 			},
 			{
 				Name:     "Breakthrough Manuscripts",
-				Blurb:    "The pinnacle of your research journey, these manuscripts combine rigorous data and innovative thought to reveal groundbreaking insights that could change everything.",
+				Blurb:    "The pinnacle of your research journey, these combine rigorous data and innovative thought to reveal groundbreaking insights that could change everything.",
 				Tier:     5,
 				XP:       500,
 				Quantity: 0,
