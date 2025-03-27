@@ -440,17 +440,17 @@ func (m MapModel) renderPlanetDetails() string {
 	if m.SelectedSystem.Name == "" || len(m.SelectedSystem.Planets) == 0 {
 		// render placeholder art or message
 		return panelStyle.Render(`
-        .::.
-         .:'  .:
- ,MMM8&&&.:'   .:'
-MMMMM88&&&&  .:'
-MMMMM88&&&&&&:'
-MMMMM88&&&&&&
-.:MMMMM88&&&&&&
-.:'  MMMMM88&&&&
+              .::.
+                  .:'  .:
+        ,MMM8&&&.:'   .:'
+       MMMMM88&&&&  .:'
+      MMMMM88&&&&&&:'
+      MMMMM88&&&&&&
+    .:MMMMM88&&&&&&
+  .:'  MMMMM88&&&&
 .:'   .:'MMM8&&&'
 :'  .:'
-'::'
+'::'  
         `) // placeholder art
 	}
 
