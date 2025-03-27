@@ -81,6 +81,8 @@ type Ship struct {
 	Fuel              int      `json:"fuel"`
 	MaxFuel           int      `json:"maxFuel"`
 	EngineHealth      int      `json:"engineHealth"`
+	MaxEngineHealth   int      `json:"maxEngineHealth"`
+	HasFTLDrive       bool     `json:"hasFTLDrive"`
 	FTLDriveHealth    int      `json:"ftlDriveHealth"`
 	FTLDriveCharge    int      `json:"ftlDriveCharge"`
 	Food              int      `json:"food"`
@@ -586,10 +588,12 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 			MaxHullIntegrity:  100,
 			ShieldStrength:    50,
 			MaxShieldStrength: 50,
-			Fuel:              100,
+			Fuel:              200,
 			MaxFuel:           200,
 			EngineHealth:      100,
-			FTLDriveHealth:    70,
+			MaxEngineHealth:   100,
+			HasFTLDrive:       false,
+			FTLDriveHealth:    10,
 			FTLDriveCharge:    0,
 			Food:              100,
 			Location: Location{
@@ -599,7 +603,7 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 			},
 			Cargo: Cargo{
 				Capacity:     100,
-				UsedCapacity: 0,
+				UsedCapacity: 2,
 				Items: []CargoItem{
 					{
 						ItemId:   generateRandomID("ITEM_"),
@@ -630,15 +634,15 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 			Upgrades: Upgrades{
 				Engine: UpgradeLevel{
 					CurrentLevel: 1,
-					MaxLevel:     5,
+					MaxLevel:     10,
 				},
 				WeaponSystems: UpgradeLevel{
 					CurrentLevel: 0,
-					MaxLevel:     5,
+					MaxLevel:     10,
 				},
 				CargoExpansion: UpgradeLevel{
 					CurrentLevel: 0,
-					MaxLevel:     5,
+					MaxLevel:     10,
 				},
 			},
 		},
@@ -662,7 +666,7 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 				Role:            CrewRoleEngineer,
 				Degree:          1,
 				Experience:      0,
-				Morale:          95,
+				Morale:          100,
 				Health:          100,
 				MasterWorkLevel: 0,
 				Buffs:           []string{},

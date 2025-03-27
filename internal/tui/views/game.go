@@ -370,7 +370,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			travelDuration := g.locationService.CalculateTravelDuration(currentLocation, destination, engineLevel, maxEngineLevel)
 			// --------------------------
 
-			log.Printf("Starting map travel to %s (%s). Duration: %s", destination.PlanetName, destination.StarSystemName, travelDuration) // Debug log
+			//log.Printf("Starting map travel to %s (%s). Duration: %s", destination.PlanetName, destination.StarSystemName, travelDuration) // Debug log
 
 			// Update model state for travel
 			g.isTravelling = true
@@ -439,9 +439,9 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// (3/3) More updates for the travel component
 	if g.isTravelling && g.Travel.TravelComplete {
 
-		arrivalLocation := g.Travel.DestLocation                                                                       // Store where we arrived
-		log.Printf("Travel complete. Arrived at %s (%s).", arrivalLocation.PlanetName, arrivalLocation.StarSystemName) // Debug log
-		startLocation := g.Ship.Location                                                                               // Location before travel
+		arrivalLocation := g.Travel.DestLocation // Store where we arrived
+		//log.Printf("Travel complete. Arrived at %s (%s).", arrivalLocation.PlanetName, arrivalLocation.StarSystemName) // Debug log
+		startLocation := g.Ship.Location // Location before travel
 
 		// Calculate fuel remaining AFTER the trip
 		newFuel := g.locationService.GetFuelCost(
