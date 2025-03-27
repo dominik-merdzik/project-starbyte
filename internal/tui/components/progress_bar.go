@@ -15,7 +15,9 @@ func NewProgressBar() ProgressBar {
 	// rogress bar styles
 	p := progress.New(
 		progress.WithScaledGradient("#F00065", "#008FE9"),
+		progress.WithWidth(46),
 		//tesing this out:: progress.WithoutPercentage(),
+		//progress.WithFillCharacters('░', '▓'), // Tested the runes fill
 	)
 	return ProgressBar{Model: p}
 }
@@ -33,8 +35,7 @@ func (p ProgressBar) RenderProgressBar(current, max int) string {
 
 	// render
 	barStyle := lipgloss.NewStyle().
-		Width(100).
-		Align(lipgloss.Center)
+		Align(lipgloss.Center).PaddingTop(1)
 
 	return barStyle.Render(p.Model.ViewAs(percent))
 }

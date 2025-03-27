@@ -605,18 +605,61 @@ func (g GameModel) View() string {
 	// ---------------------------
 
 	statLabelStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
+	/*
+		shipHealthText := statLabelStyle.Render("┌── HULL HEALTH ──┐")
+		healthBar := g.ProgressBar.RenderProgressBar(g.Ship.HullHealth, g.Ship.MaxHullHealth)
 
-	shipHealthText := fmt.Sprintf("%s: %d/%d", statLabelStyle.Render("Ship Health"), g.currentHealth, g.maxHealth)
-	healthBar := g.ProgressBar.RenderProgressBar(g.currentHealth, g.maxHealth)
+		fuelText := statLabelStyle.Render("┌── FUEL ──┐")
+		fuelBar := g.ProgressBar.RenderProgressBar(g.Ship.EngineFuel, g.Ship.MaxFuel)*/
 
-	fuelText := fmt.Sprintf("%s: ", statLabelStyle.Render("Fuel"))
+	// Get the width of the center panel (from the style)
+	centerWidth := 50 - 4
+
+	// Create hull health header with centered text
+	hullLabelText := "HULL INTEGRITY"
+	hullPaddingLeft := (centerWidth - len(hullLabelText) - 4) / 2 // -4 for "┌── " and " ──┐"
+	hullPaddingRight := centerWidth - len(hullLabelText) - 4 - hullPaddingLeft
+	shipHealthText := statLabelStyle.Render("┌" + strings.Repeat("─", hullPaddingLeft) + " " + hullLabelText + " " + strings.Repeat("─", hullPaddingRight) + "┐")
+	healthBar := g.ProgressBar.RenderProgressBar(g.Ship.HullHealth, g.Ship.MaxHullHealth)
+
+	// Create fuel header with centered text
+	fuelLabelText := "FUEL"
+	fuelPaddingLeft := (centerWidth - len(fuelLabelText) - 4) / 2 // -4 for "┌── " and " ──┐"
+	fuelPaddingRight := centerWidth - len(fuelLabelText) - 4 - fuelPaddingLeft
+	fuelText := statLabelStyle.Render("┌" + strings.Repeat("─", fuelPaddingLeft) + " " + fuelLabelText + " " + strings.Repeat("─", fuelPaddingRight) + "┐")
 	fuelBar := g.ProgressBar.RenderProgressBar(g.Ship.EngineFuel, g.Ship.MaxFuel)
 
-	foodText := fmt.Sprintf("%s: ", statLabelStyle.Render("Food"))
-	foodBar := g.ProgressBar.RenderProgressBar(g.Ship.Food, 100)
+	// Display location
+	var locationText string
+	// If at space station
+	if planet.Type == "Space Station" {
+		locationText = fmt.Sprintf("◉ Docked at %s, %s System", g.Ship.Location.PlanetName, g.Ship.Location.StarSystemName)
+	} else {
+		locationText = fmt.Sprintf("◌ Orbiting %s, %s System", g.Ship.Location.PlanetName, g.Ship.Location.StarSystemName)
+	}
 
-	statsContent := fmt.Sprintf("\n%s\n%s\n\n%s\n%s\n\n%s\n%s",
-		shipHealthText, healthBar, fuelText, fuelBar, foodText, foodBar)
+	moduleStatusText := "Modules: Engine (OK), Weapons (OK), Cargo (OK)"
+
+	// TODO crew morale system
+	crewMoraleText := "█ ▇ ▆ █ The crew are in high spirits."
+
+	// TODO weather report for immersion (no gameplay effect)
+	var weatherList = []string{"Solar Flares", "Solar Winds", "Coronal Mass Ejections", "Geomagnetic Storms", "Cosmic Rays", "Radiation Storms", "Plasma Ejections", "Microgravity Dust Storms"}
+
+	// Randomly pick a weather condition for now
+	weatherText := lipgloss.NewStyle().Foreground(lipgloss.Color("246")).Render("Weather advisory: " + weatherList[3])
+
+	statsContent := fmt.Sprintf("\n%s\n%s\n\n%s\n%s\n\n\n%s\n\n%s\n\n%s\n\n%s",
+		shipHealthText, healthBar, fuelText, fuelBar, locationText, moduleStatusText, crewMoraleText, weatherText)
+
+	// Should we move the tracked mission to the center panel? -Andrew
+	// if g.TrackedMission != nil {
+	// 	statsContent += fmt.Sprintf("\n\nMission: %s", g.TrackedMission.Title)
+	// }
+
+	// IMO food is not an essential stat to see at all times -Andrew
+	//foodText := fmt.Sprintf("%s: ", statLabelStyle.Render("Food"))
+	//foodBar := g.ProgressBar.RenderProgressBar(g.Ship.Food, 100)
 
 	creditsContent := fmt.Sprintf("¢redits %d", g.Credits)
 	creditsStyled := lipgloss.NewStyle().
@@ -628,8 +671,9 @@ func (g GameModel) View() string {
 	centerStatsPanel := lipgloss.NewStyle().
 		Width(50).
 		Height(18).
+		PaddingLeft(2).
 		Border(lipgloss.RoundedBorder()).
-		Align(lipgloss.Center).
+		Align(lipgloss.Left).
 		Render(statsContent)
 
 	centerCreditsPanel := lipgloss.NewStyle().
