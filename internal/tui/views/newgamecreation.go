@@ -5,7 +5,9 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/dominik-merdzik/project-starbyte/internal/data"
+	"github.com/dominik-merdzik/project-starbyte/internal/tui/components"
 )
 
 // newGameModel represents the model for the new game creation form
@@ -13,6 +15,9 @@ type newGameModel struct {
 	inputs     []textinput.Model
 	focusIndex int
 	err        error
+	showIntro  bool // flag to show the intro exposition
+	Dialogue   *components.DialogueComponent
+	lines      []string // lines of dialogue to display
 }
 
 // NewGameCreationModel initializes the new game creation form
@@ -20,7 +25,20 @@ func NewGameCreationModel() tea.Model {
 	m := newGameModel{
 		inputs:     make([]textinput.Model, 3),
 		focusIndex: 0,
+		showIntro:  true,
+		lines: []string{
+			"The year is 2399 and humanity has reached the stars.",
+			"Space travel beyond the Solar System is now possible with the use of Faster-Than-Light (FTL) technology.",
+			"They are not alone in the universe. Contact has been made with intelligent alien species.",
+			"Some are friendly, some hostile, and some are indifferent.",
+			"Humanity is now part of a galactic community, but the galaxy is a mysterious place.",
+			"Your ship and crew are ready, and the stars await...",
+		},
 	}
+
+	// Initialize Dialogue component
+	d := components.NewDialogueComponentFromMission(m.lines)
+	m.Dialogue = &d
 
 	// 1. ship Name
 	ti := textinput.New()
@@ -53,10 +71,32 @@ func (m newGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "esc":
+		// Handle quit for all key messages
+		if msg.String() == "ctrl+c" || msg.String() == "q" {
 			return m, tea.Quit
-		case "tab", "shift+tab", "enter", "up", "down":
+		}
+
+		// handle Enter key for the dialogue component
+		if m.showIntro {
+			if msg.String() == "enter" {
+				m.Dialogue.Next()
+				if m.Dialogue.CurrentLine >= len(m.lines) {
+					m.showIntro = false
+				}
+			}
+			if msg.String() == "backspace" {
+				m.Dialogue.Previous()
+			}
+			if msg.String() == " " {
+				m.showIntro = false // Skip
+			}
+			// Must return so that it doesnt input into the stuff below
+			return m, nil
+		}
+
+		// Converted from switch to if for slight performance gain
+		if msg.String() == "tab" || msg.String() == "shift+tab" ||
+			msg.String() == "enter" || msg.String() == "up" || msg.String() == "down" {
 			// when pressing Enter on the last input, assume the form is complete
 			if msg.String() == "enter" && m.focusIndex == len(m.inputs)-1 {
 				// gather input values
@@ -114,6 +154,26 @@ func (m newGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m newGameModel) View() string {
+	// -----
+	// INTRO
+	// -----
+	if m.showIntro {
+		dialogueContent := m.Dialogue.View(80 - 2) // Width: 80 - 2. Assuming user has standard unix 80x24 terminal size
+
+		hints := "[Enter] Next • [Backspace] Previous • [Space] Skip • [Esc] Quit"
+		hintsRowStyle := lipgloss.NewStyle().
+			Width(80).
+			Padding(0, 1).
+			Background(lipgloss.Color("236")).
+			Foreground(lipgloss.Color("15"))
+
+		// Show hints below dialogue
+		return dialogueContent + "\n" + hintsRowStyle.Render(hints)
+	}
+
+	// --------------
+	// NEW GAME SETUP
+	// --------------
 	var b strings.Builder
 
 	b.WriteString("=== New Simulation Setup ===\n\n")
@@ -127,5 +187,12 @@ func (m newGameModel) View() string {
 	if m.err != nil {
 		b.WriteString("\nError: " + m.err.Error())
 	}
-	return b.String()
+
+	style := lipgloss.NewStyle().
+		Width(80-2).
+		Padding(1, 2).
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("63"))
+
+	return style.Render(b.String())
 }

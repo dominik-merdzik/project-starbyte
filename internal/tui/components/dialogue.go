@@ -26,6 +26,12 @@ func (d *DialogueComponent) Next() {
 	}
 }
 
+func (d *DialogueComponent) Previous() {
+	if d.CurrentLine > 0 {
+		d.CurrentLine--
+	}
+}
+
 // View renders the dialogue component
 // Width is an optional parameter
 func (d DialogueComponent) View(width ...int) string {
