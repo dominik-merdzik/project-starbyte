@@ -1,6 +1,7 @@
 package views
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -40,24 +41,30 @@ func NewGameCreationModel() tea.Model {
 	d := components.NewDialogueComponentFromMission(m.lines)
 	m.Dialogue = &d
 
-	// 1. ship Name
-	ti := textinput.New()
-	ti.Placeholder = "Enter ship name"
-	ti.Focus() // first field gets focus
-	ti.CharLimit = 20
-	m.inputs[0] = ti
+	// 1. Player name
+	ti1 := textinput.New()
+	ti1.Placeholder = "Enter commander name"
+	ti1.Focus() // first field gets focus
+	ti1.CharLimit = 20
+	m.inputs[0] = ti1
 
-	// 2. game difficulty
+	// 2. ship Name
 	ti2 := textinput.New()
-	ti2.Placeholder = "Enter game difficulty (Easy, Normal, Hard)"
-	ti2.CharLimit = 10
+	ti2.Placeholder = "Enter ship name"
+	ti2.CharLimit = 20
 	m.inputs[1] = ti2
 
-	// 3. starting location
+	// 3. game difficulty
 	ti3 := textinput.New()
-	ti3.Placeholder = "Enter starting location (default: Earth)"
-	ti3.CharLimit = 20
+	ti3.Placeholder = "Enter game difficulty (Easy, Normal, Hard)"
+	ti3.CharLimit = 10
 	m.inputs[2] = ti3
+
+	// 3. starting location
+	// ti3 := textinput.New()
+	// ti3.Placeholder = "Enter starting location (default: Earth)"
+	// ti3.CharLimit = 20
+	// m.inputs[2] = ti3
 
 	return m
 }
@@ -100,21 +107,40 @@ func (m newGameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// when pressing Enter on the last input, assume the form is complete
 			if msg.String() == "enter" && m.focusIndex == len(m.inputs)-1 {
 				// gather input values
-				shipName := m.inputs[0].Value()
-				difficulty := m.inputs[1].Value()
-				location := m.inputs[2].Value()
+				playerName := m.inputs[0].Value()
+				shipName := m.inputs[1].Value()
+				difficulty := m.inputs[2].Value()
+				// location := m.inputs[2].Value()
+				if strings.TrimSpace(playerName) == "" {
+					playerName = "Commander"
+				}
 				if strings.TrimSpace(shipName) == "" {
 					shipName = "Starship"
 				}
-				if strings.TrimSpace(difficulty) == "" {
-					difficulty = "Normal" // default difficulty
-				}
-				if strings.TrimSpace(location) == "" {
-					location = "Earth" // default starting location
+
+				// Validate difficulty setting
+				validDifficulty := false
+				difficulty = strings.ToLower(strings.TrimSpace(difficulty)) // Normalize to lowercase
+
+				switch difficulty {
+				case "easy", "normal", "hard":
+					validDifficulty = true
+				case strings.TrimSpace(""):
+					// Default to Normal if empty
+					difficulty = "normal"
+					validDifficulty = true
 				}
 
+				if !validDifficulty {
+					m.err = fmt.Errorf("invalid difficulty: must be Easy, Normal, or Hard")
+					return m, nil
+				}
+				// if strings.TrimSpace(location) == "" {
+				// 	location = "Earth" // default starting location
+				// }
+
 				// create a new full game save populated with all new game data
-				if err := data.CreateNewFullGameSave(difficulty, shipName, location); err != nil {
+				if err := data.CreateNewFullGameSave(difficulty, shipName, playerName); err != nil {
 					m.err = err
 					return m, nil
 				}
@@ -179,7 +205,7 @@ func (m newGameModel) View() string {
 	b.WriteString("=== New Simulation Setup ===\n\n")
 	b.WriteString("Please enter the following details:\n\n")
 
-	labels := []string{"Ship Name: ", "Game Difficulty: ", "Starting Location: "}
+	labels := []string{"Commander Name: ", "Ship Name: ", "Game Difficulty: "}
 	for i, input := range m.inputs {
 		b.WriteString(labels[i] + input.View() + "\n")
 	}

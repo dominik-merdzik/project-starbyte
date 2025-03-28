@@ -382,7 +382,7 @@ func DefaultCollection() Collection {
 // creates a new game file with default values
 // -------------------------------------------
 
-func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error {
+func CreateNewFullGameSave(difficulty, shipName, playerName string) error {
 	now := time.Now()
 
 	defaultMissions := []Mission{
@@ -567,7 +567,7 @@ func CreateNewFullGameSave(difficulty, shipName, startingLocation string) error 
 		},
 		Player: Player{
 			PlayerId:         generateRandomID("PLAYER_"),
-			PlayerName:       "Commander " + shipName,
+			PlayerName:       playerName,
 			Faction:          "Independent",
 			ExperiencePoints: 0,
 			Level:            1,
