@@ -57,6 +57,8 @@ type GameModel struct {
 	autoSaveInitiated  bool
 
 	MissionTemplates []data.MissionTemplate
+	// Events
+	Event *components.EventModel
 }
 
 type ActiveView int
@@ -69,6 +71,7 @@ const (
 	ViewShip
 	ViewCollection   // NEW: Added Collection view
 	ViewSpaceStation // NEW: Added SpaceStation view
+	ViewEvent        // Random events
 )
 
 type clearNotificationMsg struct{}
@@ -202,6 +205,18 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			newTravel, cmd := g.Travel.Update(msg)
 			g.Travel = newTravel
 			cmds = append(cmds, cmd)
+
+			// Check if travel is complete
+			if g.Travel.TravelComplete {
+				g.isTravelling = false // Reset travel state
+				g.Ship.Location = g.Travel.DestLocation
+				g.syncSaveData()
+
+				// Trigger a Random Event 30% chance
+				if rand.Intn(100) < 30 {
+					cmds = append(cmds, TriggerRandomEvent())
+				}
+			}
 		}
 	// (2/3) Animation for progress bar in travel component
 	case progress.FrameMsg:
@@ -211,12 +226,87 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.Travel = newTravel
 			cmds = append(cmds, cmd)
 		}
+	// Updates ship values from random event
+	case components.ApplyEffectsMsg:
+		for key, value := range msg.Effects {
+			switch key {
+			case "fuel": // Fuel between 0-MaxFuel
+				if g.Ship.EngineFuel+value <= g.Ship.MaxFuel && g.Ship.EngineFuel+value >= 0 {
+					g.Ship.EngineFuel += value
+				} else if g.Ship.EngineFuel+value > g.Ship.MaxFuel {
+					g.Ship.EngineFuel = g.Ship.MaxFuel
+				} else if g.Ship.EngineFuel+value < 0 {
+					g.Ship.EngineFuel = 0
+				}
+				g.gameSave.Ship.Fuel = g.Ship.EngineFuel
+			case "credits": // May be able to go into credit debt, so can be negative
+				g.Credits += value
+				g.gameSave.Player.Credits = g.Credits
+			case "morale": // Morale between 0-100
+				for i := range g.Crew.CrewMembers {
+					if g.Crew.CrewMembers[i].Morale+value <= 100 && g.Crew.CrewMembers[i].Morale+value >= 0 {
+						g.Crew.CrewMembers[i].Morale += value
+					} else if g.Crew.CrewMembers[i].Morale+value > 100 {
+						g.Crew.CrewMembers[i].Morale = 100
+					} else if g.Crew.CrewMembers[i].Morale+value < 0 {
+						g.Crew.CrewMembers[i].Morale = 0
+					}
+					g.gameSave.Crew[i].Morale = g.Crew.CrewMembers[i].Morale
+				}
+			case "food": // Food > 0
+				if g.Ship.Food+value >= 0 {
+					g.Ship.Food += value
+				} else {
+					g.Ship.Food = 0
+				}
+				g.gameSave.Ship.Food = g.Ship.Food
+			case "hull": // Hull between 0-MaxHullHealth
+				if g.currentHealth+value <= g.Ship.MaxHullHealth && g.currentHealth+value >= 0 {
+					g.currentHealth += value
+				} else if g.currentHealth+value > g.Ship.MaxHullHealth {
+					g.currentHealth = g.Ship.MaxHullHealth
+				} else if g.currentHealth+value < 0 {
+					g.currentHealth = 0
+				}
+				g.Ship.HullHealth = g.currentHealth // Hull integrity bar dependent on this value
+				g.gameSave.Ship.HullIntegrity = g.currentHealth
+			}
+		}
+		g.syncSaveData() // Ensure updates are saved
+		return g, nil
+
+	// Random event dialogue started
+	case StartEventMsg:
+		g.activeView = ViewEvent
+		g.Event = components.NewEventModel(msg.Event)
+		return g, nil
+
+	// Random event dialogue finished
+	case components.EventFinishedMsg:
+		g.activeView = ViewNone
+		g.Event = nil
+
+		// 🆕 Ensure travel is completed after an event
+		if g.isTravelling {
+			g.isTravelling = false
+			g.Ship.Location = g.Travel.DestLocation
+			g.syncSaveData()
+		}
+
+		return g, nil
 
 	// ---------------------------
 	// Handle key presses
 	// ---------------------------
 
 	case tea.KeyMsg:
+		// Send key presses to event.go for random event dialogue
+		if g.activeView == ViewEvent && g.Event != nil {
+			var cmd tea.Cmd
+			g.Event, cmd = g.Event.Update(msg)
+			return g, cmd
+		}
+
 		// First, if an active view is set, process escape.
 		if g.activeView != ViewNone && msg.String() == "esc" {
 			g.activeView = ViewNone
@@ -719,34 +809,36 @@ func (g GameModel) View() string {
 		// Show travel view if travelling, regardless of mission
 		if g.isTravelling {
 			bottomPanelContent = g.Travel.View()
-		} else {
-			// If there is an active mission, show mission details
-			if g.TrackedMission != nil {
-				// Show current task
-				currentTask := components.NewCurrentTaskComponent()
-				bottomPanelContent += currentTask.Render(g.TrackedMission)
+		} else if g.activeView == ViewEvent && g.Event != nil { // Event in bottom panel
+			bottomPanelContent = g.Event.View()
+			bottomPanelContent += "\n\nPress [Enter] to continue or [Q] to exit."
+		} else if g.TrackedMission != nil {
+			// Show current task
+			currentTask := components.NewCurrentTaskComponent()
+			bottomPanelContent = currentTask.Render(g.TrackedMission)
 
-				// If mission in progress, show dialogue
-				switch g.TrackedMission.Status {
-				case data.MissionStatusInProgress:
-					// Show dialogue ONLY if it's initialized
-					if g.Dialogue != nil { // <--- ADD THIS CHECK
-						bottomPanelContent = g.Dialogue.View()
-						bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
-					} else {
-						// Optional: Show a message indicating the mission is starting or dialogue is loading
-						bottomPanelContent = fmt.Sprintf("Mission '%s' starting...\n(Press Enter to begin dialogue if available)", g.TrackedMission.Title)
-						// Or just leave it blank if preferred:
-						// bottomPanelContent = "" // Or keep existing content from currentTask rendering
-					}
-				case data.MissionStatusCompleted:
-					// Show mission complete screen
-					// Ensure TrackedMission is not nil here too for safety, although the outer check covers it.
-					if g.TrackedMission != nil {
-						bottomPanelContent = fmt.Sprintf("Mission Complete!\n\nYou were rewarded %d credits.\n\nPress [Space] to continue.", g.TrackedMission.Income)
-					}
+			// If mission in progress, show dialogue
+			switch g.TrackedMission.Status {
+			case data.MissionStatusInProgress:
+				// Show dialogue ONLY if it's initialized
+				if g.Dialogue != nil { // <--- ADD THIS CHECK
+					bottomPanelContent = g.Dialogue.View()
+					bottomPanelContent += "\n\nPress [Enter] to continue dialogue."
+				} else {
+					// Optional: Show a message indicating the mission is starting or dialogue is loading
+					bottomPanelContent = fmt.Sprintf("Mission '%s' starting...\n(Press Enter to begin dialogue if available)", g.TrackedMission.Title)
+					// Or just leave it blank if preferred:
+					// bottomPanelContent = "" // Or keep existing content from currentTask rendering
+				}
+			case data.MissionStatusCompleted:
+				// Show mission complete screen
+				// Ensure TrackedMission is not nil here too for safety, although the outer check covers it.
+				if g.TrackedMission != nil {
+					bottomPanelContent = fmt.Sprintf("Mission Complete!\n\nYou were rewarded %d credits.\n\nPress [Space] to continue.", g.TrackedMission.Income)
 				}
 			}
+		} else {
+			bottomPanelContent = "" // Clear bottom panel if nothing else is active
 		}
 	}
 	bottomPanel := lipgloss.NewStyle().
@@ -804,6 +896,13 @@ func NewGameModel() tea.Model {
 	if err != nil || fullSave == nil {
 		fmt.Println("Error loading save file or save file not found; using default values")
 	}
+
+	// Load events from events.json
+	err = data.LoadEvents()
+	if err != nil {
+		fmt.Println("Error failed to load events:", err)
+	}
+
 	currentHealth := fullSave.Ship.HullIntegrity
 	maxHealth := fullSave.Ship.MaxHullIntegrity
 
@@ -917,4 +1016,21 @@ func (g *GameModel) addRandomResearchNote() {
 		}
 	}
 
+}
+
+// Triggers random event from events.json
+func TriggerRandomEvent() tea.Cmd {
+	event := data.GetRandomEvent()
+	if event != nil {
+		return func() tea.Msg {
+			return StartEventMsg{Event: event}
+		}
+	} else {
+		log.Println("No events found in GetRandomEvent()")
+	}
+	return nil
+}
+
+type StartEventMsg struct {
+	Event *data.Event
 }
