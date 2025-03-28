@@ -26,26 +26,22 @@ func (d *DialogueComponent) Next() {
 	}
 }
 
-// Renders dialogue like so:
-// > Dialogue line 1
-// > Dialogue line 2
-// > Dialogue line n
-func (d DialogueComponent) View() string {
-	// var content strings.Builder
-	// prefixStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-	// containerStyle := lipgloss.NewStyle().Align(lipgloss.Left)
-	// for i := 0; i < d.CurrentLine && i < len(d.Lines); i++ {
-	// 	content.WriteString(fmt.Sprintf("%s %s\n", prefixStyle.Render(">"), d.Lines[i]))
-	// }
-	// return containerStyle.Render(content.String())
-
+// View renders the dialogue component
+// Width is an optional parameter
+func (d DialogueComponent) View(width ...int) string {
 	if len(d.Lines) == 0 || d.CurrentLine >= len(d.Lines) {
 		return "End of dialogue."
 	}
 
+	// Set default width to 120 if not specified
+	dialogueWidth := 120
+	if len(width) > 0 && width[0] > 0 {
+		dialogueWidth = width[0]
+	}
+
 	dialogueStyle := lipgloss.NewStyle().
-		Width(120).
-		Padding(1).
+		Width(dialogueWidth).
+		Padding(1, 2).
 		BorderStyle(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63"))
 
