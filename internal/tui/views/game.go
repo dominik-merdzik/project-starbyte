@@ -453,6 +453,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// --- Update State Post-Arrival ---
 		g.Ship.EngineFuel = newFuel
 		g.Ship.Location = arrivalLocation
+		g.Map.Ship.Location = arrivalLocation // Need to update the Map's Ship instance too
 		g.isTravelling = false
 
 		// --- Improvement: Reset TravelComplete flag ---
