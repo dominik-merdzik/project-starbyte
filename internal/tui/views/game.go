@@ -19,7 +19,7 @@ import (
 type GameModel struct {
 	// components
 	ProgressBar components.ProgressBar
-	Yuta        components.YutaModel
+	Yuta        components.YutaComponent
 	Travel      components.TravelComponent
 	Dialogue    *components.DialogueComponent
 
@@ -30,9 +30,6 @@ type GameModel struct {
 	Map          model.MapModel
 	Collection   model.CollectionModel   // NEW: Collection model
 	SpaceStation model.SpaceStationModel // NEW: SpaceStation model
-
-	currentHealth int
-	maxHealth     int
 
 	menuItems  []string
 	menuCursor int
@@ -261,15 +258,14 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				g.gameSave.Ship.Food = g.Ship.Food
 			case "hull": // Hull between 0-MaxHullHealth
-				if g.currentHealth+value <= g.Ship.MaxHullHealth && g.currentHealth+value >= 0 {
-					g.currentHealth += value
-				} else if g.currentHealth+value > g.Ship.MaxHullHealth {
-					g.currentHealth = g.Ship.MaxHullHealth
-				} else if g.currentHealth+value < 0 {
-					g.currentHealth = 0
+				if g.Ship.HullHealth+value <= g.Ship.MaxHullHealth && g.Ship.HullHealth+value >= 0 {
+					g.Ship.HullHealth += value
+				} else if g.Ship.HullHealth+value > g.Ship.MaxHullHealth {
+					g.Ship.HullHealth = g.Ship.MaxHullHealth
+				} else if g.Ship.HullHealth+value < 0 {
+					g.Ship.HullHealth = 0
 				}
-				g.Ship.HullHealth = g.currentHealth // Hull integrity bar dependent on this value
-				g.gameSave.Ship.HullIntegrity = g.currentHealth
+				g.gameSave.Ship.HullIntegrity = g.Ship.HullHealth
 			}
 		}
 		g.syncSaveData() // Ensure updates are saved
@@ -340,18 +336,6 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q":
 			return g, tea.Quit
-		case "a":
-			g.currentHealth -= 10
-			if g.currentHealth < 0 {
-				g.currentHealth = 0
-			}
-			g.dirty = true
-		case "h":
-			g.currentHealth += 10
-			if g.currentHealth > g.maxHealth {
-				g.currentHealth = g.maxHealth
-			}
-			g.dirty = true
 		case "up", "k":
 			// Skip over space station if not at one
 			planet := g.gameSave.Ship.Location.GetFullPlanet(g.gameSave.GameMap)
@@ -681,27 +665,12 @@ func (g GameModel) View() string {
 		BorderForeground(lipgloss.Color("63")).
 		Align(lipgloss.Left, lipgloss.Top).
 		Render(fmt.Sprintf("%s\n\n%s", title, menuView.String()))
-	// version text at the bottom of the left panel
-	versionText := lipgloss.NewStyle().
-		Align(lipgloss.Left).
-		Foreground(lipgloss.Color("246")).
-		Height(1).
-		Width(40).
-		PaddingLeft(1).
-		Render("Version: " + g.Version)
-	leftPanel := lipgloss.JoinVertical(lipgloss.Left, leftPanelTop, versionText)
 
 	// ---------------------------
 	// Center Panel: Stats & Progress Bars with Credits at the Bottom
 	// ---------------------------
 
 	statLabelStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
-	/*
-		shipHealthText := statLabelStyle.Render("┌── HULL HEALTH ──┐")
-		healthBar := g.ProgressBar.RenderProgressBar(g.Ship.HullHealth, g.Ship.MaxHullHealth)
-
-		fuelText := statLabelStyle.Render("┌── FUEL ──┐")
-		fuelBar := g.ProgressBar.RenderProgressBar(g.Ship.EngineFuel, g.Ship.MaxFuel)*/
 
 	// Get the width of the center panel (from the style)
 	centerWidth := 50 - 4
@@ -724,40 +693,17 @@ func (g GameModel) View() string {
 	var locationText string
 	// If at space station
 	if planet.Type == "Space Station" {
-		locationText = fmt.Sprintf("◉ Docked at %s, %s System", g.Ship.Location.PlanetName, g.Ship.Location.StarSystemName)
+		locationText = fmt.Sprintf("Docked at %s, %s System", g.Ship.Location.PlanetName, g.Ship.Location.StarSystemName)
 	} else {
-		locationText = fmt.Sprintf("◌ Orbiting %s, %s System", g.Ship.Location.PlanetName, g.Ship.Location.StarSystemName)
+		locationText = fmt.Sprintf("Orbiting %s, %s System", g.Ship.Location.PlanetName, g.Ship.Location.StarSystemName)
 	}
 
 	moduleStatusText := "Modules: Engine (OK), Weapons (OK), Cargo (OK)"
 
-	// TODO crew morale system
-	crewMoraleText := "█ ▇ ▆ █ The crew are in high spirits."
+	creditsText := fmt.Sprintf("Credits: %d", g.Credits)
 
-	// TODO weather report for immersion (no gameplay effect)
-	var weatherList = []string{"Solar Flares", "Solar Winds", "Coronal Mass Ejections", "Geomagnetic Storms", "Cosmic Rays", "Radiation Storms", "Plasma Ejections", "Microgravity Dust Storms"}
-
-	// Randomly pick a weather condition for now
-	weatherText := lipgloss.NewStyle().Foreground(lipgloss.Color("246")).Render("Weather advisory: " + weatherList[3])
-
-	statsContent := fmt.Sprintf("\n%s\n%s\n\n%s\n%s\n\n\n%s\n\n%s\n\n%s\n\n%s",
-		shipHealthText, healthBar, fuelText, fuelBar, locationText, moduleStatusText, crewMoraleText, weatherText)
-
-	// Should we move the tracked mission to the center panel? -Andrew
-	// if g.TrackedMission != nil {
-	// 	statsContent += fmt.Sprintf("\n\nMission: %s", g.TrackedMission.Title)
-	// }
-
-	// IMO food is not an essential stat to see at all times -Andrew
-	//foodText := fmt.Sprintf("%s: ", statLabelStyle.Render("Food"))
-	//foodBar := g.ProgressBar.RenderProgressBar(g.Ship.Food, 100)
-
-	creditsContent := fmt.Sprintf("¢redits %d", g.Credits)
-	creditsStyled := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("215")).
-		Align(lipgloss.Center).
-		Render(creditsContent)
+	statsContent := fmt.Sprintf("\n%s\n%s\n\n%s\n%s\n\n\n%s\n\n%s\n\n%s",
+		shipHealthText, healthBar, fuelText, fuelBar, locationText, moduleStatusText, creditsText)
 
 	centerStatsPanel := lipgloss.NewStyle().
 		Width(50).
@@ -767,24 +713,17 @@ func (g GameModel) View() string {
 		Align(lipgloss.Left).
 		Render(statsContent)
 
-	centerCreditsPanel := lipgloss.NewStyle().
-		Width(50).
-		Height(1).
-		Align(lipgloss.Center).
-		Render(creditsStyled)
-
-	centerPanel := lipgloss.JoinVertical(lipgloss.Center, centerStatsPanel, centerCreditsPanel)
-
 	// ---------------------------
-	// Right Panel: Yuta Animation
+	// Right Panel: Yuta suggestions
 	// ---------------------------
 
-	rightPanel := lipgloss.NewStyle().
+	rightYutaPanel := lipgloss.NewStyle().
 		Width(40).
-		Height(19).
+		Height(18).
+		Padding(1, 2).
 		Border(lipgloss.RoundedBorder()).
 		Foreground(lipgloss.Color("215")).
-		Align(lipgloss.Center).
+		Align(lipgloss.Left).
 		Render(g.Yuta.View())
 
 	// ---------------------------
@@ -884,7 +823,7 @@ func (g GameModel) View() string {
 	// Combine Top Row Panels, Bottom Panel, and Hints Row.
 	// ---------------------------
 
-	topRow := lipgloss.JoinHorizontal(lipgloss.Center, leftPanel, centerPanel, rightPanel)
+	topRow := lipgloss.JoinHorizontal(lipgloss.Center, leftPanelTop, centerStatsPanel, rightYutaPanel)
 	bottomRows := lipgloss.JoinVertical(lipgloss.Center, bottomPanel, hintsRow)
 	mainView := lipgloss.JoinVertical(lipgloss.Center, topRow, bottomRows)
 
@@ -903,9 +842,6 @@ func NewGameModel() tea.Model {
 		fmt.Println("Error failed to load events:", err)
 	}
 
-	currentHealth := fullSave.Ship.HullIntegrity
-	maxHealth := fullSave.Ship.MaxHullIntegrity
-
 	// Load mission templates file
 	missionTemplates, err := data.LoadMissionTemplates()
 	if err != nil {
@@ -921,9 +857,6 @@ func NewGameModel() tea.Model {
 
 	return GameModel{
 		ProgressBar:      components.NewProgressBar(),
-		currentHealth:    currentHealth,
-		maxHealth:        maxHealth,
-		Yuta:             components.NewYuta(),
 		menuItems:        []string{"Journal", "Ship", "Crew", "Map", "Collection", "SpaceStation", "Exit"},
 		menuCursor:       0,
 		Ship:             shipModel,
@@ -942,6 +875,7 @@ func NewGameModel() tea.Model {
 		lastAutoSaveTime: time.Now(),
 		locationService:  data.NewLocationService(fullSave.GameMap),
 		MissionTemplates: missionTemplates,
+		Yuta:             components.NewYutaComponent(fullSave.Ship, fullSave.Player.PlayerName, fullSave.Player.Credits),
 	}
 }
 
@@ -950,7 +884,7 @@ func NewGameModel() tea.Model {
 func (g *GameModel) syncSaveData() {
 
 	// Sync ship values
-	g.gameSave.Ship.HullIntegrity = g.currentHealth
+	g.gameSave.Ship.HullIntegrity = g.Ship.HullHealth
 	g.gameSave.Ship.Fuel = g.Ship.EngineFuel
 	g.gameSave.Ship.EngineHealth = g.Ship.EngineHealth
 	g.gameSave.Ship.FTLDriveHealth = g.Ship.FTLDriveHealth
