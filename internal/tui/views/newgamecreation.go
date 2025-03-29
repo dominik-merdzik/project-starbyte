@@ -188,8 +188,9 @@ func (m newGameModel) View() string {
 
 		hints := "[Enter] Next • [Backspace] Previous • [Space] Skip • [Esc] Quit"
 		hintsRowStyle := lipgloss.NewStyle().
-			Width(80).
+			Width(80-2).
 			Padding(0, 1).
+			Margin(0, 1).
 			Background(lipgloss.Color("236")).
 			Foreground(lipgloss.Color("15"))
 
