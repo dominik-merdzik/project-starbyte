@@ -825,7 +825,7 @@ func NewGameModel() tea.Model {
 		currentHealth:    currentHealth,
 		maxHealth:        maxHealth,
 		Yuta:             components.NewYuta(),
-		menuItems:        []string{"Ship", "Crew", "Journal", "Map", "Collection", "SpaceStation", "Exit"},
+		menuItems:        []string{"Journal", "Ship", "Crew", "Map", "Collection", "SpaceStation", "Exit"},
 		menuCursor:       0,
 		Ship:             shipModel,
 		Crew:             crewModel,
