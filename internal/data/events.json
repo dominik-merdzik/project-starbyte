@@ -1,0 +1,150 @@
+[
+    {
+      "id": 1,
+      "title": "Abandoned Derelict",
+      "description": "You detect an abandoned derelict drifting in space.",
+      "dialogue": [
+        "Commander, we’ve found a derelict ship.",
+        "It appears lifeless, but we might find something valuable inside."
+      ],
+      "choices": [
+        {
+          "text": "Board the ship",
+          "effects": {
+            "fuel": -10,
+            "credits": 500
+          },
+          "outcome": "You find a stash of abandoned supplies but burn extra fuel reaching the derelict."
+        },
+        {
+          "text": "Ignore and move on",
+          "effects": {},
+          "outcome": "You decide it's too risky and continue on your journey."
+        }
+      ]
+    },
+    {
+        "id": 2,
+        "title": "Distress Signal",
+        "description": "Your sensors detect a weak distress signal coming from a nearby asteroid belt.",
+        "dialogue": [
+          "Commander, we're picking up a distress signal.",
+          "It's faint, but someone out there might need help."
+        ],
+        "choices": [
+          {
+            "text": "Investigate the signal",
+            "effects": {
+              "fuel": -15,
+              "food": -5,
+              "morale": 5,
+              "credits": 250
+            },
+            "outcome": "You find a stranded pilot. They ride with you until the next space station, boosting morale."
+          },
+          {
+            "text": "Ignore it and move on",
+            "effects": {},
+            "outcome": "You decide to stay on course, leaving the mystery unsolved."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Solar Storm",
+        "description": "A sudden solar storm erupts in your sector, causing dangerous radiation levels.",
+        "dialogue": [
+          "Commander, radiation levels are rising fast!",
+          "We need to act quickly before ship systems take damage."
+        ],
+        "choices": [
+          {
+            "text": "Activate emergency shields",
+            "effects": {
+              "fuel": -10
+            },
+            "outcome": "The shields hold, but it drains extra fuel."
+          },
+          {
+            "text": "Ride it out",
+            "effects": {
+              "hull": -20
+            },
+            "outcome": "Radiation overloads some ship systems, causing hull damage."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Derelict Warship",
+        "description": "You stumble upon the wreckage of an old warship, floating in the void.",
+        "dialogue": [
+          "Commander, we've discovered the remains of a warship.",
+          "It might still contain valuable salvage, but it could also be dangerous."
+        ],
+        "choices": [
+          {
+            "text": "Send a salvage team",
+            "effects": {
+              "credits": 300
+            },
+            "outcome": "You recover valuable scrap metal and weapons, selling them for credits."
+          },
+          {
+            "text": "Leave it alone",
+            "effects": {},
+            "outcome": "You decide not to take the risk and move on."
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Pirate Ambush",
+        "description": "Pirates have been lurking in this sector. Your ship comes under sudden attack!",
+        "dialogue": [
+          "Commander, enemy ships on an intercept course!",
+          "They're powering up weapons!"
+        ],
+        "choices": [
+          {
+            "text": "Engage in combat",
+            "effects": {
+              "hull": -25,
+              "credits": 400
+            },
+            "outcome": "After a tough battle, you defeat the pirates and claim their cargo."
+          },
+          {
+            "text": "Attempt to flee",
+            "effects": {
+              "fuel": -20
+            },
+            "outcome": "You manage to escape, but at the cost of precious fuel reserves."
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Alien Transmission",
+        "description": "A mysterious alien signal is detected. It appears to be an invitation... or a warning.",
+        "dialogue": [
+          "Commander, we're receiving a non-human transmission.",
+          "It could be an attempt at communication... or a trap."
+        ],
+        "choices": [
+          {
+            "text": "Attempt to decipher the message",
+            "effects": {
+              "morale": 10
+            },
+            "outcome": "Your scientists crack part of the code, gaining new insights and boosting morale."
+          },
+          {
+            "text": "Ignore the signal",
+            "effects": {},
+            "outcome": "You decide to play it safe and continue your journey."
+          }
+        ]
+      }
+  ]
+  
