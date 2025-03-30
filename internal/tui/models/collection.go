@@ -182,7 +182,7 @@ func (m CollectionModel) View() string {
 	paginationStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("242"))
 	focusedPaginationStyle := paginationStyle.Copy().Bold(true).Foreground(lipgloss.Color("250"))
 	headerLineStyle := lipgloss.NewStyle().MarginBottom(1)
-	cardRowStyle := lipgloss.NewStyle().MarginBottom(1)
+	cardRowStyle := lipgloss.NewStyle()
 
 	var allNoteCardStrings []string
 	sort.SliceStable(collection.ResearchNotes, func(i, j int) bool { return collection.ResearchNotes[i].Tier < collection.ResearchNotes[j].Tier })
@@ -330,5 +330,5 @@ func (m CollectionModel) View() string {
 		mainBuilder.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("242")).Render("  Collection is empty.") + "\n")
 	}
 
-	return mainBuilder.String()
+	return lipgloss.NewStyle().Padding(1, 2).Render(mainBuilder.String())
 }

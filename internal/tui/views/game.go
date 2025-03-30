@@ -366,6 +366,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 		case "enter":
+			g.notification = "" // Clear notification on menu selection
 			g.selectedItem = g.menuItems[g.menuCursor]
 			switch g.selectedItem {
 			case "Journal":
@@ -615,25 +616,22 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (g GameModel) View() string {
 
-	// ---------------------------
-	// Left Panel: Title & Menu, with Version at the bottom
-	// ---------------------------
+	//---------------------------
+	//Left Panel: Title & Menu, with Version at the bottom
+	//---------------------------
 	titleStyle := lipgloss.NewStyle().
-		Bold(true).
+		Italic(true).
 		Foreground(lipgloss.Color("63")).
-		Align(lipgloss.Center).
-		Width(40).
-		Padding(1, 0, 1, 0).
+		Padding(0, 1).
 		BorderForeground(lipgloss.Color("63"))
-	title := titleStyle.Render("🚀 STARSHIP SIMULATION 🚀")
+
+	title := titleStyle.Render("WHAT ARE YOUR ORDERS?")
 
 	menuItemStyle := lipgloss.NewStyle().
 		Bold(true).
-		PaddingLeft(1).
 		Foreground(lipgloss.Color("217"))
 	cursorStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("63")).
-		PaddingLeft(2).
 		Bold(true)
 
 	var menuView strings.Builder
@@ -659,12 +657,13 @@ func (g GameModel) View() string {
 
 	// left panel top (title and menu)
 	leftPanelTop := lipgloss.NewStyle().
-		Width(40).
-		Height(18).
+		Width(27).
+		Height(16).
+		Padding(1, 2).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63")).
-		Align(lipgloss.Left, lipgloss.Top).
-		Render(fmt.Sprintf("%s\n\n%s", title, menuView.String()))
+		// Align(lipgloss.Left, lipgloss.Top).
+		Render(title + "\n\n" + menuView.String())
 
 	// ---------------------------
 	// Center Panel: Stats & Progress Bars with Credits at the Bottom
@@ -672,8 +671,7 @@ func (g GameModel) View() string {
 
 	statLabelStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
 
-	// Get the width of the center panel (from the style)
-	centerWidth := 50 - 4
+	centerWidth := 48
 
 	// Create hull health header with centered text
 	hullLabelText := "HULL INTEGRITY"
@@ -702,15 +700,15 @@ func (g GameModel) View() string {
 
 	creditsText := fmt.Sprintf("Credits: %d", g.Credits)
 
-	statsContent := fmt.Sprintf("\n%s\n%s\n\n%s\n%s\n\n\n%s\n\n%s\n\n%s",
+	statsContent := fmt.Sprintf("%s\n%s\n\n%s\n%s\n\n\n%s\n\n%s\n\n%s",
 		shipHealthText, healthBar, fuelText, fuelBar, locationText, moduleStatusText, creditsText)
 
 	centerStatsPanel := lipgloss.NewStyle().
-		Width(50).
-		Height(18).
-		PaddingLeft(2).
+		Width(60).
+		Height(16).
+		Padding(1, 2).
 		Border(lipgloss.RoundedBorder()).
-		Align(lipgloss.Left).
+		Align(lipgloss.Center).
 		Render(statsContent)
 
 	// ---------------------------
@@ -718,8 +716,8 @@ func (g GameModel) View() string {
 	// ---------------------------
 
 	rightYutaPanel := lipgloss.NewStyle().
-		Width(40).
-		Height(18).
+		Width(27).
+		Height(16).
 		Padding(1, 2).
 		Border(lipgloss.RoundedBorder()).
 		Foreground(lipgloss.Color("215")).
@@ -781,8 +779,8 @@ func (g GameModel) View() string {
 		}
 	}
 	bottomPanel := lipgloss.NewStyle().
-		Width(134).
-		Height(21).
+		Width(120 - 2).
+		Height(20).
 		Border(lipgloss.RoundedBorder()).
 		Align(lipgloss.Center).
 		Render(bottomPanelContent)
@@ -791,30 +789,34 @@ func (g GameModel) View() string {
 	// Hints Row
 	// ---------------------------
 
-	selected := g.selectedItem
-	if selected == "" {
-		selected = "none"
-	}
-
-	notificationText := ""
+	// Contextual hint based on selected item or notification
+	var contextualHint string
 	if g.notification != "" {
-		notificationText = " ~ " + g.notification
+		contextualHint = g.notification
+	} else {
+		selected := g.selectedItem
+		if selected == "" {
+			selected = "none"
+		}
+		contextualHint = fmt.Sprintf("Selected [%s]", selected)
 	}
 
-	selectedText := fmt.Sprintf("Selected [%s] %s", selected, notificationText)
 	leftSide := lipgloss.NewStyle().
 		Width(58).
-		PaddingLeft(2).
-		Render(selectedText)
-	hints := "[k ↑ | j ↓ | h ← | l → ~ arrow keys] Navigate • [Enter] Select • [q] Quit"
+		PaddingLeft(1).
+		Render(contextualHint)
+	// TODO: show vim keys if user set to vim mode in config
+	//hints := "[k ↑ | j ↓ | h ← | l →] Navigate • [Enter] Select • [q] Quit"
+	hints := "[↑ | ↓ | ← | →] Navigate • [Enter] Select • [q] Quit & Save"
 	rightSide := lipgloss.NewStyle().
-		Width(76).
 		Align(lipgloss.Right).
-		PaddingRight(2).
+		Width(60).
+		PaddingRight(1).
 		Render(hints)
 	hintsRowContent := lipgloss.JoinHorizontal(lipgloss.Top, leftSide, rightSide)
 	hintsRowStyle := lipgloss.NewStyle().
-		Width(134).
+		Width(118).
+		Margin(0, 1).
 		Background(lipgloss.Color("236")).
 		Foreground(lipgloss.Color("15"))
 	hintsRow := hintsRowStyle.Render(hintsRowContent)
@@ -823,9 +825,9 @@ func (g GameModel) View() string {
 	// Combine Top Row Panels, Bottom Panel, and Hints Row.
 	// ---------------------------
 
-	topRow := lipgloss.JoinHorizontal(lipgloss.Center, leftPanelTop, centerStatsPanel, rightYutaPanel)
-	bottomRows := lipgloss.JoinVertical(lipgloss.Center, bottomPanel, hintsRow)
-	mainView := lipgloss.JoinVertical(lipgloss.Center, topRow, bottomRows)
+	topRow := lipgloss.JoinHorizontal(lipgloss.Left, leftPanelTop, centerStatsPanel, rightYutaPanel)
+	bottomRows := lipgloss.JoinVertical(lipgloss.Left, bottomPanel, hintsRow)
+	mainView := lipgloss.JoinVertical(lipgloss.Left, topRow, bottomRows)
 
 	return mainView
 }
@@ -875,7 +877,7 @@ func NewGameModel() tea.Model {
 		lastAutoSaveTime: time.Now(),
 		locationService:  data.NewLocationService(fullSave.GameMap),
 		MissionTemplates: missionTemplates,
-		Yuta:             components.NewYutaComponent(fullSave.Ship, fullSave.Player.PlayerName, fullSave.Player.Credits),
+		Yuta:             components.NewYutaComponent(fullSave.Ship, fullSave.Player.PlayerName, fullSave.Player.Credits, fullSave.GameMetadata.Version),
 	}
 }
 

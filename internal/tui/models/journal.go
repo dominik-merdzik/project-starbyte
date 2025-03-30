@@ -338,7 +338,7 @@ func (j JournalModel) View() string {
 			}
 		}
 		leftPanel := lipgloss.NewStyle().
-			Width(60).
+			Width(60 - 4).
 			Height(18).
 			Padding(1).
 			Border(lipgloss.RoundedBorder()).
@@ -359,7 +359,7 @@ func (j JournalModel) View() string {
 			labelStyle.Render("Category:")+" "+selectedMission.Category,
 		)
 		rightPanel := lipgloss.NewStyle().
-			Width(60).
+			Width(60 - 4).
 			Height(18).
 			Padding(1).
 			Border(lipgloss.RoundedBorder()).
@@ -397,7 +397,7 @@ func (j JournalModel) View() string {
 
 	// left panel mission list
 	leftStyle := lipgloss.NewStyle().
-		Width(60).
+		Width(60 - 4).
 		Height(18).
 		Padding(1).
 		Border(lipgloss.RoundedBorder()).
@@ -432,7 +432,7 @@ func (j JournalModel) View() string {
 
 	// right panel mission details
 	rightStyle := lipgloss.NewStyle().
-		Width(60).
+		Width(60 - 4).
 		Height(18).
 		Padding(1).
 		Border(lipgloss.RoundedBorder()).

@@ -26,7 +26,7 @@ func (c CurrentTaskComponent) Render(task *data.Mission) string {
 	boxStyle := lipgloss.NewStyle().
 		Width(55).
 		Height(8).
-		Align(lipgloss.Left)
+		Align(lipgloss.Center)
 
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("63"))
 	labelStyle := lipgloss.NewStyle().Bold(true)

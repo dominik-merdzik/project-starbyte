@@ -295,9 +295,9 @@ func (m MapModel) View() string {
 // renderStarSystemList renders the star system list (Left Panel)
 func (m MapModel) renderStarSystemList() string {
 	panelStyle := lipgloss.NewStyle().
-		Width(30).
-		Height(15).
-		Padding(1).
+		Width(36).
+		Height(18).
+		Padding(1, 2).
 		Border(lipgloss.RoundedBorder())
 
 	// highlight border when the panel is active or potentially active
@@ -314,6 +314,7 @@ func (m MapModel) renderStarSystemList() string {
 	greyedOutStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("217")).Faint(true) // inaccessible item color
 
 	var sb strings.Builder
+
 	for i, system := range m.GameMap.StarSystems {
 		titleText := system.Name
 		style := defaultStyle // start with default style
@@ -343,15 +344,17 @@ func (m MapModel) renderStarSystemList() string {
 		sb.WriteString(fmt.Sprintf("%s%s\n", prefix, style.Render(titleText)))
 	}
 
-	return panelStyle.Render(sb.String())
+	hintText := lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("215")).Render("SELECT A STAR SYSTEM >>")
+
+	return panelStyle.Render(hintText + "\n\n" + sb.String())
 }
 
 // renderPlanetList renders the planet list (Center Panel)
 func (m MapModel) renderPlanetList() string {
 	panelStyle := lipgloss.NewStyle().
-		Width(30).
-		Height(15).
-		Padding(1).
+		Width(36).
+		Height(18).
+		Padding(1, 2).
 		Border(lipgloss.RoundedBorder())
 
 	// highlight border only when center panel is the active focus point
@@ -410,15 +413,17 @@ func (m MapModel) renderPlanetList() string {
 		sb.WriteString(fmt.Sprintf("%s%s\n", prefix, style.Render(titleText)))
 	}
 
-	return panelStyle.Render(sb.String())
+	hintText := lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("215")).Render("SELECT A PLANET >>")
+
+	return panelStyle.Render(hintText + "\n\n" + sb.String())
 }
 
 // renderPlanetDetails renders planet details (Right Panel)
 func (m MapModel) renderPlanetDetails() string {
 	panelStyle := lipgloss.NewStyle().
-		Width(40).
-		Height(15).
-		Padding(1).
+		Width(36).
+		Height(18).
+		Padding(1, 2).
 		Border(lipgloss.RoundedBorder())
 
 	// highlight border (optional, right panel is usually informational)
@@ -559,7 +564,7 @@ func (m MapModel) renderTravelConfirm() string {
 	// modal Style
 	style := lipgloss.NewStyle().
 		Width(60).
-		Padding(1).
+		Padding(1, 2).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63")). // use a noticeable border color
 		Align(lipgloss.Center)                  // center content within the modal
@@ -569,7 +574,7 @@ func (m MapModel) renderTravelConfirm() string {
 	hoverStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))   // selected option text
 	arrowStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63"))    // cursor arrow
 	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196"))   // insufficient fuel text
-	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("246"))   // planet name, values
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("215"))   // planet name, values
 	infoStyle := lipgloss.NewStyle().Italic(true)                         // info messages like "Already here"
 
 	// ensure a planet is actually selected for confirmation

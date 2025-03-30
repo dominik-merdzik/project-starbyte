@@ -307,13 +307,13 @@ func (c CrewModel) View() string {
 		var containerStyle lipgloss.Style
 		if i == c.Cursor {
 			containerStyle = lipgloss.NewStyle().
-				Width(60).
+				Width(57).
 				Padding(1).
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("205"))
 		} else {
 			containerStyle = lipgloss.NewStyle().
-				Width(60).
+				Width(57).
 				Padding(1).
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("15"))
@@ -327,7 +327,7 @@ func (c CrewModel) View() string {
 
 	// right panel: details of the selected crew member with increased height
 	rightStyle := lipgloss.NewStyle().
-		Width(60).
+		Width(57).
 		Height(20).
 		Padding(1).
 		Border(lipgloss.RoundedBorder()).

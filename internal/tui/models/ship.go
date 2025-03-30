@@ -96,9 +96,9 @@ func (s ShipModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (s ShipModel) View() string {
 	// ----- Styles -----
-	topPanelWidth := 65
-	topPanelHeight := 18
-	bottomPanelHeight := 9
+	topPanelWidth := 60 - 4
+	topPanelHeight := 14
+	//bottomPanelHeight := 9
 
 	// style for the top panels (List, Details)
 	topPanelStyle := lipgloss.NewStyle().
@@ -119,40 +119,12 @@ func (s ShipModel) View() string {
 	defaultStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("247"))
 	arrowStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
 
-	// calculate the required width for the bottom panel using GetWidth()
-	// this correctly accounts for the top panel's width, padding, and border
-	bottomPanelWidth := 132
-
-	// style for the bottom panel (Extra Details)
-	bottomPanelStyle := topPanelStyle.Copy().
-		Width(bottomPanelWidth).
-		Height(bottomPanelHeight).
-		Padding(1, 2).
-		Border(lipgloss.HiddenBorder())
-
-	// --- Calculate dimensions for the small boxes INSIDE the bottom panel ---
-	// get the actual content area width/height by subtracting padding & borders
-	bottomPanelContentWidth := bottomPanelWidth - (bottomPanelStyle.GetPaddingLeft() + bottomPanelStyle.GetPaddingRight()) - 10
-	bottomPanelContentHeight := bottomPanelHeight - (bottomPanelStyle.GetPaddingTop() + bottomPanelStyle.GetPaddingBottom()) - 2
-
-	// reintroduce spacing between boxes for better separation
-	spacingWidth := 2
-	numberOfBoxes := 4
-	totalSpacingWidth := spacingWidth * (numberOfBoxes - 1)
-
-	// calculate the width for each box
-	detailBoxWidth := (bottomPanelContentWidth - totalSpacingWidth) / numberOfBoxes
-
-	// boxes take the full content height of the bottom panel
-	detailBoxHeight := bottomPanelContentHeight
-
 	// style for the small detail boxes within the bottom panel
 	detailBoxStyle := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder(), true).
 		BorderForeground(lipgloss.Color("240")).
 		Padding(0, 1).
-		Width(detailBoxWidth).
-		Height(detailBoxHeight).
+		Width(27).
 		Align(lipgloss.Left)
 
 	// style for titles within the detail boxes
@@ -165,10 +137,9 @@ func (s ShipModel) View() string {
 	boxTextStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("252"))
 
-	descWidth := topPanelWidth - (topPanelStyle.GetPaddingLeft() + topPanelStyle.GetPaddingRight())
 	descriptionStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("244")).
-		Width(descWidth).
+		Width(40).
 		MarginTop(1)
 
 	// ----- Panel 1: Ship Status List -----
@@ -268,7 +239,7 @@ func (s ShipModel) View() string {
 		s.Location.PlanetName,
 	))
 	// ensure content fits vertically within detailBoxHeight
-	locationBoxContent := lipgloss.NewStyle().Height(detailBoxHeight).Render(lipgloss.JoinVertical(lipgloss.Left, locationTitle, locationText))
+	locationBoxContent := lipgloss.NewStyle().Height(5).Render(lipgloss.JoinVertical(lipgloss.Left, locationTitle, locationText))
 	locationBox := detailBoxStyle.Render(locationBoxContent)
 
 	// Cargo Box
@@ -278,7 +249,7 @@ func (s ShipModel) View() string {
 		s.Cargo.Capacity,
 		len(s.Cargo.Items),
 	))
-	cargoBoxContent := lipgloss.NewStyle().Height(detailBoxHeight).Render(lipgloss.JoinVertical(lipgloss.Left, cargoTitle, cargoText))
+	cargoBoxContent := lipgloss.NewStyle().Height(5).Render(lipgloss.JoinVertical(lipgloss.Left, cargoTitle, cargoText))
 	cargoBox := detailBoxStyle.Render(cargoBoxContent)
 
 	// Modules Box (Simplified to count)
@@ -294,7 +265,7 @@ func (s ShipModel) View() string {
 		modulesTextContent += fmt.Sprintf("\n%d Active", activeCount)
 	}
 	modulesText := boxTextStyle.Render(modulesTextContent)
-	modulesBoxContent := lipgloss.NewStyle().Height(detailBoxHeight).Render(lipgloss.JoinVertical(lipgloss.Left, modulesTitle, modulesText))
+	modulesBoxContent := lipgloss.NewStyle().Height(5).Render(lipgloss.JoinVertical(lipgloss.Left, modulesTitle, modulesText))
 	modulesBox := detailBoxStyle.Render(modulesBoxContent)
 
 	// Upgrades Box
@@ -304,33 +275,24 @@ func (s ShipModel) View() string {
 		s.Upgrades.WeaponSystems.CurrentLevel, s.Upgrades.WeaponSystems.MaxLevel,
 		s.Upgrades.CargoExpansion.CurrentLevel, s.Upgrades.CargoExpansion.MaxLevel,
 	))
-	upgradesBoxContent := lipgloss.NewStyle().Height(detailBoxHeight).Render(lipgloss.JoinVertical(lipgloss.Left, upgradesTitle, upgradesText))
+	upgradesBoxContent := lipgloss.NewStyle().Height(5).Render(lipgloss.JoinVertical(lipgloss.Left, upgradesTitle, upgradesText))
 	upgradesBox := detailBoxStyle.Render(upgradesBoxContent)
-
-	// arrange boxes horizontally with spacing
-	hSpacing := lipgloss.NewStyle().Width(spacingWidth).Render("")
 
 	extraDetailContent := lipgloss.JoinHorizontal(lipgloss.Top,
 		locationBox,
-		hSpacing,
 		cargoBox,
-		hSpacing,
 		modulesBox,
-		hSpacing,
 		upgradesBox,
 	)
 
-	// render the bottom panel containing the horizontal boxes
-	extraPanel := bottomPanelStyle.Render(extraDetailContent)
-
 	// ----- Final Layout -----
 	// 1. join the top two panels horizontally
-	topRowPanels := lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, detailPanel)
+	topRowPanels := lipgloss.JoinHorizontal(lipgloss.Left, leftPanel, detailPanel)
 
 	// 2. join the top row vertically with the bottom panel
-	finalView := lipgloss.JoinVertical(lipgloss.Left,
+	finalView := lipgloss.JoinVertical(lipgloss.Center,
 		topRowPanels,
-		extraPanel,
+		extraDetailContent,
 	)
 
 	return finalView

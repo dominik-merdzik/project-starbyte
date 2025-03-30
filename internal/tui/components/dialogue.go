@@ -40,7 +40,7 @@ func (d DialogueComponent) View(width ...int) string {
 	}
 
 	// Set default width to 120 if not specified
-	dialogueWidth := 120
+	dialogueWidth := 100
 	if len(width) > 0 && width[0] > 0 {
 		dialogueWidth = width[0]
 	}
