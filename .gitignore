@@ -4,3 +4,6 @@
 # Ignore save file
 save.json
 config.toml
+
+# Ignore .idea folder
+.idea
