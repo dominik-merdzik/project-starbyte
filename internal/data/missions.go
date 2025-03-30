@@ -60,10 +60,24 @@ func FlattenPlanetsWithSystems(systems []StarSystem) []PlanetWithSystem {
 }
 
 // generate a semi-generated mission
-func GenerateMissionFromTemplate(id int, templates []MissionTemplate, planets []PlanetWithSystem) Mission {
+func GenerateMissionFromTemplate(id int, templates []MissionTemplate, planets []PlanetWithSystem, currentStarSystem string) Mission {
 	t := templates[rand.Intn(len(templates))] // Random mission template
-	p := planets[rand.Intn(len(planets))]     // Pick random planet and parent solar system
-	income := 1000 + rand.Intn(1500)          // Random income (Could add mission difficulty multipliers)
+
+	// Filter planets to only include those in the current star system
+	var localPlanets []PlanetWithSystem
+	for _, planet := range planets {
+		if planet.StarSystemName == currentStarSystem {
+			localPlanets = append(localPlanets, planet)
+		}
+	}
+
+	// Fallback: If no planets in current system, just use all
+	if len(localPlanets) == 0 {
+		localPlanets = planets
+	}
+
+	p := localPlanets[rand.Intn(len(localPlanets))] // Pick random planet in same star system
+	income := 1000 + rand.Intn(1500)                // Random income (Could add mission difficulty multipliers)
 
 	// Build and return the mission
 	return Mission{

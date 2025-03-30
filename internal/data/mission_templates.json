@@ -100,7 +100,7 @@
       "Description": "Deliver essential supplies to a starving outpost.",
       "Status": 0,
       "Location": {
-        "StarSystemName": "Sirius",
+        "StarSystemName": "Sol",
         "PlanetName": "Hadrin Outpost",
         "Coordinates": { "X": 30, "Y": -20, "Z": 5 }
       },
@@ -121,7 +121,7 @@
       "Description": "Investigate an unusual energy reading near a derelict station.",
       "Status": 0,
       "Location": {
-        "StarSystemName": "Tau Ceti",
+        "StarSystemName": "Sol",
         "PlanetName": "Derelict Station",
         "Coordinates": { "X": -100, "Y": 40, "Z": 0 }
       },
@@ -142,7 +142,7 @@
       "Description": "Track and eliminate the pirate Lorik Kane.",
       "Status": 0,
       "Location": {
-        "StarSystemName": "Orion",
+        "StarSystemName": "Sol",
         "PlanetName": "Outer Rim",
         "Coordinates": { "X": 75, "Y": -60, "Z": 15 }
       },

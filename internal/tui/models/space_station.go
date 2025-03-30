@@ -56,7 +56,7 @@ func NewSpaceStationModel(ship data.Ship, credits int, missionTemplates []data.M
 		fuelPrice:         5,
 		MissionTemplates:  missionTemplates,
 		StarSystems:       starSystems,
-		GeneratedMissions: GenerateStationMissions(3, missionTemplates, starSystems), // Generate on load
+		GeneratedMissions: GenerateStationMissions(3, missionTemplates, starSystems, ship.Location.StarSystemName), // Generate on load
 	}
 
 	if model.Tabs[model.ActiveTab] == "Hire Crew" {
@@ -709,12 +709,12 @@ func getHireCost(degree int, role string) int {
 //	Mission functions
 //
 // ***************************************
-func GenerateStationMissions(n int, templates []data.MissionTemplate, systems []data.StarSystem) []data.Mission {
+func GenerateStationMissions(n int, templates []data.MissionTemplate, systems []data.StarSystem, currentLocation string) []data.Mission {
 	planets := data.FlattenPlanetsWithSystems(systems)
 
 	var missions []data.Mission
 	for i := 0; i < n; i++ {
-		m := data.GenerateMissionFromTemplate(i, templates, planets)
+		m := data.GenerateMissionFromTemplate(i, templates, planets, currentLocation)
 		missions = append(missions, m)
 	}
 
