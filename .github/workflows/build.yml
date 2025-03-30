@@ -1,31 +1,25 @@
-# This file is for GitHub Actions
-# It will automatically build our project for Linux, macOS, and Windows when we push to the `main` branch
-# See the `Actions` tab on the GitHub repo
-
 name: Build cross-platform Go project
 
 on:
   push:
     branches: ["main"]
-  pull_request:
-    branches: ["main"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      VERSION: "1.0.0-beta" # Remember to bump the version number before release
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        arch: [amd64, arm64]
         include:
           - os: ubuntu-latest
             GOOS: linux
-            GOARCH: amd64
           - os: macos-latest
             GOOS: darwin
-            GOARCH: arm64
           - os: windows-latest
             GOOS: windows
-            GOARCH: amd64
 
     steps:
       - uses: actions/checkout@v4
@@ -33,27 +27,32 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "stable" # Use latest stable version (see here https://github.com/actions/go-versions/blob/main/versions-manifest.json)
+          go-version: "stable"
 
-      # Basically runs `go build {operating system} {architecture}`
-      # For the Windows build, we need to specify ".exe"
+      - name: Create build directory
+        run: mkdir -p build/${{ matrix.GOOS }}_${{ matrix.arch }}
+
       - name: Build
         run: |
           if [ "${{ matrix.GOOS }}" = "windows" ]; then
-            GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -o build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte.exe cmd/project-starbyte/main.go
+            GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.arch }} go build -o build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte.exe cmd/project-starbyte/main.go
           else
-            GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -o build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte cmd/project-starbyte/main.go
+            GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.arch }} go build -o build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte cmd/project-starbyte/main.go
           fi
-          
-      # Upload the artifact on GitHub, so we can download the executables
+
+      - name: Set architecture display name
+        id: arch-name
+        run: |
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            echo "ARCH_NAME=x64" >> $GITHUB_ENV
+          else
+            echo "ARCH_NAME=arm64" >> $GITHUB_ENV
+          fi
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: project-starbyte-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
+          name: project-starbyte-${{ env.VERSION }}-${{ matrix.GOOS }}-${{ env.ARCH_NAME }}
           path: |
-            build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte
-            build/${{ matrix.GOOS }}_${{ matrix.GOARCH }}/project-starbyte.exe
-
-      # I don't think we're gonna be running tests
-      #- name: Test
-      #  run: go test -v ./...
+            build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte
+            build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte.exe

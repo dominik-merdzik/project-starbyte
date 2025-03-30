@@ -1,0 +1,9 @@
+# Ignore Mac system files
+.DS_Store
+
+# Ignore save file
+save.json
+config.toml
+
+# Ignore .idea folder
+.idea

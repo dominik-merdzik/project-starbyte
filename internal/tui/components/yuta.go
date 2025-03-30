@@ -2,117 +2,72 @@ package components
 
 import (
 	"fmt"
-	"math"
-	"strings"
-	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/harmonica"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dominik-merdzik/project-starbyte/internal/data"
 )
 
-const (
-	fps       = 30  // Frames per second - doesn't seem to change much in our case
-	height    = 15  // max height for bouncing
-	frequency = 1.5 // higher frequency for faster bouncing
-	damping   = 0.1 // less damping for more sustained motion
-)
-
-var (
-	yutaStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("210"))
-)
-
-type frameMsg time.Time
-
-// trigger a new frame at the desired FPS
-func animate() tea.Cmd {
-	return tea.Tick(time.Second/fps, func(t time.Time) tea.Msg {
-		return frameMsg(t)
-	})
-}
-
-type YutaModel struct {
-	yPos   float64          // current Y position
-	yVel   float64          // current velocity
-	spring harmonica.Spring // harmonica spring for bounce physics
+// Yuta is a robot assistant who will tell the player helpful information on what to do next
+type YutaComponent struct {
+	Ship           data.Ship
+	PlayerName     string
+	ShipName       string
+	Version        string
+	SuggestRefuel  bool
+	SuggestRepair  bool
+	SuggestCredits bool
 }
 
 // creates a new instance of the Yuta model
-func NewYuta() YutaModel {
-	return YutaModel{
-		spring: harmonica.NewSpring(harmonica.FPS(fps), frequency, damping),
+func NewYutaComponent(ship data.Ship, playerName string, credits int, version string) YutaComponent {
+	return YutaComponent{
+		Ship:       ship,
+		PlayerName: playerName,
+		ShipName:   ship.ShipName,
+		Version:    version,
+
+		// If fuel 20% or less, suggest refuel
+		SuggestRefuel: ship.Fuel <= 20,
+
+		// If hull integrity 50% or less, suggest repair
+		SuggestRepair: ship.HullIntegrity <= 50,
+
+		// If money is low, suggest money making
+		SuggestCredits: credits <= 100,
 	}
 }
 
-// initializes Yuta and starts the animation
-func (m YutaModel) Init() tea.Cmd {
-	return animate()
+func (m YutaComponent) View() string {
+	var assistantText string
+
+	// Prioritized suggestions
+	if m.SuggestRefuel {
+		assistantText = fmt.Sprintf("%s, I recommend refueling the %s.\n\nFortunately, fuel prices are below market value at the nearest Station.", m.PlayerName, m.ShipName)
+	} else if m.SuggestRepair {
+		assistantText = fmt.Sprintf("%s, I recommend repairing the %s's hull.\n\nTechnicians are available at the Station.", m.PlayerName, m.ShipName)
+	} else if m.SuggestCredits {
+		assistantText = fmt.Sprintf("%s, I recommend earning some credits.\n\nYou can do this by completing new missions.", m.PlayerName)
+	} else {
+		assistantText = "Everything is in order."
+	}
+	assistant := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Render("^_^") // Make a cute lil robot with rounded borders
+
+	// TODO crew morale system
+	//moraleText := "The crew are in high spirits."
+
+	//weatherText := "Weather report: " + weatherList[1]
+
+	return fmt.Sprintf("%s\n\n%s",
+		assistant, assistantText)
 }
 
-func (m YutaModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg.(type) {
-	case frameMsg:
-		const targetY = float64(height)
-
-		// update Y position and velocity using the spring
-		m.yPos, m.yVel = m.spring.Update(m.yPos, m.yVel, targetY)
-
-		// instead of stopping, reverse direction when reaching the target
-		if m.yPos >= targetY && m.yVel > 0 {
-			m.yVel = -m.yVel
-		} else if m.yPos <= 0 && m.yVel < 0 {
-			m.yVel = -m.yVel
-		}
-
-		// continue animation indefinitely ** might chanage this to stop after a certain time
-		return m, animate()
-
-	default:
-		return m, nil
-	}
-}
-
-func (m YutaModel) View() string {
-	var out strings.Builder
-
-	fmt.Fprintf(&out, "[debug] yPos=%.2f, yVel=%.2f\n\n", m.yPos, m.yVel)
-
-	fmt.Fprint(&out, "\n")
-
-	// calculating vertical position
-	y := int(math.Round(m.yPos))
-	if y < 0 {
-		y = 0
-	}
-
-	for i := 0; i < y; i++ {
-		fmt.Fprintln(&out) // empty lines to simulate vertical position
-	}
-
-	cube := []string{
-		"╔═══════╗",
-		"║║ ʘ‿ʘ ║║",
-		"║       ║",
-		"║       ║",
-		"╚═══════╝",
-	}
-
-	// rendering the cube art
-	for _, line := range cube {
-		fmt.Fprintln(&out, yutaStyle.Render(line))
-	}
-
-	return out.String()
-}
-
-// RunYuta starts the Yuta animation program
-func RunYuta() {
-	m := NewYuta()
-
-	if err := tea.NewProgram(m).Start(); err != nil {
-		fmt.Println("Error running program:", err)
-		return
-	}
-}
+// TODO weather report for immersion (no gameplay effect)
+// var weatherList = []string{"Solar Flares",
+// 	"Solar Winds",
+// 	"Coronal Mass Ejections",
+// 	"Geomagnetic Storms",
+// 	"Cosmic Rays",
+// 	"Radiation Storms",
+// 	"Plasma Ejections",
+// 	"Microgravity Dust Storms",
+// }
