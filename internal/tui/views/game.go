@@ -807,7 +807,7 @@ func (g GameModel) View() string {
 
 	// Game version displayed by Yuta OS
 	// Might need to adjust the fancy chars to fit within the width when the version number grows
-	versionText := fmt.Sprintf("<== Y//UTA v%s ==>", g.Version)
+	versionText := fmt.Sprintf("<> Y//UTA v%s", g.Version)
 	yutaContent := g.Yuta.View()
 
 	if g.playerLostGame {

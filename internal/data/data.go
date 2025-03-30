@@ -17,6 +17,9 @@ func init() {
 
 const SaveFilePath = "temp/save.json"
 
+// We have to manually bump this for each release. We should probably automate this.
+const version = "1.0.0-beta"
+
 // ---------------------
 // Save File Structures
 // ---------------------
@@ -552,7 +555,7 @@ func CreateNewFullGameSave(difficulty, shipName, playerName string) error {
 	fullSave := FullGameSave{
 		GameTitle: "Project Starbyte",
 		GameMetadata: GameMetadata{
-			Version:      "0.0.1",
+			Version:      version,
 			DateCreated:  now.Format("2006-01-02"),
 			LastSaveTime: now.Format(time.RFC3339),
 			TotalPlayTime: TotalPlayTime{
@@ -842,7 +845,7 @@ func DefaultFullGameSave() *FullGameSave {
 	return &FullGameSave{
 		GameTitle: "Project Starbyte",
 		GameMetadata: GameMetadata{
-			Version:      "0.0.1",
+			Version:      version,
 			DateCreated:  now.Format("2006-01-02"),
 			LastSaveTime: now.Format(time.RFC3339),
 			TotalPlayTime: TotalPlayTime{
