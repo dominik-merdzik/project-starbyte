@@ -511,6 +511,28 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return g, utilities.PushSave(g.gameSave, func() {
 			g.syncSaveData() // Sync the save data
 		})
+	case model.RepairUpdateMsg:
+		// Repair hull
+		amount := msg.Amount
+		totalCost := msg.Credit
+		current := g.Ship.HullHealth
+
+		max := g.Ship.MaxHullHealth
+		newHull := current + amount
+		if newHull > max {
+			newHull = max
+		}
+
+		g.Ship.HullHealth = newHull
+		g.gameSave.Ship.HullIntegrity = newHull
+
+		g.Credits -= totalCost
+		g.gameSave.Player.Credits = g.Credits
+
+		g.syncSaveData()
+		return g, utilities.PushSave(g.gameSave, func() {
+			g.syncSaveData()
+		})
 	case model.UpgradeUpdateMsg:
 		switch msg.UpgradeCursor {
 		case 0:

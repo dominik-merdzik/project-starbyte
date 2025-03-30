@@ -22,6 +22,12 @@ type SpaceStationModel struct {
 	desiredFuel   int
 	fuelPrice     int
 
+	// Fields for repair flow
+	repairMode    bool
+	repairConfirm bool
+	repairAmount  int
+	repairPrice   int
+
 	// Fields for upgrade
 	upgradeCursor  int // Tracks which upgrade is selected
 	upgradeConfirm bool
@@ -50,10 +56,11 @@ func NewSpaceStationModel(ship data.Ship, credits int, missionTemplates []data.M
 	model := SpaceStationModel{
 		Ship:              ship,
 		Credits:           credits,
-		Tabs:              []string{"Hire Crew", "Missions", "Upgrade Ship", "Refuel"},
-		TabContent:        []string{"Hire new crew members.", "Browse available missions.", "Upgrade your ship.", "Refuel before leaving. [Enter]"},
+		Tabs:              []string{"Hire Crew", "Missions", "Upgrade Ship", "Refuel", "Repair"},
+		TabContent:        []string{"Hire new crew members.", "Browse available missions.", "Upgrade your ship.", "Refuel before leaving. [Enter]", "Repair your ship. [Enter]"},
 		ActiveTab:         0,
 		fuelPrice:         5,
+		repairPrice:       5,
 		MissionTemplates:  missionTemplates,
 		StarSystems:       starSystems,
 		GeneratedMissions: GenerateStationMissions(3, missionTemplates, starSystems, ship.Location.StarSystemName), // Generate on load
@@ -77,6 +84,13 @@ func (m SpaceStationModel) Init() tea.Cmd {
 // This signals game.go to update the ships fuel
 // Used when travelling to a planet
 type RefuelUpdateMsg struct {
+	Amount int
+	Credit int
+}
+
+// Repairing the ship hull health
+// TODO: other ship parts like engine
+type RepairUpdateMsg struct {
 	Amount int
 	Credit int
 }
@@ -154,6 +168,49 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.refuelConfirm = false
 						m.desiredFuel = 0
 						m.refuelMode = false
+						return m, nil
+					}
+				}
+				return m, nil
+			}
+			if m.Tabs[m.ActiveTab] == "Repair" {
+				if !m.repairMode {
+					// Enter repair selection mode
+					m.repairMode = true
+					m.repairAmount = min(100-m.Ship.HullIntegrity, 100) // Default to full repair
+					m.repairPrice = 3                                   // Cost per unit of hull repair
+				} else if !m.repairConfirm {
+					// Enter confirmation mode
+					m.repairConfirm = true
+				} else {
+					// Perform repair
+					totalCost := m.repairAmount * m.repairPrice
+					amountRepaired := m.repairAmount // Value of repair performed
+
+					if m.SpendCredits(totalCost) {
+						m.Ship.HullIntegrity = min(m.Ship.HullIntegrity+m.repairAmount, 100)
+
+						// Reset UI state
+						m.repairMode = false
+						m.repairConfirm = false
+						m.repairAmount = 0
+
+						return m, tea.Batch(
+							func() tea.Msg {
+								return RepairUpdateMsg{
+									Amount: amountRepaired,
+									Credit: totalCost,
+								}
+							},
+							func() tea.Msg {
+								return tea.KeyMsg{Type: tea.KeyEsc}
+							},
+						)
+					} else {
+						// Not enough credits
+						m.repairConfirm = false
+						m.repairAmount = 0
+						m.repairMode = false
 						return m, nil
 					}
 				}
@@ -243,12 +300,19 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
+
 		case "b":
 			if m.refuelConfirm {
 				m.refuelConfirm = false
 			} else if m.refuelMode {
 				m.refuelMode = false
 				m.desiredFuel = 0
+			}
+			if m.repairConfirm {
+				m.repairConfirm = false
+			} else if m.repairMode {
+				m.repairMode = false
+				m.repairAmount = 0
 			}
 			if m.confirmHire {
 				m.confirmHire = false
@@ -267,6 +331,10 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Increase fuel
 			if m.refuelMode && !m.refuelConfirm {
 				m.desiredFuel = min(m.desiredFuel+1, m.Ship.MaxFuel-m.Ship.Fuel)
+			}
+			// Increase repair amount
+			if m.repairMode && !m.repairConfirm {
+				m.repairAmount = min(m.repairAmount+1, 100-m.Ship.HullIntegrity)
 			}
 			// Higher upgrade in list
 			if m.Tabs[m.ActiveTab] == "Upgrade Ship" {
@@ -287,6 +355,10 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Decrease fuel
 			if m.refuelMode && !m.refuelConfirm {
 				m.desiredFuel = max(m.desiredFuel-1, 1)
+			}
+			// Decrease repair amount
+			if m.repairMode && !m.repairConfirm {
+				m.repairAmount = max(m.repairAmount-1, 1)
 			}
 			// Lower upgrade in list
 			if m.Tabs[m.ActiveTab] == "Upgrade Ship" {
@@ -386,6 +458,34 @@ func (m SpaceStationModel) View() string {
 	} else {
 		content = m.TabContent[m.ActiveTab]
 	}
+
+	// Repair section
+	if m.Tabs[m.ActiveTab] == "Repair" {
+		if m.repairMode {
+			if m.repairConfirm {
+				content = fmt.Sprintf(
+					"Confirm repairing to %d units?\nCost: %d¢  |  You have: %d¢\n[Enter] Confirm  [b] Cancel",
+					m.repairAmount,
+					m.repairAmount*m.repairPrice,
+					m.Credits,
+				)
+
+				// Add warning if player cannot afford
+				if m.repairAmount*m.repairPrice > m.Credits {
+					content += "\n\n" + warningStyle.Render(fmt.Sprintf("\n\nNot enough credits! (%d¢ needed)", m.repairAmount*m.repairPrice))
+				}
+			} else {
+				content = fmt.Sprintf(
+					"How much hull integrity do you want to repair?\n[ %d ] units (Cost: %d¢)\nYou have: %d¢\n[↑/↓] Adjust  [Enter] Confirm  [b] Cancel",
+					m.repairAmount,
+					m.repairAmount*m.repairPrice,
+					m.Credits)
+			}
+		} else {
+			content = m.TabContent[m.ActiveTab]
+		}
+	}
+
 	// Upgrade section
 	if m.Tabs[m.ActiveTab] == "Upgrade Ship" {
 		var upgradeList []string
