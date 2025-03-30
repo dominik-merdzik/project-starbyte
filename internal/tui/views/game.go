@@ -100,6 +100,10 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Firstly, always allow the player to quit the game no matter the state
 	if msg, ok := msg.(tea.KeyMsg); ok && msg.String() == "ctrl+c" || msg.String() == "q" {
+		// Save the game before quitting
+		g.syncSaveData()
+		saveGameAsync(g.gameSave)
+
 		return g, tea.Quit
 	}
 
@@ -109,12 +113,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		g.activeView = ViewNone
 		g.syncSaveData()
 
-		// save the game asynchronously with a goroutine
-		go func(save *data.FullGameSave) {
-			if err := data.SaveGame(save); err != nil {
-				fmt.Println("Error auto-saving game:", err)
-			}
-		}(g.gameSave)
+		saveGameAsync(g.gameSave)
 
 		return g, nil // Skip everything else in Update()
 	}
@@ -180,12 +179,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// sync current game state
 		g.syncSaveData()
 
-		// save the game asynchronously with a goroutine
-		go func(save *data.FullGameSave) {
-			if err := data.SaveGame(save); err != nil {
-				fmt.Println("Error auto-saving game:", err)
-			}
-		}(g.gameSave)
+		saveGameAsync(g.gameSave)
 
 		// schedule the next auto-save tick after 2 seconds *UPDATED TO 5 FOR TESTING*
 		return g, tea.Tick(5*time.Second, func(t time.Time) tea.Msg { return autoSaveMsg(t) })
@@ -986,6 +980,15 @@ func (g *GameModel) syncSaveData() {
 	g.gameSave.Missions = g.Journal.Missions // Sync missions
 
 	g.gameSave.GameMetadata.GameOver = g.playerLostGame // Sync game over state
+}
+
+// saveGameAsync saves the game in a goroutine to avoid blocking the UI
+func saveGameAsync(save *data.FullGameSave) {
+	go func(save *data.FullGameSave) {
+		if err := data.SaveGame(save); err != nil {
+			fmt.Println("Error saving game:", err)
+		}
+	}(save)
 }
 
 // helper: add elapsed duration to TotalPlayTime, normalizing seconds/minutes/hours
