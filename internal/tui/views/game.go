@@ -205,9 +205,9 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Check if travel is complete
 			if g.Travel.TravelComplete {
-				g.isTravelling = false // Reset travel state
-				g.Ship.Location = g.Travel.DestLocation
-				g.syncSaveData()
+				// g.isTravelling = false // Reset travel state
+				// g.Ship.Location = g.Travel.DestLocation
+				// g.syncSaveData()
 
 				// Trigger a Random Event 30% chance
 				if rand.Intn(100) < 30 {
@@ -282,11 +282,11 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		g.activeView = ViewNone
 		g.Event = nil
 
-		// 🆕 Ensure travel is completed after an event
+		// Ensure travel is completed after an event
 		if g.isTravelling {
-			g.isTravelling = false
-			g.Ship.Location = g.Travel.DestLocation
-			g.syncSaveData()
+			//g.isTravelling = false
+			//g.Ship.Location = g.Travel.DestLocation
+			//g.syncSaveData()
 		}
 
 		return g, nil
@@ -462,11 +462,21 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		})
 	case model.RefuelUpdateMsg:
 		// Fuel
-		g.Ship.EngineFuel = msg.Fuel
-		g.gameSave.Ship.Fuel = msg.Fuel
-		// Credits
-		g.Credits = msg.Credits
-		g.gameSave.Player.Credits = msg.Credits
+		amount := msg.Amount
+		totalCost := msg.Credit
+		current := g.Ship.EngineFuel
+
+		// Calculate fuel here to avoid using old states
+		newFuel := current + amount
+		if newFuel > 200 {
+			newFuel = 200
+		}
+
+		g.Ship.EngineFuel = newFuel
+		g.gameSave.Ship.Fuel = newFuel
+
+		g.Credits -= totalCost
+		g.gameSave.Player.Credits = g.Credits
 
 		g.syncSaveData() // Sync save data
 		return g, utilities.PushSave(g.gameSave, func() {

@@ -77,8 +77,8 @@ func (m SpaceStationModel) Init() tea.Cmd {
 // This signals game.go to update the ships fuel
 // Used when travelling to a planet
 type RefuelUpdateMsg struct {
-	Fuel    int
-	Credits int
+	Amount int
+	Credit int
 }
 
 // This signals game.go to update the ships upgrades
@@ -128,6 +128,7 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					// Perform refuel
 					totalCost := m.desiredFuel * m.fuelPrice
+					amountPurchased := m.desiredFuel // Value of fuel purchased
 
 					if m.SpendCredits(totalCost) {
 						m.Ship.Fuel = min(m.Ship.Fuel+m.desiredFuel, m.Ship.MaxFuel)
@@ -140,8 +141,8 @@ func (m SpaceStationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, tea.Batch(
 							func() tea.Msg {
 								return RefuelUpdateMsg{
-									Fuel:    m.Ship.Fuel,
-									Credits: m.Credits,
+									Amount: amountPurchased,
+									Credit: totalCost,
 								}
 							},
 							func() tea.Msg {
