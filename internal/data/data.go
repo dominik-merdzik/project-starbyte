@@ -38,6 +38,7 @@ type GameMetadata struct {
 	LastSaveTime       string             `json:"lastSaveTime"`
 	TotalPlayTime      TotalPlayTime      `json:"totalPlayTime"`
 	DifficultySettings DifficultySettings `json:"difficultySettings"`
+	GameOver           bool               `json:"gameOver"`
 }
 
 type TotalPlayTime struct {

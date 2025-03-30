@@ -22,6 +22,7 @@ type GameModel struct {
 	Yuta        components.YutaComponent
 	Travel      components.TravelComponent
 	Dialogue    *components.DialogueComponent
+	GameOver    components.GameOverComponent
 
 	// additional models
 	Ship         model.ShipModel
@@ -31,10 +32,10 @@ type GameModel struct {
 	Collection   model.CollectionModel   // NEW: Collection model
 	SpaceStation model.SpaceStationModel // NEW: SpaceStation model
 
-	menuItems  []string
+	menuItems  []MenuItem
 	menuCursor int
 
-	selectedItem string
+	selectedItem MenuItem
 	activeView   ActiveView
 
 	TrackedMission *data.Mission
@@ -56,6 +57,8 @@ type GameModel struct {
 	MissionTemplates []data.MissionTemplate
 	// Events
 	Event *components.EventModel
+
+	playerLostGame bool
 }
 
 type ActiveView int
@@ -71,6 +74,19 @@ const (
 	ViewEvent        // Random events
 )
 
+type MenuItem int
+
+const (
+	MenuNone MenuItem = iota
+	MenuJournal
+	MenuShip
+	MenuCrew
+	MenuMap
+	MenuCollection
+	MenuSpaceStation
+	MenuExit
+)
+
 type clearNotificationMsg struct{}
 
 type autoSaveMsg time.Time
@@ -81,6 +97,27 @@ func (g GameModel) Init() tea.Cmd {
 
 func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
+
+	// Firstly, always allow the player to quit the game no matter the state
+	if msg, ok := msg.(tea.KeyMsg); ok && msg.String() == "ctrl+c" || msg.String() == "q" {
+		return g, tea.Quit
+	}
+
+	// The player loses the game under these conditions
+	if g.Ship.HullHealth <= 0 || g.Ship.EngineFuel <= 0 {
+		g.playerLostGame = true
+		g.activeView = ViewNone
+		g.syncSaveData()
+
+		// save the game asynchronously with a goroutine
+		go func(save *data.FullGameSave) {
+			if err := data.SaveGame(save); err != nil {
+				fmt.Println("Error auto-saving game:", err)
+			}
+		}(g.gameSave)
+
+		return g, nil // Skip everything else in Update()
+	}
 
 	if !g.autoSaveInitiated {
 		g.autoSaveInitiated = true
@@ -306,7 +343,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// First, if an active view is set, process escape.
 		if g.activeView != ViewNone && msg.String() == "esc" {
 			g.activeView = ViewNone
-			g.selectedItem = ""
+			g.selectedItem = MenuNone
 			return g, tea.Batch(cmds...)
 		}
 		if g.activeView != ViewNone {
@@ -334,8 +371,6 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// normal key handling
 		switch msg.String() {
-		case "q":
-			return g, tea.Quit
 		case "up", "k":
 			// Skip over space station if not at one
 			planet := g.gameSave.Ship.Location.GetFullPlanet(g.gameSave.GameMap)
@@ -346,7 +381,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if g.menuCursor > 0 {
 					g.menuCursor--
 				}
-				if g.menuItems[g.menuCursor] == "SpaceStation" && !hasStation {
+				if g.menuItems[g.menuCursor] == MenuSpaceStation && !hasStation {
 					continue
 				}
 				break
@@ -360,7 +395,7 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if g.menuCursor < len(g.menuItems)-1 {
 					g.menuCursor++
 				}
-				if g.menuItems[g.menuCursor] == "SpaceStation" && !hasStation {
+				if g.menuItems[g.menuCursor] == MenuSpaceStation && !hasStation {
 					continue
 				}
 				break
@@ -369,18 +404,18 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			g.notification = "" // Clear notification on menu selection
 			g.selectedItem = g.menuItems[g.menuCursor]
 			switch g.selectedItem {
-			case "Journal":
+			case MenuJournal:
 				g.activeView = ViewJournal
-			case "Crew":
+			case MenuCrew:
 				g.activeView = ViewCrew
-			case "Map":
+			case MenuMap:
 				g.Map.Ship.Location = g.Ship.Location // Ensure Map has the latest ship location before activating the view
 				g.activeView = ViewMap
-			case "Ship":
+			case MenuShip:
 				g.activeView = ViewShip
-			case "Collection": // NEW: Activate Collection view
+			case MenuCollection: // NEW: Activate Collection view
 				g.activeView = ViewCollection
-			case "SpaceStation": // NEW: Activate SpaceStation view
+			case MenuSpaceStation: // NEW: Activate SpaceStation view
 				// Check if current planet is a space station
 				planet := g.gameSave.Ship.Location.GetFullPlanet(g.gameSave.GameMap)
 				if planet.Type == "Space Station" {
@@ -621,6 +656,11 @@ func (g GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		g.TrackedMission = nil // Clear the tracked mission
 	}
 
+	// Game over: ship destroyed
+	if g.Ship.HullHealth <= 0 {
+
+	}
+
 	return g, tea.Batch(cmds...)
 }
 
@@ -636,6 +676,9 @@ func (g GameModel) View() string {
 		BorderForeground(lipgloss.Color("63"))
 
 	title := titleStyle.Render("WHAT ARE YOUR ORDERS?")
+	if g.playerLostGame {
+		title = titleStyle.Render("#[*> FATAL ERROR <*]#")
+	}
 
 	menuItemStyle := lipgloss.NewStyle().
 		Bold(true).
@@ -655,11 +698,33 @@ func (g GameModel) View() string {
 			cursor = ">"
 			style = style.Foreground(lipgloss.Color("215")) // Highlight color
 		}
-		if item == "SpaceStation" && !hasStation {
+		if item == MenuSpaceStation && !hasStation {
 			style = style.Foreground(lipgloss.Color("240")) // Gray it out
 		}
 
-		styledItem := style.Render(strings.ToUpper(item))
+		// Get display text - use corrupted text if game over
+		itemText := item.String()
+		if g.playerLostGame {
+			// Corrupt the text directly here
+			switch item {
+			case MenuJournal:
+				itemText = "J0*rn%l"
+			case MenuShip:
+				itemText = "S#!p"
+			case MenuCrew:
+				itemText = "Cr3>>"
+			case MenuMap:
+				itemText = "M<p"
+			case MenuCollection:
+				itemText = "C0ll*ct!0n"
+			case MenuSpaceStation:
+				itemText = "Sp@c3 St@t!*n"
+			case MenuExit:
+				itemText = "EX1T"
+			}
+		}
+
+		styledItem := style.Render(strings.ToUpper(itemText))
 		styledCursor := cursorStyle.Render(cursor)
 
 		menuView.WriteString(fmt.Sprintf("%s %s\n", styledCursor, styledItem))
@@ -672,7 +737,6 @@ func (g GameModel) View() string {
 		Padding(1, 2).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("63")).
-		// Align(lipgloss.Left, lipgloss.Top).
 		Render(title + "\n\n" + menuView.String())
 
 	// ---------------------------
@@ -722,8 +786,17 @@ func (g GameModel) View() string {
 		Render(statsContent)
 
 	// ---------------------------
-	// Right Panel: Yuta suggestions
+	// Right Panel: Yuta and game version
 	// ---------------------------
+
+	// Game version displayed by Yuta OS
+	// Might need to adjust the fancy chars to fit within the width when the version number grows
+	versionText := fmt.Sprintf("<== Y//UTA v%s ==>", g.Version)
+	yutaContent := g.Yuta.View()
+
+	if g.playerLostGame {
+		yutaContent = "" // Turn it blank
+	}
 
 	rightYutaPanel := lipgloss.NewStyle().
 		Width(27).
@@ -731,8 +804,7 @@ func (g GameModel) View() string {
 		Padding(1, 2).
 		Border(lipgloss.RoundedBorder()).
 		Foreground(lipgloss.Color("215")).
-		Align(lipgloss.Left).
-		Render(g.Yuta.View())
+		Render(versionText + "\n\n" + yutaContent)
 
 	// ---------------------------
 	// Bottom Panel: (Mission Details, etc.)
@@ -740,17 +812,17 @@ func (g GameModel) View() string {
 
 	var bottomPanelContent string
 	switch g.selectedItem {
-	case "Ship":
+	case MenuShip:
 		bottomPanelContent = g.Ship.View()
-	case "Crew":
+	case MenuCrew:
 		bottomPanelContent = g.Crew.View()
-	case "Journal":
+	case MenuJournal:
 		bottomPanelContent = g.Journal.View()
-	case "Map":
+	case MenuMap:
 		bottomPanelContent = g.Map.View()
-	case "Collection": // NEW: Display Collection view.
+	case MenuCollection: // NEW: Display Collection view.
 		bottomPanelContent = g.Collection.View()
-	case "SpaceStation": // NEW: Display SpaceStation view
+	case MenuSpaceStation: // NEW: Display SpaceStation view
 		bottomPanelContent = g.SpaceStation.View()
 	default:
 		// Show travel view if travelling, regardless of mission
@@ -787,6 +859,10 @@ func (g GameModel) View() string {
 		} else {
 			bottomPanelContent = "" // Clear bottom panel if nothing else is active
 		}
+
+		if g.playerLostGame {
+			bottomPanelContent = g.GameOver.View()
+		}
 	}
 	bottomPanel := lipgloss.NewStyle().
 		Width(120 - 2).
@@ -804,11 +880,7 @@ func (g GameModel) View() string {
 	if g.notification != "" {
 		contextualHint = g.notification
 	} else {
-		selected := g.selectedItem
-		if selected == "" {
-			selected = "none"
-		}
-		contextualHint = fmt.Sprintf("Selected [%s]", selected)
+		contextualHint = fmt.Sprintf("Selected [%s]", g.selectedItem.String())
 	}
 
 	leftSide := lipgloss.NewStyle().
@@ -869,7 +941,7 @@ func NewGameModel() tea.Model {
 
 	return GameModel{
 		ProgressBar:      components.NewProgressBar(),
-		menuItems:        []string{"Journal", "Ship", "Crew", "Map", "Collection", "SpaceStation", "Exit"},
+		menuItems:        []MenuItem{MenuJournal, MenuShip, MenuCrew, MenuMap, MenuCollection, MenuSpaceStation, MenuExit},
 		menuCursor:       0,
 		Ship:             shipModel,
 		Crew:             crewModel,
@@ -888,6 +960,7 @@ func NewGameModel() tea.Model {
 		locationService:  data.NewLocationService(fullSave.GameMap),
 		MissionTemplates: missionTemplates,
 		Yuta:             components.NewYutaComponent(fullSave.Ship, fullSave.Player.PlayerName, fullSave.Player.Credits, fullSave.GameMetadata.Version),
+		GameOver:         components.NewGameOverComponent(fullSave.Ship),
 	}
 }
 
@@ -911,6 +984,8 @@ func (g *GameModel) syncSaveData() {
 	g.gameSave.GameMetadata.LastSaveTime = time.Now().Format(time.RFC3339)
 
 	g.gameSave.Missions = g.Journal.Missions // Sync missions
+
+	g.gameSave.GameMetadata.GameOver = g.playerLostGame // Sync game over state
 }
 
 // helper: add elapsed duration to TotalPlayTime, normalizing seconds/minutes/hours
@@ -979,4 +1054,26 @@ func TriggerRandomEvent() tea.Cmd {
 
 type StartEventMsg struct {
 	Event *data.Event
+}
+
+// ToString method for MenuItem enum
+func (m MenuItem) String() string {
+	switch m {
+	case MenuJournal:
+		return "Journal"
+	case MenuShip:
+		return "Ship"
+	case MenuCrew:
+		return "Crew"
+	case MenuMap:
+		return "Map"
+	case MenuCollection:
+		return "Collection"
+	case MenuSpaceStation:
+		return "Space Station"
+	case MenuExit:
+		return "Exit"
+	default:
+		return ""
+	}
 }

@@ -38,10 +38,6 @@ func NewYutaComponent(ship data.Ship, playerName string, credits int, version st
 }
 
 func (m YutaComponent) View() string {
-	// Game version
-	// Might need to adjust the fancy chars to fit within the width when the version number grows
-	title := fmt.Sprintf("<== Y//UTA v%s ==>", m.Version)
-
 	var assistantText string
 
 	// Prioritized suggestions
@@ -61,8 +57,8 @@ func (m YutaComponent) View() string {
 
 	//weatherText := "Weather report: " + weatherList[1]
 
-	return fmt.Sprintf("%s\n%s\n\n%s",
-		title, assistant, assistantText)
+	return fmt.Sprintf("%s\n\n%s",
+		assistant, assistantText)
 }
 
 // TODO weather report for immersion (no gameplay effect)
