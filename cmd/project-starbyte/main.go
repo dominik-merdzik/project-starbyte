@@ -26,7 +26,7 @@ type menuModel struct {
 func main() {
 
 	// Define the relative path to your configuration file
-	configPath := "config/config.toml"
+	configPath := "GameData/config/config.toml"
 
 	// Initialize the config (ensures directory exists, creates default if missing, then loads)
 	cfg, err := configs.InitConfig(configPath)
@@ -47,9 +47,9 @@ func main() {
 	// Setup menu choices.
 	var choices []string
 	if data.SaveExists() {
-		choices = []string{"Enter Simulation", "Edit Config", "Help", "Exit"}
+		choices = []string{"Enter Game", "Edit Config", "Help", "Exit"}
 	} else {
-		choices = []string{"Start New Simulation", "Edit Config", "Help", "Exit"}
+		choices = []string{"Start New Game", "Edit Config", "Help", "Exit"}
 	}
 
 	// menuModel storing the absolute config path
@@ -85,9 +85,9 @@ func (m menuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "enter":
 			switch m.choices[m.cursor] {
-			case "Start New Simulation":
+			case "Start New Game":
 				return views.NewGameCreationModel(), tea.EnterAltScreen
-			case "Enter Simulation":
+			case "Enter Game":
 				return views.NewGameModel(), tea.EnterAltScreen
 			case "Edit Config":
 				m.output = "You can find and edit your config file at:\n" + m.configPath

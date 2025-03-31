@@ -21,7 +21,7 @@ const defaultConfigContent = `[music] # Background music configuration
 # Set to false to disable background music
 enabled = true
 # Set the volume level from 0 to 100
-volume = 25 
+volume = 15 
 
 [keybindings] # Keybindings for the game
 vim_mode = false # Set to true to enable vim keybindings

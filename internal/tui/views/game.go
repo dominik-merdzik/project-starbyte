@@ -697,7 +697,6 @@ func (g GameModel) View() string {
 	}
 
 	menuItemStyle := lipgloss.NewStyle().
-		Bold(true).
 		Foreground(lipgloss.Color("217"))
 	cursorStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("63")).
@@ -804,6 +803,8 @@ func (g GameModel) View() string {
 	// ---------------------------
 	// Right Panel: Yuta and game version
 	// ---------------------------
+
+	g.Yuta = components.NewYutaComponent(g.gameSave.Ship, g.gameSave.Player.PlayerName, g.Credits, g.Version)
 
 	// Game version displayed by Yuta OS
 	// Might need to adjust the fancy chars to fit within the width when the version number grows
