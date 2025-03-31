@@ -8,10 +8,10 @@ import (
 	"time"
 
 	configs "github.com/dominik-merdzik/project-starbyte/configs"
-	"github.com/faiface/beep"
-	"github.com/faiface/beep/effects"
-	"github.com/faiface/beep/mp3"
-	"github.com/faiface/beep/speaker"
+	"github.com/gopxl/beep/v2"
+	"github.com/gopxl/beep/v2/effects"
+	"github.com/gopxl/beep/v2/mp3"
+	"github.com/gopxl/beep/v2/speaker"
 
 	// embed the main track MP3 file (this will write the file contents to a byte slice at compile time)
 	_ "embed"
