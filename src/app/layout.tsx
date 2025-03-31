@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
-import Script from "next/script"; // 1. Import Script
+import Script from "next/script";
 import "./globals.css";
 
 const jetBrainsMono = JetBrains_Mono({
@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   title: "Project Starbyte",
   description: "Embark on an interstellar adventure in your terminal!",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/favicon.ico",
+    icon: "/favicon/favicon.ico",
+    shortcut: "/favicon/favicon.ico",
+    apple: "/favicon/favicon.ico", 
   },
   openGraph: {
     title: "Project Starbyte",
@@ -49,9 +49,6 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  verification: {
-    google: "google-site-verification=your-google-verification-code",
-  },
 };
 
 const GTM_ID = "GTM-MFLC76LK";
@@ -63,7 +60,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      {/* 2. Add the GTM <script> using next/script */}
       <Script id="google-tag-manager" strategy="afterInteractive">
         {`
           (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -75,7 +71,6 @@ export default function RootLayout({
       </Script>
 
       <body className={`${jetBrainsMono.variable} antialiased`}>
-        {/* 3. Add the GTM <noscript> tag */}
         <noscript
           dangerouslySetInnerHTML={{
             __html: `<iframe src="https://www.googletagmanager.com/ns.html?id=${GTM_ID}"
