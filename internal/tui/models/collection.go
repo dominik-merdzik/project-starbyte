@@ -37,9 +37,6 @@ type CollectionModel struct {
 
 // NewCollectionModel initializes pagination state
 func NewCollectionModel(gameSave *data.FullGameSave) CollectionModel {
-	if gameSave == nil {
-		gameSave = data.DefaultFullGameSave()
-	}
 	return CollectionModel{
 		GameSave:         gameSave,
 		notesCurrentPage: 1,
