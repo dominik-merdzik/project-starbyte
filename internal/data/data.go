@@ -18,7 +18,7 @@ func init() {
 const SaveFilePath = "temp/save.json"
 
 // We have to manually bump this for each release. We should probably automate this.
-const version = "1.0.0-beta"
+const version = "1.0.1-beta"
 
 // ---------------------
 // Save File Structures
@@ -592,8 +592,8 @@ func CreateNewFullGameSave(difficulty, shipName, playerName string) error {
 			MaxHullIntegrity:  100,
 			ShieldStrength:    50,
 			MaxShieldStrength: 50,
-			Fuel:              200,
-			MaxFuel:           200,
+			Fuel:              100,
+			MaxFuel:           100,
 			EngineHealth:      100,
 			MaxEngineHealth:   100,
 			HasFTLDrive:       false,
@@ -883,7 +883,7 @@ func DefaultFullGameSave() *FullGameSave {
 			ShieldStrength:    50,
 			MaxShieldStrength: 50,
 			Fuel:              100,
-			MaxFuel:           200,
+			MaxFuel:           100,
 			EngineHealth:      100,
 			FTLDriveHealth:    70,
 			FTLDriveCharge:    0,
