@@ -2,7 +2,7 @@ name: Build cross-platform Go project
 
 on:
   push:
-    branches: ["main"]
+    branches: ["andrew"]
 
 jobs:
   build:
@@ -29,6 +29,10 @@ jobs:
         with:
           go-version: "stable"
 
+      # This package is necessary for go module ebitengine/oto to work on Linux
+      - name: Install ALSA development package
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
       - name: Create build directory
         run: mkdir -p build/${{ matrix.GOOS }}_${{ matrix.arch }}
 
@@ -40,19 +44,11 @@ jobs:
             GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.arch }} go build -o build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte cmd/project-starbyte/main.go
           fi
 
-      - name: Set architecture display name
-        id: arch-name
-        run: |
-          if [ "${{ matrix.arch }}" = "amd64" ]; then
-            echo "ARCH_NAME=x64" >> $GITHUB_ENV
-          else
-            echo "ARCH_NAME=arm64" >> $GITHUB_ENV
-          fi
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: project-starbyte-${{ env.VERSION }}-${{ matrix.GOOS }}-${{ env.ARCH_NAME }}
+          # For example, the folder name will be: project-starbyte-1.0.0-beta-windows-amd64
+          name: project-starbyte-${{ env.VERSION }}-${{ matrix.GOOS }}-${{ matrix.arch }}
           path: |
-            build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte
-            build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte.exe
+            build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte-${{ env.VERSION }}-${{ matrix.GOOS }}-${{ matrix.arch }}
+            build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte-${{ env.VERSION }}-${{ matrix.GOOS }}-${{ matrix.arch }}.exe
