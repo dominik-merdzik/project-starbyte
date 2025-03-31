@@ -15,7 +15,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-const SaveFilePath = "GameData/save/data.json"
+const SaveFilePath = "GameData/save/save.json"
 
 // We have to manually bump this for each release. We should probably automate this.
 const version = "1.0.0-beta"

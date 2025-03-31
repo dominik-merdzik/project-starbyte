@@ -26,7 +26,7 @@ type menuModel struct {
 func main() {
 
 	// Define the relative path to your configuration file
-	configPath := "project-starbyte/config/config.toml"
+	configPath := "GameData/config/config.toml"
 
 	// Initialize the config (ensures directory exists, creates default if missing, then loads)
 	cfg, err := configs.InitConfig(configPath)

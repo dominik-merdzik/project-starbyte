@@ -7,3 +7,6 @@ config.toml
 
 # Ignore .idea folder
 .idea
+
+# Ignore game data folder
+GameData
