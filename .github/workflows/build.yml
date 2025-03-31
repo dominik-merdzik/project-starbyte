@@ -37,11 +37,12 @@ jobs:
         run: mkdir -p build/${{ matrix.GOOS }}_${{ matrix.arch }}
 
       - name: Build
+        # CGO_ENABLED=1 is necessary for the ebitengine/oto package which uses C code https://pkg.go.dev/cmd/cgo
         run: |
           if [ "${{ matrix.GOOS }}" = "windows" ]; then
-            GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.arch }} go build -o build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte.exe cmd/project-starbyte/main.go
+            CGO_ENABLED=1 GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.arch }} go build -o build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte.exe cmd/project-starbyte/main.go
           else
-            GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.arch }} go build -o build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte cmd/project-starbyte/main.go
+            CGO_ENABLED=1 GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.arch }} go build -o build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte cmd/project-starbyte/main.go
           fi
 
       - name: Upload artifact
@@ -50,5 +51,5 @@ jobs:
           # For example, the folder name will be: project-starbyte-1.0.0-beta-windows-amd64
           name: project-starbyte-${{ env.VERSION }}-${{ matrix.GOOS }}-${{ matrix.arch }}
           path: |
-            build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte-${{ env.VERSION }}-${{ matrix.GOOS }}-${{ matrix.arch }}
-            build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte-${{ env.VERSION }}-${{ matrix.GOOS }}-${{ matrix.arch }}.exe
+            build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte
+            build/${{ matrix.GOOS }}_${{ matrix.arch }}/project-starbyte.exe
